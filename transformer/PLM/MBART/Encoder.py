@@ -1,11 +1,13 @@
 #encoding: utf-8
 
+import torch
 from math import sqrt
 from torch import nn
 
 from modules.plm.mbart import PositionwiseFF, ResSelfAttn
-from transformer.PLM.BART.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase
+from transformer.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none
+from utils.plm.bart import load_plm_encoder_layer
 from utils.plm.base import copy_plm_parameter
 from utils.torch.comp import torch_no_grad
 
@@ -19,20 +21,27 @@ class EncoderLayer(EncoderLayerBase):
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
-		super(EncoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance, model_name=model_name, **kwargs)
+		super(EncoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance, **kwargs)
 
+		self.model_name = model_name
 		self.attn = ResSelfAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
 
+	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
+
+		load_plm_encoder_layer(self, plm_parameters, model_name=model_name, layer_idx=layer_idx, **kwargs)
+
 class Encoder(EncoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindDecoderEmb=True, share_layer=False, model_name="model.encoder", **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindDecoderEmb=True, share_layer=False, disable_pemb=disable_std_pemb_encoder, model_name="model.encoder", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
-		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindDecoderEmb=bindDecoderEmb, share_layer=share_layer, model_name=model_name, **kwargs)
+		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindDecoderEmb=bindDecoderEmb, share_layer=share_layer, disable_pemb=disable_pemb, **kwargs)
 
+		self.model_name = model_name
+		self.pemb = None if disable_pemb else nn.Parameter(torch.Tensor(xseql, isize).uniform_(- sqrt(2.0 / (isize + xseql)), sqrt(2.0 / (isize + xseql))))
 		self.wemb.padding_idx = pad_id
 		self.emb_normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
@@ -69,3 +78,11 @@ class Encoder(EncoderBase):
 			copy_plm_parameter(self.out_normer.bias, plm_parameters, "%s.layer_norm.bias" % _model_name)
 			for i, net in enumerate(self.nets):
 				net.load_plm(plm_parameters, model_name=_model_name, layer_idx=i, **kwargs)
+
+	def fix_init(self):
+
+		super(Encoder, self).fix_init()
+		if self.pemb is not None:
+			with torch_no_grad():
+				_ = sqrt(2.0 / sum(self.pemb.size()))
+				self.pemb.uniform_(- _, _)

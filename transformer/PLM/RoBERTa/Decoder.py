@@ -25,7 +25,7 @@ class Decoder(DecoderBase):
 		with torch_no_grad():
 			copy_plm_parameter(self.ff[0].weight, plm_parameters, "lm_head.dense.weight")
 			_bias_key = "lm_head.dense.bias"
-			if self.ff[0].bias is None and (_bias_key in plm_parameters):
+			if (self.ff[0].bias is None) and (_bias_key in plm_parameters):
 				self.ff[0].bias = nn.Parameter(torch.zeros(self.ff[0].weight.size(0)))
 			if self.ff[0].bias is not None:
 				copy_plm_parameter(self.ff[0].bias, plm_parameters, _bias_key)

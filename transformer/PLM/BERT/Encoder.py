@@ -29,13 +29,13 @@ class EncoderLayer(EncoderLayerBase):
 		with torch_no_grad():
 			copy_plm_parameter(self.attn.net.adaptor.weight, plm_parameters, ["%s.encoder.layer.%d.attention.self.query.weight" % (_model_name, layer_idx,), "%s.encoder.layer.%d.attention.self.key.weight" % (_model_name, layer_idx,), "%s.encoder.layer.%d.attention.self.value.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_bias_key = "%s.encoder.layer.%d.attention.self.query.bias" % (_model_name, layer_idx,)
-			if self.attn.net.adaptor.bias is None and (_bias_key in plm_parameters):
+			if (self.attn.net.adaptor.bias is None) and (_bias_key in plm_parameters):
 				self.attn.net.adaptor.bias = nn.Parameter(torch.zeros(self.attn.net.adaptor.weight.size(0)))
 			if self.attn.net.adaptor.bias is not None:
 				copy_plm_parameter(self.attn.net.adaptor.bias, plm_parameters, [_bias_key, "%s.encoder.layer.%d.attention.self.key.bias" % (_model_name, layer_idx,), "%s.encoder.layer.%d.attention.self.value.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			copy_plm_parameter(self.attn.net.outer.weight, plm_parameters, "%s.encoder.layer.%d.attention.output.dense.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.encoder.layer.%d.attention.output.dense.bias" % (_model_name, layer_idx,)
-			if self.attn.net.outer.bias is None and (_bias_key in plm_parameters):
+			if (self.attn.net.outer.bias is None) and (_bias_key in plm_parameters):
 				self.attn.net.outer.bias = nn.Parameter(torch.zeros(self.attn.net.outer.weight.size(0)))
 			if self.attn.net.outer.bias is not None:
 				copy_plm_parameter(self.attn.net.outer.bias, plm_parameters, _bias_key)
@@ -46,7 +46,7 @@ class EncoderLayer(EncoderLayerBase):
 			_l = self.ff.net[-2] if isinstance(self.ff.net[-1], Dropout) else self.ff.net[-1]
 			copy_plm_parameter(_l.weight, plm_parameters, "%s.encoder.layer.%d.output.dense.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.encoder.layer.%d.output.dense.bias" % (_model_name, layer_idx,)
-			if _l.bias is None and (_bias_key in plm_parameters):
+			if (_l.bias is None) and (_bias_key in plm_parameters):
 				_l.bias = nn.Parameter(torch.zeros(_l.weight.size(0)))
 			if _l.bias is not None:
 				copy_plm_parameter(_l.bias, plm_parameters, _bias_key)
@@ -55,15 +55,15 @@ class EncoderLayer(EncoderLayerBase):
 
 class Encoder(EncoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindDecoderEmb=True, num_type=num_type, share_layer=False, model_name="bert", **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindDecoderEmb=True, num_type=num_type, share_layer=False, disable_pemb=disable_std_pemb_encoder, model_name="bert", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
-		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=ahsize, norm_output=norm_output, share_layer=share_layer, **kwargs)
+		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=ahsize, norm_output=norm_output, share_layer=share_layer, disable_pemb=disable_pemb, **kwargs)
 
 		self.model_name = model_name
-		self.pemb = nn.Parameter(torch.Tensor(xseql, isize).uniform_(- sqrt(2.0 / (isize + xseql)), sqrt(2.0 / (isize + xseql))))
+		self.pemb = None if disable_pemb else nn.Parameter(torch.Tensor(xseql, isize).uniform_(- sqrt(2.0 / (isize + xseql)), sqrt(2.0 / (isize + xseql))))
 		self.temb = nn.Embedding(num_type, isize)
 
 		self.wemb.padding_idx = pad_id
@@ -107,6 +107,7 @@ class Encoder(EncoderBase):
 	def fix_init(self):
 
 		super(Encoder, self).fix_init()
-		with torch_no_grad():
-			_ = sqrt(2.0 / sum(self.pemb.size()))
-			self.pemb.uniform_(- _, _)
+		if self.pemb is not None:
+			with torch_no_grad():
+				_ = sqrt(2.0 / sum(self.pemb.size()))
+				self.pemb.uniform_(- _, _)

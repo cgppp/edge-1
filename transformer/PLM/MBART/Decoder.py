@@ -5,10 +5,11 @@ from math import sqrt
 from torch import nn
 
 from modules.plm.mbart import PositionwiseFF, ResCrossAttn, ResSelfAttn
-from transformer.PLM.BART.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
+from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
 from utils.fmt.parser import parse_none
+from utils.plm.bart import load_plm_decoder_layer
 from utils.plm.base import copy_plm_parameter
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_no_grad
@@ -24,11 +25,16 @@ class DecoderLayer(DecoderLayerBase):
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
-		super(DecoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance, model_name=model_name, **kwargs)
+		super(DecoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance, **kwargs)
 
+		self.model_name = model_name
 		self.self_attn = ResSelfAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance)
 		self.cross_attn = ResCrossAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
+
+	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
+
+		load_plm_decoder_layer(self, plm_parameters, model_name=model_name, layer_idx=layer_idx, **kwargs)
 
 class Decoder(DecoderBase):
 
@@ -39,7 +45,9 @@ class Decoder(DecoderBase):
 
 		super(Decoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=forbidden_index, share_layer=share_layer, disable_pemb=disable_pemb, **kwargs)
 
+		self.model_name = model_name
 		self.wemb.padding_idx = pad_id
+		self.pemb = None if disable_pemb else nn.Parameter(torch.Tensor(xseql, isize).uniform_(- sqrt(2.0 / (isize + xseql)), sqrt(2.0 / (isize + xseql))))
 		self.emb_normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 		if share_layer:
@@ -248,6 +256,16 @@ class Decoder(DecoderBase):
 		else:
 			bsize = inpute.size(0) if bsize is None else bsize
 			return self.wemb.weight[lang_id].view(1, 1, -1).expand(bsize, 1, -1)
+
+	def fix_init(self):
+
+		self.fix_load()
+		with torch_no_grad():
+			#self.wemb.weight[pad_id].zero_()
+			self.classifier.weight[pad_id].zero_()
+			if self.pemb is not None:
+				_ = sqrt(2.0 / sum(self.pemb.size()))
+				self.pemb.uniform_(- _, _)
 
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):
 

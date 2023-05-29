@@ -17,15 +17,15 @@ def init_fixing(module):
 		module.fix_init()
 
 print("load pre-trained models")
-tokenizer = Tokenizer(tokenizer_file="/home/ano/plm/mbart-large-cc25/tokenizer.json")
+tokenizer = Tokenizer(tokenizer_file="plm/mbart-large-cc25/tokenizer.json")
 
 tmod = NMT(cnfg.isize, vocab_size, vocab_size, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, model_name=cnfg.model_name)
 tmod.apply(init_fixing)
-tmod.load_plm(fix_parameter_name(torch.load("/home/ano/plm/mbart-large-cc25/pytorch_model.bin", map_location="cpu")))
+tmod.load_plm(fix_parameter_name(torch.load("plm/mbart-large-cc25/pytorch_model.bin", map_location="cpu")))
 tmod.eval()
 
 print("load models with transformers")
-smod = MBartForConditionalGeneration.from_pretrained("/home/ano/plm/mbart-large-cc25")
+smod = MBartForConditionalGeneration.from_pretrained("plm/mbart-large-cc25")
 smod.eval()
 
 print("forward with transformers")

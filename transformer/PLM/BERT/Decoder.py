@@ -20,9 +20,7 @@ class Decoder(nn.Module):
 		super(Decoder, self).__init__()
 
 		self.model_name = model_name
-
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
-
 		self.ff = nn.Sequential(Linear(isize, isize), Custom_Act() if use_adv_act_default else GELU(), nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters))
 		self.classifier = Linear(isize, nwd)
 		self.lsm = nn.LogSoftmax(-1)
@@ -45,7 +43,7 @@ class Decoder(nn.Module):
 		with torch_no_grad():
 			copy_plm_parameter(self.ff[0].weight, plm_parameters, "cls.predictions.transform.dense.weight")
 			_bias_key = "cls.predictions.transform.dense.bias"
-			if self.ff[0].bias is None and (_bias_key in plm_parameters):
+			if (self.ff[0].bias is None) and (_bias_key in plm_parameters):
 				self.ff[0].bias = nn.Parameter(torch.zeros(self.ff[0].weight.size(0)))
 			if self.ff[0].bias is not None:
 				copy_plm_parameter(self.ff[0].bias, plm_parameters, _bias_key)

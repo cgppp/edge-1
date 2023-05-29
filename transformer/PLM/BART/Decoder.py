@@ -5,11 +5,11 @@ from math import sqrt
 from torch import nn
 
 from modules.TA import PositionwiseFF, ResCrossAttn, ResSelfAttn
-from modules.dropout import Dropout
 from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
 from utils.fmt.parser import parse_none
+from utils.plm.bart import load_plm_decoder_layer
 from utils.plm.base import copy_plm_parameter
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_no_grad
@@ -28,60 +28,13 @@ class DecoderLayer(DecoderLayerBase):
 		super(DecoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance, **kwargs)
 
 		self.model_name = model_name
-
 		self.self_attn = ResSelfAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance, xseql=cache_len_default)
 		self.cross_attn = ResCrossAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn)
 
 	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 
-		_model_name = parse_none(model_name, self.model_name)
-		with torch_no_grad():
-			copy_plm_parameter(self.self_attn.net.adaptor.weight, plm_parameters, ["%s.layers.%d.self_attn.q_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.k_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.v_proj.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
-			_bias_key = "%s.layers.%d.self_attn.q_proj.bias" % (_model_name, layer_idx,)
-			if self.self_attn.net.adaptor.bias is None and (_bias_key in plm_parameters):
-				self.self_attn.net.adaptor.bias = nn.Parameter(torch.zeros(self.self_attn.net.adaptor.weight.size(0)))
-			if self.self_attn.net.adaptor.bias is not None:
-				copy_plm_parameter(self.self_attn.net.adaptor.bias, plm_parameters, [_bias_key, "%s.layers.%d.self_attn.k_proj.bias" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.v_proj.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
-			copy_plm_parameter(self.self_attn.net.outer.weight, plm_parameters, "%s.layers.%d.self_attn.out_proj.weight" % (_model_name, layer_idx,))
-			_bias_key = "%s.layers.%d.self_attn.out_proj.bias" % (_model_name, layer_idx,)
-			if self.self_attn.net.outer.bias is None and (_bias_key in plm_parameters):
-				self.self_attn.net.outer.bias = nn.Parameter(torch.zeros(self.self_attn.net.outer.weight.size(0)))
-			if self.self_attn.net.outer.bias is not None:
-				copy_plm_parameter(self.self_attn.net.outer.bias, plm_parameters, _bias_key)
-			copy_plm_parameter(self.self_attn.normer.weight, plm_parameters, "%s.layers.%d.self_attn_layer_norm.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.self_attn.normer.bias, plm_parameters, "%s.layers.%d.self_attn_layer_norm.bias" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.cross_attn.net.query_adaptor.weight, plm_parameters, "%s.layers.%d.encoder_attn.q_proj.weight" % (_model_name, layer_idx,))
-			_bias_key = "%s.layers.%d.encoder_attn.q_proj.bias" % (_model_name, layer_idx,)
-			if self.cross_attn.net.query_adaptor.bias is None and (_bias_key in plm_parameters):
-				self.cross_attn.net.query_adaptor.bias = nn.Parameter(torch.zeros(self.cross_attn.net.query_adaptor.weight.size(0)))
-			if self.cross_attn.net.query_adaptor.bias is not None:
-				copy_plm_parameter(self.cross_attn.net.query_adaptor.bias, plm_parameters, _bias_key)
-			copy_plm_parameter(self.cross_attn.net.kv_adaptor.weight, plm_parameters, ["%s.layers.%d.encoder_attn.k_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.encoder_attn.v_proj.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
-			_bias_key = "%s.layers.%d.encoder_attn.k_proj.bias" % (_model_name, layer_idx,)
-			if self.cross_attn.net.kv_adaptor.bias is None and (_bias_key in plm_parameters):
-				self.cross_attn.net.kv_adaptor.bias = nn.Parameter(torch.zeros(self.cross_attn.net.kv_adaptor.weight.size(0)))
-			if self.cross_attn.net.kv_adaptor.bias is not None:
-				copy_plm_parameter(self.cross_attn.net.kv_adaptor.bias, plm_parameters, [_bias_key, "%s.layers.%d.encoder_attn.v_proj.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
-			copy_plm_parameter(self.cross_attn.net.outer.weight, plm_parameters, "%s.layers.%d.encoder_attn.out_proj.weight" % (_model_name, layer_idx,))
-			_bias_key = "%s.layers.%d.encoder_attn.out_proj.bias" % (_model_name, layer_idx,)
-			if self.cross_attn.net.outer.bias is None and (_bias_key in plm_parameters):
-				self.cross_attn.net.outer.bias = nn.Parameter(torch.zeros(self.cross_attn.net.outer.weight.size(0)))
-			if self.cross_attn.net.outer.bias is not None:
-				copy_plm_parameter(self.cross_attn.net.outer.bias, plm_parameters, _bias_key)
-			copy_plm_parameter(self.cross_attn.normer.weight, plm_parameters, "%s.layers.%d.encoder_attn_layer_norm.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.cross_attn.normer.bias, plm_parameters, "%s.layers.%d.encoder_attn_layer_norm.bias" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.net[0].weight, plm_parameters, "%s.layers.%d.fc1.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.net[0].bias, plm_parameters, "%s.layers.%d.fc1.bias" % (_model_name, layer_idx,))
-			_l = self.ff.net[-2] if isinstance(self.ff.net[-1], Dropout) else self.ff.net[-1]
-			copy_plm_parameter(_l.weight, plm_parameters, "%s.layers.%d.fc2.weight" % (_model_name, layer_idx,))
-			_bias_key = "%s.layers.%d.fc2.bias" % (_model_name, layer_idx,)
-			if _l.bias is None and (_bias_key in plm_parameters):
-				_l.bias = nn.Parameter(torch.zeros(_l.weight.size(0)))
-			if _l.bias is not None:
-				copy_plm_parameter(_l.bias, plm_parameters, _bias_key)
-			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.layers.%d.final_layer_norm.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.normer.bias, plm_parameters, "%s.layers.%d.final_layer_norm.bias" % (_model_name, layer_idx,))
+		load_plm_decoder_layer(self, plm_parameters, model_name=model_name, layer_idx=layer_idx, **kwargs)
 
 class Decoder(DecoderBase):
 
@@ -295,6 +248,9 @@ class Decoder(DecoderBase):
 		with torch_no_grad():
 			#self.wemb.weight[pad_id].zero_()
 			self.classifier.weight[pad_id].zero_()
+			if self.pemb is not None:
+				_ = sqrt(2.0 / sum(self.pemb.size()))
+				self.pemb.uniform_(- _, _)
 
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):
 

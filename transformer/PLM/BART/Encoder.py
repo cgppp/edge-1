@@ -1,12 +1,14 @@
 #encoding: utf-8
 
 import torch
+from math import sqrt
 from torch import nn
 
 from modules.TA import PositionwiseFF
-from modules.dropout import Dropout
-from transformer.PLM.BERT.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase
+from transformer.Encoder import Encoder as EncoderBase
+from transformer.PLM.BERT.Encoder import EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none
+from utils.plm.bart import load_plm_encoder_layer
 from utils.plm.base import copy_plm_parameter
 from utils.torch.comp import torch_no_grad
 
@@ -26,45 +28,20 @@ class EncoderLayer(EncoderLayerBase):
 
 	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 
-		_model_name = parse_none(model_name, self.model_name)
-		with torch_no_grad():
-			copy_plm_parameter(self.attn.net.adaptor.weight, plm_parameters, ["%s.layers.%d.self_attn.q_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.k_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.v_proj.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
-			_bias_key = "%s.layers.%d.self_attn.q_proj.bias" % (_model_name, layer_idx,)
-			if self.attn.net.adaptor.bias is None and (_bias_key in plm_parameters):
-				self.attn.net.adaptor.bias = nn.Parameter(torch.zeros(self.attn.net.adaptor.weight.size(0)))
-			if self.attn.net.adaptor.bias is not None:
-				copy_plm_parameter(self.attn.net.adaptor.bias, plm_parameters, [_bias_key, "%s.layers.%d.self_attn.k_proj.bias" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.v_proj.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
-			copy_plm_parameter(self.attn.net.outer.weight, plm_parameters, "%s.layers.%d.self_attn.out_proj.weight" % (_model_name, layer_idx,))
-			_bias_key = "%s.layers.%d.self_attn.out_proj.bias" % (_model_name, layer_idx,)
-			if self.attn.net.outer.bias is None and (_bias_key in plm_parameters):
-				self.attn.net.outer.bias = nn.Parameter(torch.zeros(self.attn.net.outer.weight.size(0)))
-			if self.attn.net.outer.bias is not None:
-				copy_plm_parameter(self.attn.net.outer.bias, plm_parameters, _bias_key)
-			copy_plm_parameter(self.attn.normer.weight, plm_parameters, "%s.layers.%d.self_attn_layer_norm.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.attn.normer.bias, plm_parameters, "%s.layers.%d.self_attn_layer_norm.bias" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.net[0].weight, plm_parameters, "%s.layers.%d.fc1.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.net[0].bias, plm_parameters, "%s.layers.%d.fc1.bias" % (_model_name, layer_idx,))
-			_l = self.ff.net[-2] if isinstance(self.ff.net[-1], Dropout) else self.ff.net[-1]
-			copy_plm_parameter(_l.weight, plm_parameters, "%s.layers.%d.fc2.weight" % (_model_name, layer_idx,))
-			_bias_key = "%s.layers.%d.fc2.bias" % (_model_name, layer_idx,)
-			if _l.bias is None and (_bias_key in plm_parameters):
-				_l.bias = nn.Parameter(torch.zeros(_l.weight.size(0)))
-			if _l.bias is not None:
-				copy_plm_parameter(_l.bias, plm_parameters, _bias_key)
-			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.layers.%d.final_layer_norm.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.normer.bias, plm_parameters, "%s.layers.%d.final_layer_norm.bias" % (_model_name, layer_idx,))
+		load_plm_encoder_layer(self, plm_parameters, model_name=model_name, layer_idx=layer_idx, **kwargs)
 
 class Encoder(EncoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindDecoderEmb=True, share_layer=False, model_name="encoder", **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindDecoderEmb=True, share_layer=False, disable_pemb=disable_std_pemb_encoder, model_name="encoder", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
-		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindDecoderEmb=bindDecoderEmb, share_layer=share_layer, model_name=model_name, **kwargs)
+		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindDecoderEmb=bindDecoderEmb, share_layer=share_layer, disable_pemb=disable_pemb, **kwargs)
 
+		self.model_name = model_name
+		self.pemb = None if disable_pemb else nn.Parameter(torch.Tensor(xseql, isize).uniform_(- sqrt(2.0 / (isize + xseql)), sqrt(2.0 / (isize + xseql))))
 		self.wemb.padding_idx = pad_id
-		self.temb = None
 
 		if share_layer:
 			_shared_layer = EncoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, model_name=model_name)
@@ -98,3 +75,11 @@ class Encoder(EncoderBase):
 			copy_plm_parameter(self.out_normer.bias, plm_parameters, "%s.layernorm_embedding.bias" % _model_name)
 			for i, net in enumerate(self.nets):
 				net.load_plm(plm_parameters, model_name=_model_name, layer_idx=i, **kwargs)
+
+	def fix_init(self):
+
+		super(Encoder, self).fix_init()
+		if self.pemb is not None:
+			with torch_no_grad():
+				_ = sqrt(2.0 / sum(self.pemb.size()))
+				self.pemb.uniform_(- _, _)
