@@ -273,13 +273,16 @@ class Decoder(DecoderBase):
 				for ind, fblu in enumerate(self.fbl):
 					self.classifier.bias[ind].index_fill_(0, torch.as_tensor(fblu, dtype=torch.long, device=self.classifier.bias.device), -inf_default)
 
-	def update_vocab(self, indices):
+	def update_vocab(self, indices, wemb_weight=None):
 
-		_nwd = len(indices)
+		_nwd = indices.numel()
 		_wemb = nn.Embedding(_nwd, self.wemb.weight.size(-1), padding_idx=self.wemb.padding_idx)
 		_classifier = MBLinear(self.classifier.weight.size(-1), _nwd, self.classifier.bias.size(0))
 		with torch_no_grad():
-			_wemb.weight.copy_(self.wemb.weight.index_select(0, indices))
+			if wemb_weight is None:
+				_wemb.weight.copy_(self.wemb.weight.index_select(0, indices))
+			else:
+				_wemb.weight = wemb_weight
 			if self.classifier.weight.is_set_to(self.wemb.weight):
 				_classifier.weight = _wemb.weight
 			else:

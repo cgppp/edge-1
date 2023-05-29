@@ -507,15 +507,22 @@ class Decoder(nn.Module):
 				_new_w.data.copy_(_tmp.data)
 			self.classifier.weight = _new_w
 
-	# this function will untie the decoder embedding from the encoder
+	def get_embedding_weight(self):
 
-	def update_vocab(self, indices):
+		return self.wemb.weight
+
+	# this function will untie the decoder embedding from the encoder if wemb_weight is None
+
+	def update_vocab(self, indices, wemb_weight=None):
 
 		_nwd = indices.numel()
 		_wemb = nn.Embedding(_nwd, self.wemb.weight.size(-1), padding_idx=self.wemb.padding_idx)
 		_classifier = Linear(self.classifier.weight.size(-1), _nwd, bias=self.classifier.bias is not None)
 		with torch_no_grad():
-			_wemb.weight.copy_(self.wemb.weight.index_select(0, indices))
+			if wemb_weight is None:
+				_wemb.weight.copy_(self.wemb.weight.index_select(0, indices))
+			else:
+				_wemb.weight = wemb_weight
 			if self.classifier.weight.is_set_to(self.wemb.weight):
 				_classifier.weight = _wemb.weight
 			else:

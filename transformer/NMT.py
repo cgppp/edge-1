@@ -80,10 +80,16 @@ class NMT(nn.Module):
 
 	def update_vocab(self, src_indices=None, tgt_indices=None):
 
-		if (src_indices is not None) and hasattr(self.enc, "update_vocab"):
-			self.enc.update_vocab(src_indices)
-		if (tgt_indices is not None) and hasattr(self.dec, "update_vocab"):
-			self.dec.update_vocab(tgt_indices)
+		_share_emb, _sembw = False, None
+		_update_src, _update_tgt = src_indices is not None, tgt_indices is not None
+		if _update_src and _update_tgt and src_indices.equal(tgt_indices) and hasattr(self.enc, "get_embedding_weight") and hasattr(self.dec, "get_embedding_weight"):
+			_share_emb = self.enc.get_embedding_weight().is_set_to(self.dec.get_embedding_weight())
+		if _update_src and hasattr(self.enc, "update_vocab"):
+			_ = self.enc.update_vocab(src_indices)
+			if _share_emb:
+				_sembw = _
+		if _update_tgt and hasattr(self.dec, "update_vocab"):
+			self.dec.update_vocab(tgt_indices, wemb_weight=_sembw)
 
 	def update_classifier(self, *args, **kwargs):
 

@@ -45,9 +45,15 @@ class Encoder(EncoderBase):
 		with torch_no_grad():
 			self.wemb.weight.data[pad_id].zero_()
 
+	def get_embedding_weight(self):
+
+		return self.wemb.weight.data
+
 	def update_vocab(self, indices):
 
-		_wemb = Embedding(len(indices), self.wemb.weight.data.size(-1), padding_idx=pad_id)
+		_wemb = Embedding(indices.numel(), self.wemb.weight.data.size(-1), padding_idx=self.wemb.padding_idx)
 		with torch_no_grad():
 			_wemb.weight.data.copy_(self.wemb.weight.data.index_select(0, indices))
 		self.wemb = _wemb
+
+		return self.wemb.weight

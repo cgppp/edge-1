@@ -68,13 +68,20 @@ class Decoder(DecoderBase):
 
 		return self.wemb.weight()[1].view(1, 1, -1).expand(bsize, 1, -1)
 
-	def update_vocab(self, indices):
+	def get_embedding_weight(self):
 
-		_nwd = len(indices)
+		return self.wemb.weight.data
+
+	def update_vocab(self, indices, wemb_weight=None):
+
+		_nwd = indices.numel()
 		_wemb = Embedding(_nwd, self.wemb.weight.data.size(-1), padding_idx=pad_id)
 		_classifier = LinearBn(self.classifier.weight.data.size(-1), _nwd)
 		with torch_no_grad():
-			_wemb.weight.data.copy_(self.wemb.weight.data.index_select(0, indices))
+			if wemb_weight is None:
+				_wemb.weight.data.copy_(self.wemb.weight.data.index_select(0, indices))
+			else:
+				_wemb.weight = wemb_weight
 			if self.classifier.weight.data.is_set_to(self.wemb.weight.data):
 				_classifier.weight = _wemb.weight
 			else:

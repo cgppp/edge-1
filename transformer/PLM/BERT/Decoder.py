@@ -56,6 +56,23 @@ class Decoder(nn.Module):
 			copy_plm_parameter(self.pooler[0].weight, plm_parameters, "%s.pooler.dense.weight" % _model_name)
 			copy_plm_parameter(self.pooler[0].bias, plm_parameters, "%s.pooler.dense.bias" % _model_name)
 
+	def get_embedding_weight(self):
+
+		return self.classifier.weight
+
+	def update_vocab(self, indices, wemb_weight=None):
+
+		_nwd = indices.numel()
+		_classifier = Linear(self.classifier.weight.size(-1), _nwd, bias=self.classifier.bias is not None)
+		with torch_no_grad():
+			if wemb_weight is None:
+				_classifier.weight.copy_(self.classifier.weight.index_select(0, indices))
+			else:
+				_classifier.weight = wemb_weight
+			if self.classifier.bias is not None:
+				_classifier.bias.copy_(self.classifier.bias.index_select(0, indices))
+		self.classifier = _classifier
+
 	def update_classifier(self, indices):
 
 		_nwd = indices.numel()

@@ -95,7 +95,12 @@ class Encoder(nn.Module):
 
 		return rs
 
+	def get_embedding_weight(self):
+
+		return self.enc.get_embedding_weight()
+
 	def update_vocab(self, indices):
 
 		self.context_enc.update_vocab(indices)
-		self.enc.update_vocab(indices)
+
+		return self.enc.update_vocab(indices)

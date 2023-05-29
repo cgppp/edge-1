@@ -149,6 +149,10 @@ class Encoder(nn.Module):
 
 		return self.pad_mask.narrow(-1, 0, seql) if seql <= self.xseql else torch.cat((self.pad_mask, self.pad_mask.new_ones(1, 1, self.nprev_context - 1, seql - self.xseql),), dim=-1)
 
+	def get_embedding_weight(self):
+
+		return self.enc.get_embedding_weight()
+
 	def update_vocab(self, indices):
 
-		self.context_enc.update_vocab(indices)
+		return self.enc.update_vocab(indices)

@@ -14,6 +14,7 @@ from utils.io import load_model_cpu, save_model
 
 import cnfg.base as cnfg
 from cnfg.ihyp import *
+from cnfg.vocab.base import pad_id
 
 def handle(common, src, tgt, srcm, rsm, minfreq=False, vsize=False):
 
@@ -24,13 +25,13 @@ def handle(common, src, tgt, srcm, rsm, minfreq=False, vsize=False):
 	else:
 		vcbw, nword = ldvocab(src, minf=minfreq, omit_vsize=vsize, vanilla=False)
 		vcbw = reverse_dict(vcbw)
-		src_indices = torch.as_tensor([vcbc.get(vcbw[i], 0) for i in range(nword)], dtype=torch.long)
+		src_indices = torch.as_tensor([vcbc.get(vcbw[i], pad_id) for i in range(nword)], dtype=torch.long)
 	if tgt == common:
 		tgt_indices = None
 	else:
 		vcbw, nword = ldvocab(tgt, minf=minfreq, omit_vsize=vsize, vanilla=False)
 		vcbw = reverse_dict(vcbw)
-		tgt_indices = torch.as_tensor([vcbc.get(vcbw[i], 0) for i in range(nword)], dtype=torch.long)
+		tgt_indices = torch.as_tensor([vcbc.get(vcbw[i], pad_id) for i in range(nword)], dtype=torch.long)
 
 	mymodel = NMT(cnfg.isize, nwordf, nwordf, cnfg.nlayer, cnfg.ff_hsize, cnfg.drop, cnfg.attn_drop, cnfg.act_drop, cnfg.share_emb, cnfg.nhead, cache_len_default, cnfg.attn_hsize, cnfg.norm_output, cnfg.bindDecoderEmb, cnfg.forbidden_indexes)
 	mymodel = load_model_cpu(srcm, mymodel)

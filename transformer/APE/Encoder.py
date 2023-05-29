@@ -88,16 +88,15 @@ class Encoder(nn.Module):
 
 		return enc_src, self.tgt_enc(enc_src, inputo, src_mask, tgt_mask)
 
+	def get_embedding_weight(self):
+
+		return self.enc_src.get_embedding_weight()
+
 	def update_vocab(self, indices):
 
 		_bind_emb = self.src_enc.wemb.weight.is_set_to(self.tgt_enc.wemb.weight)
-		_swemb = nn.Embedding(len(indices), self.src_enc.wemb.weight.size(-1), padding_idx=pad_id)
-		_twemb = nn.Embedding(len(indices), self.tgt_enc.wemb.weight.size(-1), padding_idx=pad_id)
-		with torch_no_grad():
-			_swemb.weight.copy_(self.src_enc.wemb.weight.index_select(0, indices))
+		_ = self.src_enc.update_vocab(indices)
 		if _bind_emb:
-			_twemb.weight = _swemb.weight
-		else:
-			with torch_no_grad():
-				_twemb.weight.copy_(self.tgt_enc.wemb.weight.index_select(0, indices))
-		self.src_enc.wemb, self.tgt_enc.wemb = _swemb, _twemb
+			self.tgt_enc.wemb.weight = _
+
+		return _
