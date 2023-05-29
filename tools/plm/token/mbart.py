@@ -3,7 +3,7 @@
 import sys
 from transformers import MBartTokenizerFast as Tokenizer
 
-from utils.fmt.plm.token import map_file as map_func
+from utils.fmt.plm.token import tokenize_file as map_func
 
 def handle(fsrc, vcb, frs, lang):
 
