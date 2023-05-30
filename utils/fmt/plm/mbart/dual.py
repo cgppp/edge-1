@@ -5,16 +5,19 @@ from math import ceil
 from utils.fmt.base import get_bsize, iter_to_int, list_reader as file_reader
 from utils.fmt.plm.dual import batch_padder as batch_padder_base
 
-from cnfg.vocab.plm.mbart import pad_id, shift_target_lang_id
+from cnfg.vocab.plm.mbart import add_sos_id, pad_id, shift_target_lang_id
 
-def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, get_bsize=get_bsize, file_reader=file_reader, shift_target_lang_id=shift_target_lang_id, **kwargs):
+def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, get_bsize=get_bsize, file_reader=file_reader, shift_target_lang_id=shift_target_lang_id, add_sos_id=add_sos_id, **kwargs):
 
 	_f_maxpart = float(maxpart)
 	rsi = []
 	rst = []
 	nd = maxlen = mlen_i = mlen_t = 0
+	_add_sos_id = isinstance(add_sos_id, int)
 	for i_d, td in zip(file_reader(finput, keep_empty_line=True), file_reader(ftarget, keep_empty_line=True)):
 		i_d, td = list(iter_to_int(i_d)), list(iter_to_int(td))
+		if _add_sos_id:
+			td.insert(0, add_sos_id)
 		if shift_target_lang_id:
 			td.insert(0, td.pop(-1))
 		lid = len(i_d)
