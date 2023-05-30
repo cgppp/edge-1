@@ -14,22 +14,22 @@ def map_line_with_token_type(lin, processor):
 
 	return " ".join(iter_to_str(_.input_ids)), " ".join(iter_to_str(_.token_type_ids))
 
-def tokenize_file(fsrc, frs, processor=None):
+def tokenize_file(fsrc, frs, processor=None, process_func=tokenize_line):
 
-	return loop_file_so(fsrc, frs, process_func=tokenize_line, processor=processor)
+	return loop_file_so(fsrc, frs, process_func=process_func, processor=processor)
 
-def map_file(fsrc, frs, processor=None):
+def map_file(fsrc, frs, processor=None, process_func=map_line):
 
-	return loop_file_so(fsrc, frs, process_func=map_line, processor=processor)
+	return loop_file_so(fsrc, frs, process_func=process_func, processor=processor)
 
-def map_file_with_token_type(fsrc, frsi, frst, processor=None):
+def map_file_with_token_type(fsrc, frsi, frst, processor=None, process_func=map_line_with_token_type):
 
 	ens = "\n".encode("utf-8")
 	with sys_open(fsrc, "rb") as frd, sys_open(frsi, "wb") as fwrti, sys_open(frst, "wb") as fwrtt:
 		for line in frd:
 			tmp = line.strip()
 			if tmp:
-				_input_ids, _token_type_ids = map_line_with_token_type(tmp.decode("utf-8"), processor)
+				_input_ids, _token_type_ids = process_func(tmp.decode("utf-8"), processor)
 				fwrti.write(_input_ids.encode("utf-8"))
 				fwrti.write(ens)
 				fwrtt.write(_token_type_ids.encode("utf-8"))
@@ -38,6 +38,6 @@ def map_file_with_token_type(fsrc, frsi, frst, processor=None):
 				fwrti.write(ens)
 				fwrtt.write(ens)
 
-def map_back_file(fsrc, frs, processor=None):
+def map_back_file(fsrc, frs, processor=None, process_func=detokenize_line):
 
-	return loop_file_so(fsrc, frs, process_func=detokenize_line, processor=processor)
+	return loop_file_so(fsrc, frs, process_func=process_func, processor=processor)
