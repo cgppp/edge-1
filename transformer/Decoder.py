@@ -498,6 +498,14 @@ class Decoder(nn.Module):
 			with torch_no_grad():
 				self.classifier.bias.index_fill_(0, torch.as_tensor(self.fbl, dtype=torch.long, device=self.classifier.bias.device), -inf_default)
 
+	def unbind_emb(self):
+
+		_bind_classifier_weight = self.classifier.weight.is_set_to(self.wemb.weight)
+		with torch_no_grad():
+			self.wemb.weight = nn.Parameter(self.wemb.weight.clone())
+		if _bind_classifier_weight:
+			self.classifier.weight = self.wemb.weight
+
 	def unbind_classifier_weight(self):
 
 		if self.classifier.weight.is_set_to(self.wemb.weight):
