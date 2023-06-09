@@ -89,7 +89,7 @@ class Handler:
 		self.use_amp = cnfg.use_amp and self.use_cuda
 		self.beam_size = cnfg.beam_size
 		self.length_penalty = cnfg.length_penalty
-		self.op_keep_bias = op_keep_bias
+		self.op_keep_bias = cnfg.op_keep_bias
 
 	def __call__(self, sentences_iter, **kwargs):
 
