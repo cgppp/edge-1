@@ -89,6 +89,7 @@ class Handler:
 		self.use_amp = cnfg.use_amp and self.use_cuda
 		self.beam_size = cnfg.beam_size
 		self.length_penalty = cnfg.length_penalty
+		self.op_keep_bias = op_keep_bias
 
 	def __call__(self, sentences_iter, **kwargs):
 
@@ -100,7 +101,7 @@ class Handler:
 			for seq_batch in batch_padder(_sorted_token_ids, self.bsize, self.maxpad, self.maxpart, self.maxtoken, self.minbsize, batch_loader=batch_loader):
 				_seq_batch = torch.as_tensor(seq_batch, dtype=torch.long, device=_cuda_device)
 				with torch_autocast(enabled=_use_amp):
-					output = self.net.decode(_seq_batch, beam_size=self.beam_size, max_len=None, length_penalty=self.length_penalty)
+					output = self.net.decode(_seq_batch, beam_size=self.beam_size, max_len=None, length_penalty=self.length_penalty, op_keep_bias=self.op_keep_bias)
 				if _multi_gpu:
 					tmp = []
 					for ou in output:

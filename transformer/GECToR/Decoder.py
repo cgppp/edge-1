@@ -8,17 +8,20 @@ from transformer.PLM.BERT.Decoder import Decoder as DecoderBase
 from utils.torch.comp import torch_no_grad
 
 from cnfg.gec.gector import forbidden_indexes, label_smoothing, use_smooth_op_loss
-from cnfg.vocab.gector.op import pad_id as op_pad_id, vocab_size as num_op
+from cnfg.vocab.gector.op import keep_id as op_keep_id, pad_id as op_pad_id, vocab_size as num_op
 from cnfg.vocab.plm.custbert import pad_id as mlm_pad_id, vocab_size as mlm_vocab_size
 
 class Decoder(DecoderBase):
 
-	def forward(self, inpute, mlm_mask=None, tgt=None, prediction=False, **kwargs):
+	def forward(self, inpute, mlm_mask=None, tgt=None, prediction=False, op_keep_bias=0.0, **kwargs):
 
 		out = self.ff(inpute)
 		out_op = self.op_classifier(out)
 		out_mlm = None if mlm_mask is None else self.classifier(out[mlm_mask])
 		if prediction:
+			if op_keep_bias != 0.0:
+				out_op = out_op.softmax(-1)
+				out_op.select(-1, op_keep_id).add_(op_keep_bias)
 			tag_out = out_op.argmax(-1)
 			if mlm_mask is not None:
 				tag_out[mlm_mask] = out_mlm.argmax(-1)

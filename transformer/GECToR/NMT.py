@@ -46,7 +46,7 @@ class NMT(NMTBase):
 
 		return self.dec(self.enc(inpute, edit=edit, token_types=token_types, mask=_mask), mlm_mask=_mlm_mask, tgt=tgt, prediction=prediction)
 
-	def decode(self, inpute, beam_size=1, max_len=None, length_penalty=0.0, pad_id=pad_id, mask_id=mask_id, edit_pad_id=edit_pad_id, blank_id=blank_id, delete_id=delete_id, **kwargs, **kwargs):
+	def decode(self, inpute, beam_size=1, max_len=None, length_penalty=0.0, op_keep_bias=0.0, pad_id=pad_id, mask_id=mask_id, edit_pad_id=edit_pad_id, blank_id=blank_id, delete_id=delete_id, **kwargs, **kwargs):
 
 		_max_len = max(32, inpute.size(1) // 4) if max_len is None else max_len
 
@@ -64,7 +64,7 @@ class NMT(NMTBase):
 					_mlm_mask = None
 			else:
 				_mlm_mask = None
-			_tag_out = self.dec(self.enc(_inpute, edit=_edit, mask=_pad_mask.unsqueeze(1)), mlm_mask=_mlm_mask, tgt=None, prediction=True)[-1]
+			_tag_out = self.dec(self.enc(_inpute, edit=_edit, mask=_pad_mask.unsqueeze(1)), mlm_mask=_mlm_mask, tgt=None, prediction=True, op_keep_bias=op_keep_bias)[-1]
 			_keep_mask = _tag_out.eq(keep_id) | _inpute.eq(eos_id)
 			done_trans = torch_all_dim(_keep_mask | _tag_out.eq(delete_id) | _pad_mask, -1)
 			if torch_any_wodim(done_trans).item():

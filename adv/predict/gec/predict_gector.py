@@ -65,6 +65,7 @@ mymodel = torch_compile(mymodel, *torch_compile_args, **torch_compile_kwargs)
 
 beam_size = cnfg.beam_size
 length_penalty = cnfg.length_penalty
+op_keep_bias = cnfg.op_keep_bias
 
 ens = "\n".encode("utf-8")
 
@@ -76,7 +77,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 			seq_batch = seq_batch.to(cuda_device, non_blocking=True)
 		seq_batch = seq_batch.long()
 		with torch_autocast(enabled=use_amp):
-			output = mymodel.decode(seq_batch, beam_size=beam_size, max_len=None, length_penalty=length_penalty)
+			output = mymodel.decode(seq_batch, beam_size=beam_size, max_len=None, length_penalty=length_penalty, op_keep_bias=op_keep_bias)
 		if multi_gpu:
 			tmp = []
 			for ou in output:

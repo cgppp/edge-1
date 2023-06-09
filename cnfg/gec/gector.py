@@ -9,6 +9,7 @@ plm_vcb = None
 
 use_smooth_op_loss = label_smoothing
 token_drop = 0.0
+op_keep_bias = 0.0
 
 noise_char = None
 noise_vcb = None
