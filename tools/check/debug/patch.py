@@ -13,7 +13,7 @@ def apply_patch(line, rules):
 	patched = 0
 	rs = line
 	for fstr, src, tgt in rules:
-		if fstr is None or line.find(fstr) >= 0:
+		if (fstr is None) or line.find(fstr) >= 0:
 			if line.find(src) >= 0:
 				rs = rs.replace(src, tgt)
 				patched += 1
