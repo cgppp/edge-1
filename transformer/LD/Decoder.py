@@ -25,6 +25,7 @@ class DecoderLayer(DecoderLayerBase):
 
 		super(DecoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, **kwargs)
 
+		self.layer_normer1 = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.cattn = CrossAttn(isize, _ahsize, isize, num_head, dropout=attn_drop)
 
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop)
@@ -105,7 +106,7 @@ class Decoder(DecoderBase):
 		states = {}
 
 		for _tmp, (net, inputu, inputhu) in enumerate(zip(self.nets, inpute.unbind(dim=-1), inputh.unbind(dim=-1))):
-			out, _state = net(inputu, inputhu, None, src_pad_mask, chk_pad_mask, None, out, True)
+			out, _state = net(inputu, inputhu, (None, None,), src_pad_mask, chk_pad_mask, None, out)
 			states[_tmp] = _state
 
 		out = self.classifier(out)
@@ -126,7 +127,7 @@ class Decoder(DecoderBase):
 			out = self.out_normer(out)
 
 			for _tmp, (net, inputu, inputhu) in enumerate(zip(self.nets, inpute.unbind(dim=-1), inputh.unbind(dim=-1))):
-				out, _state = net(inputu, inputhu, states[_tmp], src_pad_mask, chk_pad_mask, None, out, True)
+				out, _state = net(inputu, inputhu, states[_tmp], src_pad_mask, chk_pad_mask, None, out)
 				states[_tmp] = _state
 
 			out = self.classifier(out)
@@ -166,7 +167,7 @@ class Decoder(DecoderBase):
 		states = {}
 
 		for _tmp, (net, inputu, inputhu) in enumerate(zip(self.nets, inpute.unbind(dim=-1), inputh.unbind(dim=-1))):
-			out, _state = net(inputu, inputhu, None, src_pad_mask, chk_pad_mask, None, out, True)
+			out, _state = net(inputu, inputhu, (None, None,), src_pad_mask, chk_pad_mask, None, out)
 			states[_tmp] = _state
 
 		out = self.lsm(self.classifier(out))
@@ -200,7 +201,7 @@ class Decoder(DecoderBase):
 			out = self.out_normer(out)
 
 			for _tmp, (net, inputu, inputhu) in enumerate(zip(self.nets, inpute.unbind(dim=-1), inputh.unbind(dim=-1))):
-				out, _state = net(inputu, inputhu, states[_tmp], _src_pad_mask, _chk_pad_mask, None, out, True)
+				out, _state = net(inputu, inputhu, states[_tmp], _src_pad_mask, _chk_pad_mask, None, out)
 				states[_tmp] = _state
 
 			out = self.lsm(self.classifier(out)).view(bsize, beam_size, -1)
