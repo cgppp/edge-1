@@ -19,7 +19,8 @@ def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, ge
 		i_d, td = list(iter_to_int(i_d)), float(td)
 		lgth = len(i_d)
 		if maxlen == 0:
-			maxlen = lgth + min(maxpad, ceil(lgth / _f_maxpart))
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
 			_bsize = get_bsize(maxlen, maxtoken, bsize)
 		if (nd < minbsize) or (lgth <= maxlen and nd < _bsize):
 			rsi.append(i_d)
@@ -32,7 +33,8 @@ def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, ge
 			rsi = [i_d]
 			rst = [td]
 			mlen_i = lgth
-			maxlen = lgth + min(maxpad, ceil(lgth / _f_maxpart))
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
 			_bsize = get_bsize(maxlen, maxtoken, bsize)
 			nd = 1
 	if rsi:

@@ -23,7 +23,7 @@ def batch_loader_many(filelist, bsize, maxpad, maxpart, maxtoken, minbsize, get_
 			_maxpad = max(1, min(maxpad, ceil(lgth / _f_maxpart)) // 2)
 			maxlen = lgth + _maxpad
 			minlen = lgth - _maxpad
-			_bsize = max(1, get_bsize(maxlen, maxtoken, bsize) // cur_nsent)
+			_bsize = max(1, get_bsize(lgth + _maxpad * len(lens), maxtoken, bsize) // cur_nsent)
 			mlen = lens
 		if (cur_nsent == nsent) and ((nd < minbsize) or (lgth <= maxlen and lgth >= minlen and nd < _bsize)):
 			for line, rsu in zip(lines, rs):
@@ -40,7 +40,7 @@ def batch_loader_many(filelist, bsize, maxpad, maxpart, maxtoken, minbsize, get_
 			_maxpad = max(1, min(maxpad, ceil(lgth / _f_maxpart)) // 2)
 			maxlen = lgth + _maxpad
 			minlen = lgth - _maxpad
-			_bsize = max(1, get_bsize(maxlen, maxtoken, bsize) // cur_nsent)
+			_bsize = max(1, get_bsize(lgth + _maxpad * len(lens), maxtoken, bsize) // cur_nsent)
 			nd = 1
 	if rs:
 		yield rs, mlen, nsent

@@ -9,7 +9,7 @@ from utils.fmt.base import FileList, all_le, clean_liststr_lentok, dict_insert_l
 # shuf: shuffle the data of same source/target length
 # max_remove: if one source has several targets, only keep those with highest frequency
 
-def handle(srcfl, tgtfl, max_len=256, remove_same=False, shuf=True, max_remove=False):
+def handle(srcfl, tgtfl, max_len=256, remove_same=True, shuf=True, max_remove=False):
 
 	_max_len = max(1, max_len - 2)
 

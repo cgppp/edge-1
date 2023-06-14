@@ -20,11 +20,12 @@ def batch_loader_many(filelist, bsize, maxpad, maxpart, maxtoken, minbsize, get_
 		lgth = sum(lens)
 		src_line = lines[0]
 		# uncomment the following 2 lines to filter out empty data (e.g. in OPUS-100).
-		#if any(_len <= 0 for _len in lens):
-			#continue
+		if any(_len <= 0 for _len in lens):
+			continue
 		if maxlen == 0:
-			maxlen = lgth + min(maxpad, ceil(lgth / _f_maxpart))
-			_bsize = get_bsize(maxlen, maxtoken, bsize)
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
+			_bsize = get_bsize(lgth + _maxpad * len(lens), maxtoken, bsize)
 			mlen = lens
 		if (nd < minbsize) or (lgth <= maxlen and nd < _bsize):
 			rs[0].append(src_line[1:])
@@ -41,8 +42,9 @@ def batch_loader_many(filelist, bsize, maxpad, maxpart, maxtoken, minbsize, get_
 			rs.extend([[line] for line in lines[1:]])
 			rs.append([src_line[0]])
 			mlen = lens
-			maxlen = lgth + min(maxpad, ceil(lgth / _f_maxpart))
-			_bsize = get_bsize(maxlen, maxtoken, bsize)
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
+			_bsize = get_bsize(lgth + _maxpad * len(lens), maxtoken, bsize)
 			nd = 1
 	if rs:
 		yield rs, mlen

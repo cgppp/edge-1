@@ -20,8 +20,9 @@ def batch_loader_many(filelist, bsize, maxpad, maxpart, maxtoken, minbsize, get_
 		lens = [len(line) for line in lines[:-1]]
 		lgth = sum(lens)
 		if maxlen == 0:
-			maxlen = lgth + min(maxpad, ceil(lgth / _f_maxpart))
-			_bsize = get_bsize(maxlen, maxtoken, bsize)
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
+			_bsize = get_bsize(lgth + _maxpad * len(lens), maxtoken, bsize)
 			mlen = lens
 		if (nd < minbsize) or (lgth <= maxlen and nd < _bsize):
 			for line, rsu in zip(lines[:-1], rs):
@@ -36,8 +37,9 @@ def batch_loader_many(filelist, bsize, maxpad, maxpart, maxtoken, minbsize, get_
 			rs = [[line] for line in lines[:-1]]
 			rs.append([float(lines[-1])])
 			mlen = lens
-			maxlen = lgth + min(maxpad, ceil(lgth / _f_maxpart))
-			_bsize = get_bsize(maxlen, maxtoken, bsize)
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
+			_bsize = get_bsize(lgth + _maxpad * len(lens), maxtoken, bsize)
 			nd = 1
 	if rs:
 		yield rs, mlen

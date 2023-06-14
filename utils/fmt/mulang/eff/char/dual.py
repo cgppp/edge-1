@@ -19,11 +19,12 @@ def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, ge
 		lgth = lid + ltd
 		_task = i_d[:_ind]
 		# uncomment the following 2 lines to filter out empty data (e.g. in OPUS-100).
-		#if (lid <= 0) or (ltd <= 0):
-			#continue
+		if (lid <= 0) or (ltd <= 0):
+			continue
 		if maxlen == 0:
-			maxlen = lgth + min(maxpad, ceil(lgth / _f_maxpart))
-			_bsize = get_bsize(maxlen, maxtoken, bsize)
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
+			_bsize = get_bsize(maxlen + _maxpad, maxtoken, bsize)
 			rstask = _task
 		if (rstask == _task) and ((nd < minbsize) or (lgth <= maxlen and nd < _bsize)):
 			rsi.append(list(i_d[_ind + 1:]))
@@ -40,8 +41,9 @@ def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, ge
 			rst = [list(td)]
 			mlen_i = lid
 			mlen_t = ltd
-			maxlen = lgth + min(maxpad, ceil(lgth / _f_maxpart))
-			_bsize = get_bsize(maxlen, maxtoken, bsize)
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
+			_bsize = get_bsize(maxlen + _maxpad, maxtoken, bsize)
 			nd = 1
 	if rsi:
 		yield rsi, rst, rstask, mlen_i, mlen_t
