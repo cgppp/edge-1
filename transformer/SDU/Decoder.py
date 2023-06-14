@@ -1,5 +1,7 @@
 #encoding: utf-8
 
+from torch import nn
+
 from modules.sdu import PositionwiseFF, ResCrossAttn, ResSelfAttn
 from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
 from utils.fmt.parser import parse_none
