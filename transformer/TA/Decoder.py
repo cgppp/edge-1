@@ -54,7 +54,7 @@ class Decoder(DecoderBase):
 		states = {}
 
 		for _tmp, (net, inputu) in enumerate(zip(self.nets, inpute.unbind(dim=-1))):
-			out, _state = net(inputu, None, src_pad_mask, None, out, True)
+			out, _state = net(inputu, (None, None,), src_pad_mask, None, out)
 			states[_tmp] = _state
 
 		if self.out_normer is not None:
@@ -76,7 +76,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, (net, inputu) in enumerate(zip(self.nets, inpute.unbind(dim=-1))):
-				out, _state = net(inputu, states[_tmp], src_pad_mask, None, out, True)
+				out, _state = net(inputu, states[_tmp], src_pad_mask, None, out)
 				states[_tmp] = _state
 
 			if self.out_normer is not None:
@@ -117,7 +117,7 @@ class Decoder(DecoderBase):
 		states = {}
 
 		for _tmp, (net, inputu) in enumerate(zip(self.nets, inpute.unbind(dim=-1))):
-			out, _state = net(inputu, None, src_pad_mask, None, out, True)
+			out, _state = net(inputu, (None, None,), src_pad_mask, None, out)
 			states[_tmp] = _state
 
 		if self.out_normer is not None:
@@ -150,7 +150,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, (net, inputu) in enumerate(zip(self.nets, inpute.unbind(dim=-1))):
-				out, _state = net(inputu, states[_tmp], _src_pad_mask, None, out, True)
+				out, _state = net(inputu, states[_tmp], _src_pad_mask, None, out)
 				states[_tmp] = _state
 
 			if self.out_normer is not None:
