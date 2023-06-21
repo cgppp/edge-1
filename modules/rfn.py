@@ -280,7 +280,7 @@ class RNN4FFN(nn.Sequential):
 		_hsize = _osize * 4 if hsize is None else hsize
 		_act_drop = parse_none(act_drop, dropout)
 
-		super(RNN4FFN, self).__init__(Linear(isize, _hsize, bias=enable_bias), nn.LayerNorm(_hsize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters), Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_hsize, isize, bias=enable_bias))
+		super(RNN4FFN, self).__init__(Linear(isize + _hsize, _hsize, bias=enable_bias), nn.LayerNorm(_hsize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters), Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_hsize, isize, bias=enable_bias))
 		if dropout > 0.0:
 			self.append(Dropout(dropout, inplace=True))
 		if _act_drop > 0.0:
