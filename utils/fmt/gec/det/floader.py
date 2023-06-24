@@ -17,14 +17,14 @@ from utils.fmt.raw.reader.sort.tag import sort_lines_reader
 from utils.h5serial import h5File
 from utils.process import start_process
 
-from cnfg.gec.gector import noise_char, noise_vcb, plm_vcb, seed as rand_seed
+from cnfg.gec.gector import noise_char, noise_vcb, plm_vcb, seed as rand_seed, unbalance_det
 from cnfg.ihyp import cache_len_default, h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
 
 class Loader:
 
-	def __init__(self, sfile, vcbf=plm_vcb, noise_char=noise_char, noise_vcb=noise_vcb, max_len=cache_len_default, num_cache=4, raw_cache_size=4194304, minfreq=False, ngpu=1, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, sleep_secs=1.0, norm_u8=False, file_loader=gec_noise_reader, print_func=print):
+	def __init__(self, sfile, vcbf=plm_vcb, noise_char=noise_char, noise_vcb=noise_vcb, max_len=cache_len_default, num_cache=4, raw_cache_size=4194304, minfreq=False, ngpu=1, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, sleep_secs=1.0, norm_u8=False, file_loader=gec_noise_reader, unbalance_det=unbalance_det, print_func=print):
 
-		self.sfile, self.max_len, self.num_cache, self.raw_cache_size, self.minbsize, self.maxpad, self.maxpart, self.sleep_secs, self.file_loader, self.print_func = sfile, max_len, num_cache, raw_cache_size, ngpu, maxpad, maxpart, sleep_secs, file_loader, print_func
+		self.sfile, self.max_len, self.num_cache, self.raw_cache_size, self.minbsize, self.maxpad, self.maxpart, self.sleep_secs, self.file_loader, self.unbalance_det, self.print_func = sfile, max_len, num_cache, raw_cache_size, ngpu, maxpad, maxpart, sleep_secs, file_loader, unbalance_det, print_func
 		self.bsize, self.maxtoken = (bsize, maxtoken,) if self.minbsize == 1 else (bsize * self.minbsize, maxtoken * self.minbsize,)
 		self.cache_path = get_cache_path(self.sfile) if isinstance(self.sfile, str) else get_cache_path(*self.sfile)
 		self.tokenizer = Tokenizer(vcbf, norm_u8=norm_u8)
@@ -39,7 +39,7 @@ class Loader:
 	def loader(self):
 
 		rpyseed(rand_seed)
-		dloader = self.file_loader(self.sfile, self.noiser, self.tokenizer, max_len=self.max_len, inf_loop=self.raw_cache_size is not None)
+		dloader = self.file_loader(self.sfile, self.noiser, self.tokenizer, max_len=self.max_len, inf_loop=self.raw_cache_size is not None, unbalance_det=self.unbalance_det)
 		file_reader = sort_lines_reader(line_read=self.raw_cache_size)
 		while self.running.value:
 			if self.todo:

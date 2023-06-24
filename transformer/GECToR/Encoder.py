@@ -9,7 +9,7 @@ from utils.torch.comp import torch_no_grad
 
 from cnfg.gec.gector import num_type, token_drop
 from cnfg.ihyp import *
-from cnfg.vocab.gector.edit import pad_id, vocab_size as num_edit
+from cnfg.vocab.gec.edit import pad_id, vocab_size as num_edit
 
 class Encoder(EncoderBase):
 

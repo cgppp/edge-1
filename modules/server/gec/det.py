@@ -14,7 +14,7 @@ from utils.io import load_model_cpu
 from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
 
 from cnfg.ihyp import *
-from cnfg.vocab.gector.det import incorrect_id
+from cnfg.vocab.gec.det import incorrect_id
 from cnfg.vocab.plm.custbert import vocab_size
 
 def load_fixing(module):

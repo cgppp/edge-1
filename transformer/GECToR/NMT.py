@@ -11,8 +11,8 @@ from utils.relpos.base import share_rel_pos_cache
 from utils.torch.comp import torch_all_dim, torch_any_wodim
 
 from cnfg.ihyp import *
-from cnfg.vocab.gector.edit import blank_id, pad_id as edit_pad_id
-from cnfg.vocab.gector.op import delete_id, keep_id
+from cnfg.vocab.gec.edit import blank_id, pad_id as edit_pad_id
+from cnfg.vocab.gec.op import delete_id, keep_id
 from cnfg.vocab.plm.custbert import eos_id, mask_id, pad_id
 
 class NMT(NMTBase):

@@ -2,8 +2,8 @@
 
 from utils.fmt.diff import seq_diff_reorder_insert as seq_diff
 
-from cnfg.vocab.gector.edit import blank_id, delete_id, insert_id, keep_id, mask_id as edit_mask_id
-from cnfg.vocab.gector.op import append_id, pad_id as op_pad_id
+from cnfg.vocab.gec.edit import blank_id, delete_id, insert_id, keep_id, mask_id as edit_mask_id
+from cnfg.vocab.gec.op import append_id, pad_id as op_pad_id
 from cnfg.vocab.plm.custbert import eos_id, mask_id, pad_id
 
 def apply_op_ids(i, e, t, mask_id=mask_id, append_id=append_id, keep_id=keep_id, delete_id=delete_id, edit_mask_id=edit_mask_id, insert_id=insert_id, blank_id=blank_id, pad_id=pad_id, eos_id=eos_id):

@@ -4,8 +4,8 @@ from math import ceil
 
 from utils.fmt.base import get_bsize, iter_to_int, list_reader as file_reader, pad_batch
 
-from cnfg.vocab.gector.edit import pad_id as edit_pad_id
-from cnfg.vocab.gector.op import pad_id as op_pad_id
+from cnfg.vocab.gec.edit import pad_id as edit_pad_id
+from cnfg.vocab.gec.op import pad_id as op_pad_id
 from cnfg.vocab.plm.custbert import pad_id as mlm_pad_id
 
 pad_id = (mlm_pad_id, edit_pad_id, op_pad_id,)

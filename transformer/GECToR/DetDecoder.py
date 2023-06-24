@@ -6,7 +6,7 @@ from modules.base import Linear
 from transformer.PLM.BERT.Decoder import Decoder as DecoderBase
 from utils.torch.comp import torch_no_grad
 
-from cnfg.vocab.gector.det import vocab_size as num_class
+from cnfg.vocab.gec.det import vocab_size as num_class
 
 class Decoder(DecoderBase):
 

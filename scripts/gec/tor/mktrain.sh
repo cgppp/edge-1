@@ -44,8 +44,8 @@ if $do_map; then
 	python tools/plm/map/custbert.py $srcd/$srcvf $src_vcb $sdif &
 	python tools/plm/map/custbert.py $srcd/$tgtvf $src_vcb $tdif &
 	wait
-	python tools/gec/gector/convert.py $stif $ttif $stcf $etcf $ttcf &
-	python tools/gec/gector/convert.py $sdif $tdif $sdcf $edcf $tdcf &
+	python tools/gec/tor/convert.py $stif $ttif $stcf $etcf $ttcf &
+	python tools/gec/tor/convert.py $sdif $tdif $sdcf $edcf $tdcf &
 	wait
 fi
 
@@ -63,6 +63,6 @@ if $do_sort; then
 	wait
 fi
 
-python tools/gec/gector/mkiodata.py $stsf $etsf $ttsf $wkd/$rsf_train $ngpu &
-python tools/gec/gector/mkiodata.py $sdsf $edsf $tdsf $wkd/$rsf_dev $ngpu &
+python tools/gec/tor/mkiodata.py $stsf $etsf $ttsf $wkd/$rsf_train $ngpu &
+python tools/gec/tor/mkiodata.py $sdsf $edsf $tdsf $wkd/$rsf_dev $ngpu &
 wait
