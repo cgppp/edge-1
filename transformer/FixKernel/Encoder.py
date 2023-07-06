@@ -59,8 +59,14 @@ class EncoderLayer(nn.Module):
 		self.anchor_net = nn.Sequential(*_)
 
 		_isize = _fhsize * self.num_head // self.num_anchor
-		_ = [Linear(_isize if use_glu is None else (_isize // 2), self.ahsize, bias=enable_proj_bias), Linear(self.ahsize, _fhsize)]
-		_drop_ind = 3
+		if use_glu is not None:
+			_isize = _isize // 2
+		if (_isize * _fhsize) > (self.ahsize * (_fhsize + _isize)):
+			_ = [Linear(_isize, self.ahsize, bias=enable_proj_bias), Linear(self.ahsize, _fhsize)]
+			_drop_ind = 3
+		else:
+			_ = [Linear(_isize, _fhsize)]
+			_drop_ind = 2
 		if use_glu is None:
 			_.extend([Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_fhsize, self.ahsize, bias=enable_bias)])
 		else:
