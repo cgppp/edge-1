@@ -9,7 +9,7 @@ class IOAdaptor(nn.Module):
 
 	def __init__(self, net, isize, hsize=None, dropout=0.0, act_drop=None, num_ia=1, **kwargs):
 
-		super(PositionwiseFF, self).__init__()
+		super(IOAdaptor, self).__init__()
 
 		self.net = net
 		_ihsize, _ohsize = parse_double_value_tuple(isize * 4 if hsize is None else hsize)
