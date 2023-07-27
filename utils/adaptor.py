@@ -3,6 +3,8 @@
 from torch.nn import ModuleList
 
 from modules.adaptor import IOAdaptor
+from modules.base import ResCrossAttn
+from utils.base import bind_module_parameter
 
 def share_ioadaptor_net(netin, ignore_num_ia=False):
 
@@ -14,7 +16,10 @@ def share_ioadaptor_net(netin, ignore_num_ia=False):
 					_net_type = type(layer.net)
 					_key = _net_type if ignore_num_ia else (_net_type, len(layer.i_adaptor),)
 					if _key in net_d:
-						layer.net = net_d[_key]
+						if isinstance(layer.net, ResCrossAttn):
+							layer.net = bind_module_parameter(net_d[_key], layer.net)
+						else:
+							layer.net = net_d[_key]
 					else:
 						net_d[_key] = layer.net
 

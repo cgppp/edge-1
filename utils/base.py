@@ -131,19 +131,98 @@ def ModuleList2Dict(modin):
 
 	return ModuleDict(zip([str(i) for i in range(len(modin))], modin))
 
-def add_module(m, strin, m_add):
+def get_module_nl(m, nl):
+
+	_m, _success = m, True
+	for _tmp in nl:
+		# update _modules with pytorch: https://pytorch.org/docs/stable/_modules/torch/nn/modules/module.html#Module.add_module
+		if _tmp in _m._modules:
+			_m = _m._modules[_tmp]
+		else:
+			_success = False
+			break
+
+	return _m, _success
+
+def add_module(m, strin, m_add, print_func=print, **kwargs):
 
 	_name_list = strin.split(".")
 	if len(_name_list) == 1:
 		m.add_module(strin, m_add)
 	else:
-		_m = m
-		# update _modules with pytorch: https://pytorch.org/docs/stable/_modules/torch/nn/modules/module.html#Module.add_module
-		for _tmp in _name_list[:-1]:
-			_m = _m._modules[_tmp]
-		_m.add_module(_name_list[-1], m_add)
+		_m, _success = get_module_nl(m, _name_list[:-1])
+		if _success:
+			_m.add_module(_name_list[-1], m_add)
+		elif print_func is not None:
+			print_func(strin)
 
 	return m
+
+def add_parameter(m, strin, p_add, print_func=print, **kwargs):
+
+	_name_list = strin.split(".")
+	if len(_name_list) == 1:
+		m.register_parameter(strin, p_add)
+	else:
+		_m, _success = get_module_nl(m, _name_list[:-1])
+		if _success:
+			_m.register_parameter(_name_list[-1], p_add)
+		elif print_func is not None:
+			print_func(strin)
+
+	return m
+
+def add_buffer(m, strin, b_add, persistent=True, print_func=print, **kwargs):
+
+	_name_list = strin.split(".")
+	if len(_name_list) == 1:
+		m.register_buffer(strin, b_add, persistent=persistent)
+	else:
+		_m, _success = get_module_nl(m, _name_list[:-1])
+		if _success:
+			_m.register_buffer(_name_list[-1], b_add, persistent=persistent)
+		elif print_func is not None:
+			print_func(strin)
+
+	return m
+
+def is_buffer_persistent(m, strin, persistent=True, print_func=print, **kwargs):
+
+	_name_list = strin.split(".")
+	rs = persistent
+	if len(_name_list) == 1:
+		# update _non_persistent_buffers_set with pytorch: https://pytorch.org/docs/stable/_modules/torch/nn/modules/module.html#Module.register_buffer
+		if hasattr(m, "_non_persistent_buffers_set"):
+			rs = strin not in m._non_persistent_buffers_set
+	else:
+		_m, _success = get_module_nl(m, _name_list[:-1])
+		if _success:
+			if hasattr(_m, "_non_persistent_buffers_set"):
+				rs = _name_list[-1] not in _m._non_persistent_buffers_set
+		elif print_func is not None:
+			print_func(strin)
+
+	return rs
+
+def bind_module_parameter(srcm, tgtm, **kwargs):
+
+	_ = tgtm
+	for _n, _p in srcm.named_parameters():
+		_ = add_parameter(_, _n, _p, **kwargs)
+
+	return _
+
+def bind_module_buffer(srcm, tgtm, persistent=None, **kwargs):
+
+	_ = tgtm
+	for _n, _b in srcm.named_buffers():
+		_ = add_buffer(_, _n, _b, persistent=is_buffer_persistent(srcm, _n) if persistent is None else persistent, **kwargs)
+
+	return _
+
+def bind_module_parabuf(srcm, tgtm, persistent=None, **kwargs):
+
+	return bind_module_buffer(srcm, bind_module_parameter(srcm, tgtm, **kwargs), persistent=persistent, **kwargs)
 
 def reduce_model_core(modin, redm, attr_func=None):
 
