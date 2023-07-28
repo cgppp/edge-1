@@ -132,7 +132,7 @@ class Noiser:
 		self.sample_cw = cumsum(pos_norm(w))
 		self.sample_ind = list(range(len(self.edits)))
 		self.min_span_len, self.max_span_len, self.p, self.p_upper = min_span_len, max_span_len, p, p_upper
-		self.max_span_len_corr_thres = floor(2.0 / max(p_upper, p))
+		self.max_span_len_corr_thres, self.lower_p = floor(2.0 / max(p_upper, p)), ((p_upper - p) / p_upper) if p < p_upper else None
 
 	def __call__(self, x, **kwargs):
 
@@ -161,6 +161,6 @@ class Noiser:
 
 	def get_dyn_p(self):
 
-		_p, _p_upper = self.p, self.p_upper
+		_p, _lower_p = self.p, self.lower_p
 
-		return (uniform(_p, _p_upper) if random() > 0.5 else (random() * _p)) if _p < _p_upper else _p
+		return _p if _lower_p is None else (uniform(_p, self.p_upper) if random() > _lower_p else (random() * _p))
