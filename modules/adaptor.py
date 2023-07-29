@@ -22,7 +22,7 @@ class IOAdaptor(nn.Module):
 
 		if self.use_decoding_cache and self.is_decoding:
 			_out = []
-			for i, (_, _x,) in zip(self.i_adaptor, args):
+			for i, (_, _x,) in enumerate(zip(self.i_adaptor, args)):
 				_i, _o = self.decoding_cache.get(i, (None, None,))
 				if (_o is None) or (not _i.is_set_to(_x)):
 					_o = _(_x)
