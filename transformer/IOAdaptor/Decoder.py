@@ -14,9 +14,9 @@ class DecoderLayer(DecoderLayerBase):
 
 		super(DecoderLayer, self).__init__(isize, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=ahsize, **kwargs)
 
-		self.self_attn = IOAdaptor(self.self_attn, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=1, **kwargs)
-		self.cross_attn = IOAdaptor(self.cross_attn, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=2, **kwargs)
-		self.ff = IOAdaptor(self.ff, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=1, **kwargs)
+		self.self_attn = IOAdaptor(self.self_attn, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=1, use_decoding_cache=False, **kwargs)
+		self.cross_attn = IOAdaptor(self.cross_attn, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=2, use_decoding_cache=True, **kwargs)
+		self.ff = IOAdaptor(self.ff, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=1, use_decoding_cache=False, **kwargs)
 
 class Decoder(DecoderBase):
 

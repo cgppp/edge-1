@@ -14,8 +14,8 @@ class EncoderLayer(EncoderLayerBase):
 
 		super(EncoderLayer, self).__init__(isize, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=ahsize, **kwargs)
 
-		self.attn = IOAdaptor(self.attn, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=1, **kwargs)
-		self.ff = IOAdaptor(self.ff, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=1, **kwargs)
+		self.attn = IOAdaptor(self.attn, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=1, use_decoding_cache=False, **kwargs)
+		self.ff = IOAdaptor(self.ff, isize, hsize=ioadaptor_hsize, dropout=dropout, act_drop=act_drop, num_ia=1, use_decoding_cache=False, **kwargs)
 
 class Encoder(EncoderBase):
 
