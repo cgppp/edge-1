@@ -4,6 +4,7 @@ from math import ceil, floor
 from random import choices, gauss, randint, random, sample, shuffle, uniform
 
 from utils.fmt.base import sys_open
+from utils.fmt.gec.noise.cust import cust_err_funcs
 from utils.fmt.parser import parse_none
 from utils.fmt.vocab.char import ldvocab_list
 from utils.math import cumsum, pos_norm
@@ -101,7 +102,7 @@ def select_noise_span(spl, l):
 
 class Noiser:
 
-	def __init__(self, char=None, vcb=None, min_span_len=1, max_span_len=5, p=0.015, w_char=0.2019, w_vcb=0.1341, w_shuf=0.0956, w_repeat=0.2803, w_drop=0.1951, p_upper=0.1):
+	def __init__(self, char=None, vcb=None, min_span_len=1, max_span_len=5, p=0.015, w_char=0.2019, w_vcb=0.1341, w_shuf=0.0956, w_repeat=0.2803, w_drop=0.1951, p_cust=0.1, cust_err_funcs=cust_err_funcs, p_upper=0.1):
 
 		self.edits = []
 		w = []
@@ -131,7 +132,7 @@ class Noiser:
 			w.append(w_drop)
 		self.sample_cw = cumsum(pos_norm(w))
 		self.sample_ind = list(range(len(self.edits)))
-		self.min_span_len, self.max_span_len, self.p, self.p_upper = min_span_len, max_span_len, p, p_upper
+		self.min_span_len, self.max_span_len, self.p, self.p_cust, self.cust_err_funcs, self.p_upper = min_span_len, max_span_len, p, p_cust, cust_err_funcs, p_upper
 		self.max_span_len_corr_thres, self.lower_p = floor(2.0 / max(p_upper, p)), ((p_upper - p) / p_upper) if p < p_upper else None
 
 	def __call__(self, x, **kwargs):
@@ -139,6 +140,10 @@ class Noiser:
 		_r_len = len(x)
 		if _r_len == 1:
 			return x
+		_x = x
+		if (self.p_cust > 0.0) and self.cust_err_funcs and (random() < self.p_cust):
+			for _ in self.cust_err_funcs:
+				_x = _(_x)
 		_min_span_len, _max_span_len, _sample_ind, _sample_cw = self.min_span_len, self.max_span_len, self.sample_ind, self.sample_cw
 		_corr_len = max(int(_r_len * self.get_dyn_p()), 1)
 		_min_span_len, _max_span_len = min(_min_span_len, _corr_len), min(_max_span_len, max(_corr_len, 2) if _r_len > self.max_span_len_corr_thres else _corr_len)
@@ -147,7 +152,7 @@ class Noiser:
 		while _sind < _r_len:
 			_span_len = 1 if _max_span_len == 1 else min(randint(_min_span_len, _max_span_len), _r_len)
 			_eind = _sind + _span_len
-			_spans.append(x[_sind:_eind])
+			_spans.append(_x[_sind:_eind])
 			_sind = _eind
 		_sinds = set(select_noise_span(_spans, _corr_len))
 		rs = []
