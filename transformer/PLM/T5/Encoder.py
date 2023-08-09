@@ -89,7 +89,7 @@ class Encoder(EncoderBase):
 			_shared_layer = EncoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, model_name=model_name)
 			self.nets = nn.ModuleList([_shared_layer for i in range(num_layer)])
 		else:
-			self.nets = nn.ModuleList([EncoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, k_rel_pos=use_k_relative_position_encoder if i == 0 else 0, max_bucket_distance=relative_position_max_bucket_distance_encoder if i == 0 else 0, model_name=model_name) for i in range(num_layer)])
+			self.nets = nn.ModuleList([EncoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, k_rel_pos=use_k_relative_position_encoder, max_bucket_distance=relative_position_max_bucket_distance_encoder, model_name=model_name) for i in range(num_layer)])# if i == 0 else 0
 		self.out_normer = Norm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
 
 	def forward(self, inputs, mask=None, **kwargs):

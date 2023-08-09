@@ -6,7 +6,7 @@ from torch.nn.init import _calculate_fan_in_and_fan_out
 
 from utils.torch.comp import torch_no_grad
 
-from cnfg.hyp import lipschitz_initialization
+from cnfg.hyp import lipschitz_initialization, lipschitz_scale
 
 def xavier_uniform_(tensor, gain=1.0):
 
@@ -64,7 +64,7 @@ def init_model_params_kaiming(modin, gain=1.0):
 
 	return modin
 
-def init_model_params_lipschitz(modin, gain_glorot=sqrt(1.0/3.0), gain_kaiming=sqrt(1.0/3.0)):
+def init_model_params_lipschitz(modin, gain_glorot=sqrt(1.0/3.0) * lipschitz_scale, gain_kaiming=sqrt(1.0/3.0) * lipschitz_scale):
 
 	_tmpm = init_model_params_kaiming(modin, gain=gain_kaiming)
 

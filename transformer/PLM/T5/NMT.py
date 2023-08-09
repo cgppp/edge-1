@@ -32,7 +32,7 @@ class NMT(NMTBase):
 
 		set_ln_ieps(self, ieps_ln_default)
 		if rel_pos_enabled:
-			share_rel_pos_cache(self)
+			share_rel_pos_cache(self, share_emb=True)
 		extend_rel_emb(self)
 
 	def forward(self, inpute, inputo, mask=None, word_prediction=False, **kwargs):

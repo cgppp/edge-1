@@ -136,8 +136,7 @@ class Decoder(DecoderBase):
 			_shared_layer = DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, model_name=model_name)
 			self.nets = nn.ModuleList([_shared_layer for i in range(num_layer)])
 		else:
-			# Cross-attention layers have relative position encoding in the original T5 but not in v1.1.
-			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, k_rel_pos=use_k_relative_position_decoder if i == 0 else 0, max_bucket_distance=relative_position_max_bucket_distance_decoder if i==0 else 0, k_rel_pos_cattn=use_k_relative_position_cattn if i == 0 else 0, max_bucket_distance_cattn=relative_position_max_bucket_distance_cattn if i==0 else 0, model_name=model_name) for i in range(num_layer)])
+			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, k_rel_pos=use_k_relative_position_decoder, max_bucket_distance=relative_position_max_bucket_distance_decoder, k_rel_pos_cattn=use_k_relative_position_cattn, max_bucket_distance_cattn=relative_position_max_bucket_distance_cattn, model_name=model_name) for i in range(num_layer)])# if i == 0 else 0
 		self.out_normer = Norm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
 
 	def forward(self, inpute, inputo, src_pad_mask=None, word_prediction=False, **kwargs):

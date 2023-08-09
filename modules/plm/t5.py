@@ -41,7 +41,9 @@ class SelfAttn(SelfAttnBase):
 
 		scores = real_iQ.matmul(real_iK)
 
-		if self.rel_pemb is not None:
+		if self.ref_rel_emb is not None:
+			scores += self.ref_rel_emb.rel_emb_cache
+		elif self.rel_pemb is not None:
 			if states is None:
 				self.rel_pos_cache = self.get_rel_pos(nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
 				self.rel_emb_cache = (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, nquery).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).contiguous()
@@ -49,8 +51,6 @@ class SelfAttn(SelfAttnBase):
 				self.rel_pos_cache = self.get_rel_pos(seql).narrow(0, seql - nquery, nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
 				self.rel_emb_cache = (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).contiguous()
 			scores += self.rel_emb_cache
-		elif self.ref_rel_emb is not None:
-			scores += self.ref_rel_emb.rel_emb_cache
 
 		## t5 does not scale attention scores
 		#scores = scores / sqrt(adim)
@@ -108,12 +108,12 @@ class CrossAttn(CrossAttnBase):
 
 		scores = real_iQ.matmul(real_iK)
 
-		if self.rel_pemb is not None:
+		if self.ref_rel_emb is not None:
+			scores += self.ref_rel_emb.rel_emb_cache
+		elif self.rel_pemb is not None:
 			self.rel_pos_cache = (self.get_rel_pos(step, seql).narrow(0, step - nquery, nquery) if step > 0 else self.get_rel_pos(nquery, seql)).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
 			self.rel_emb_cache = self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1).contiguous()
 			scores += self.rel_emb_cache
-		elif self.ref_rel_emb is not None:
-			scores += self.ref_rel_emb.rel_emb_cache
 
 		# t5 does not scale attention scores
 		#scores = scores / sqrt(adim)

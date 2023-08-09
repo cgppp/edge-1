@@ -3,6 +3,7 @@
 ease_optimization = True
 
 lipschitz_initialization = True
+lipschitz_scale = 1.0
 
 # choices: None, "GeLU", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
 advance_activation_function = None
