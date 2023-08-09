@@ -142,8 +142,13 @@ class Noiser:
 			return x
 		_x = x
 		if (self.p_cust > 0.0) and self.cust_err_funcs and (random() < self.p_cust):
-			for _ in self.cust_err_funcs:
-				_x = _(_x)
+			for _ind, _efunc in enumerate(self.cust_err_funcs):
+				_ = _efunc(_x)
+				if _ != _x:
+					_x = _
+					break
+			if (_ind + 1) != len(self.cust_err_funcs):
+				self.cust_err_funcs.append(self.cust_err_funcs.pop(_ind))
 		_min_span_len, _max_span_len, _sample_ind, _sample_cw = self.min_span_len, self.max_span_len, self.sample_ind, self.sample_cw
 		_corr_len = max(int(_r_len * self.get_dyn_p()), 1)
 		_min_span_len, _max_span_len = min(_min_span_len, _corr_len), min(_max_span_len, max(_corr_len, 2) if _r_len > self.max_span_len_corr_thres else _corr_len)
