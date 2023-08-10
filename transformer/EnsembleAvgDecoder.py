@@ -12,7 +12,7 @@ from utils.torch.comp import all_done
 from cnfg.ihyp import *
 from cnfg.vocab.base import eos_id, pad_id
 
-# Average Decoder is proposed in Accelerating Neural Transformer via an Average Attention Network (https://www.aclweb.org/anthology/P18-1166/)
+# Average Decoder is proposed in Accelerating Neural Transformer via an Average Attention Network (https://aclanthology.org/P18-1166/)
 
 class Decoder(DecoderBase):
 
@@ -55,7 +55,7 @@ class Decoder(DecoderBase):
 
 		bsize, seql, isize = inpute[0].size()
 
-		sqrt_isize = sqrt(out.size(-1))
+		sqrt_isize = sqrt(self.nets[0].wemb.weight.size(-1))
 
 		outs = []
 
@@ -139,7 +139,7 @@ class Decoder(DecoderBase):
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
 
-		sqrt_isize = sqrt(out.size(-1))
+		sqrt_isize = sqrt(self.nets[0].wemb.weight.size(-1))
 
 		if length_penalty > 0.0:
 			# lpv: length penalty vector for each beam (bsize * beam_size, 1)

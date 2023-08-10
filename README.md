@@ -89,18 +89,18 @@ Scripts to support data processing (e.g. text to tensor), analyzing, model file 
 
 ## Performance
 
-Settings: WMT 2014, English -> German, 32k joint BPE with 8 as vocabulary threshold for BPE. 2 nVidia GTX 1080 Ti GPU(s) for training, 1 for decoding.
+Settings: WMT 2014, English -> German, 32k joint BPE with 8 as vocabulary threshold for BPE. 1 nVidia RTX 4090 GPU(s) for training, 1 for decoding.
 
 Tokenized case-sensitive BLEU measured with [multi-bleu.perl](https://github.com/moses-smt/mosesdecoder/blob/master/scripts/generic/multi-bleu.perl), Training speed and decoding speed are measured by the number of target tokens (`<eos>` counted and `<pad>` discounted) per second and the number of sentences per second:
 
 | | BLEU | Training Speed | Decoding Speed |
 | :------| ------: | ------: | ------: |
 | Attention is all you need | 27.3 | | |
-| Neutron | 28.07 | 23213.65 | 150.15 |
+| Neutron | 28.07 | 85507.94 | 750.58 |
 
 ## Acknowledgments
 
-Hongfei Xu enjoys a doctoral grant from [China Scholarship Council](https://www.csc.edu.cn/) ([2018]3101, 201807040056) while maintaining this project.
+Hongfei Xu is partially supported by the Education Department of Henan Province (Grant No. 232300421386) while maintaining this project.
 
 Details of this project can be found [here](https://arxiv.org/abs/1903.07402), and please cite it if you enjoy the implementation :)
 

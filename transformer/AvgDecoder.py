@@ -16,7 +16,7 @@ from utils.torch.comp import all_done
 from cnfg.ihyp import *
 from cnfg.vocab.base import eos_id, pad_id
 
-# Average Decoder is proposed in Accelerating Neural Transformer via an Average Attention Network (https://www.aclweb.org/anthology/P18-1166/)
+# Average Decoder is proposed in Accelerating Neural Transformer via an Average Attention Network (https://aclanthology.org/P18-1166/)
 
 class DecoderLayer(DecoderLayerBase):
 

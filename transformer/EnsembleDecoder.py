@@ -77,7 +77,7 @@ class Decoder(nn.Module):
 
 		bsize, seql, isize = inpute[0].size()
 
-		sqrt_isize = sqrt(out.size(-1))
+		sqrt_isize = sqrt(self.nets[0].wemb.weight.size(-1))
 
 		outs = []
 
@@ -161,7 +161,7 @@ class Decoder(nn.Module):
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
 
-		sqrt_isize = sqrt(out.size(-1))
+		sqrt_isize = sqrt(self.nets[0].wemb.weight.size(-1))
 
 		if length_penalty > 0.0:
 			# lpv: length penalty vector for each beam (bsize * beam_size, 1)

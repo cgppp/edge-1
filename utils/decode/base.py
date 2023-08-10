@@ -3,7 +3,7 @@
 def set_is_decoding(m, mode):
 
 	for _ in m.modules():
-		if hasattr(_, is_decoding):
+		if hasattr(_, "is_decoding"):
 			if isinstance(_.is_decoding, bool):
 				_.is_decoding = mode
 			else:

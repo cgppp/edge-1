@@ -141,7 +141,7 @@ Configuration of following variables:
 # reducing the optimization difficulty of models
 ease_optimization = True
 
-# using lipschitz constraint parameter initialization in [Lipschitz Constrained Parameter Initialization for Deep Transformers](https://www.aclweb.org/anthology/2020.acl-main.38/)
+# using lipschitz constraint parameter initialization in [Lipschitz Constrained Parameter Initialization for Deep Transformers](https://aclanthology.org/2020.acl-main.38/)
 lipschitz_initialization = True
 
 # using advanced activation function, choices: None, "GeLU", "Swish", "Sigmoid", "NormSwish"
@@ -155,7 +155,7 @@ computation_order = "v2"
 # default cached sequence length (for positional embedding, etc.)
 cache_len_default = 256
 
-# window size (one side) of relative positional embeddings, 0 to disable. 8 and 16 are used in [Self-Attention with Relative Position Representations](https://www.aclweb.org/anthology/N18-2074/) for Transformer Base and Big respectively. relative_position_max_bucket_distance for the bucket relative positional encoding used by T5, [Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer](https://www.jmlr.org/papers/v21/20-074.html), which slightly hampers the performance on WMT 14 En-De. disable_std_pemb to disable the standard positional embedding when use the relative position, or to disable only the decoder side with a tuple (False, True,), useful for AAN.
+# window size (one side) of relative positional embeddings, 0 to disable. 8 and 16 are used in [Self-Attention with Relative Position Representations](https://aclanthology.org/N18-2074/) for Transformer Base and Big respectively. relative_position_max_bucket_distance for the bucket relative positional encoding used by T5, [Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer](https://www.jmlr.org/papers/v21/20-074.html), which slightly hampers the performance on WMT 14 En-De. disable_std_pemb to disable the standard positional embedding when use the relative position, or to disable only the decoder side with a tuple (False, True,), useful for AAN.
 use_k_relative_position = 0
 relative_position_max_bucket_distance = 0
 disable_std_pemb = False

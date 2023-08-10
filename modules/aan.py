@@ -8,7 +8,7 @@ from utils.fmt.parser import parse_none
 
 from cnfg.ihyp import *
 
-# Average Attention is proposed in Accelerating Neural Transformer via an Average Attention Network (https://www.aclweb.org/anthology/P18-1166/)
+# Average Attention is proposed in Accelerating Neural Transformer via an Average Attention Network (https://aclanthology.org/P18-1166/)
 
 class AverageAttn(nn.Module):
 

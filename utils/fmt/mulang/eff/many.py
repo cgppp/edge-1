@@ -2,7 +2,7 @@
 
 from math import ceil
 
-from utils.fmt.base import get_bsize, list_reader, pad_batch
+from utils.fmt.base import get_bsize, list_reader as file_reader, pad_batch
 from utils.fmt.mulang.eff.single import batch_padder as batch_padder_single
 from utils.fmt.vocab.base import map_batch
 
@@ -14,7 +14,7 @@ def batch_loader_many(filelist, bsize, maxpad, maxpart, maxtoken, minbsize, get_
 	rs = [[] for i in range(len(filelist))]
 	nd = maxlen = 0
 	mlen = rstask = None
-	for lines in zip(*[list_reader(f, keep_empty_line=True) for f in filelist]):
+	for lines in zip(*[file_reader(f, keep_empty_line=True) for f in filelist]):
 		lens = [len(line) for line in lines]
 		lens[0] -= 1
 		lgth = sum(lens)
