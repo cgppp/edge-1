@@ -27,7 +27,7 @@ class AdamCon(nn.Module):
 			self.exp_avg = rg * (1.0 - beta1)
 			self.exp_avg_sq = rg.pow(2.0).mul_(1.0 - beta2)
 		else:
-			self.exp_avg.mul_(beta1).add_(rg, alpha=1.0 - beta1)
+			self.exp_avg = self.exp_avg.mul_(beta1).add(rg, alpha=1.0 - beta1)
 			self.exp_avg_sq.mul_(beta2).addcmul_(rg, rg, value=1 - beta2)
 		denom = self.exp_avg_sq.sqrt().add(self.eps)
 		_step_size = self.get_lr() * sqrt(1.0 - beta2 ** _step) / (1.0 - beta1 ** _step)
