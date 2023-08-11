@@ -55,7 +55,7 @@ class AvgAdamCon(AdamCon):
 			_exp_avg_sq = self.exp_avg_sq = rg.pow(2.0)
 		else:
 			_f_step = float(_step)
-			self.exp_avg.add_(rg)
+			self.exp_avg = self.exp_avg.add(rg)
 			_exp_avg = self.exp_avg / _f_step
 			self.exp_avg_sq.addcmul_(rg, rg)
 			_exp_avg_sq = self.exp_avg_sq / _f_step
