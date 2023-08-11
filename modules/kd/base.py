@@ -37,7 +37,7 @@ class DynT(nn.Module):
 		self.init_value = (_init_value - self.min_value) if _init_value >= self.min_value else 0.0
 		self.T = nn.Parameter(torch.as_tensor([self.init_value]))
 
-	def forward(self):
+	def forward(self, *args, **kwargs):
 
 		return self.T.abs() + self.min_value
 

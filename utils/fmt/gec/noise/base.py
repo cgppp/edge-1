@@ -36,7 +36,7 @@ def filter_bi_same(samples, uni):
 
 class CharReplacer:
 
-	def __init__(self, df, sample_func=sample):
+	def __init__(self, df, sample_func=sample, **kwargs):
 
 		self.rpd = load_replace_data(df)
 		self.sample_func = sample_func
@@ -52,7 +52,7 @@ class CharReplacer:
 
 class VocabReplacer:
 
-	def __init__(self, df, ls=1.0, sample_func=sample):
+	def __init__(self, df, ls=1.0, sample_func=sample, **kwargs):
 
 		self.rpd = ldvocab_list(df)[0]
 		self.ls, self.sample_func = ls, sample_func
@@ -102,7 +102,7 @@ def select_noise_span(spl, l):
 
 class Noiser:
 
-	def __init__(self, char=None, vcb=None, min_span_len=1, max_span_len=5, p=0.015, w_char=0.2019, w_vcb=0.1341, w_shuf=0.0956, w_repeat=0.2803, w_drop=0.1951, p_cust=0.1, cust_err_funcs=cust_err_funcs, p_upper=0.1):
+	def __init__(self, char=None, vcb=None, min_span_len=1, max_span_len=5, p=0.015, w_char=0.2019, w_vcb=0.1341, w_shuf=0.0956, w_repeat=0.2803, w_drop=0.1951, p_cust=0.1, cust_err_funcs=cust_err_funcs, p_upper=0.1, **kwargs):
 
 		self.edits = []
 		w = []

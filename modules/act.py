@@ -15,7 +15,7 @@ from cnfg.ihyp import *
 
 class GeLU_GPT(nn.Module):
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
 
 		super(GeLU_GPT, self).__init__()
 
@@ -27,7 +27,7 @@ class GeLU_GPT(nn.Module):
 
 class GeLU_BERT(nn.Module):
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
 
 		super(GeLU_BERT, self).__init__()
 

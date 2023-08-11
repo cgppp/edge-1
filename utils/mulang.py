@@ -34,7 +34,7 @@ class data_sampler:
 
 class balance_loader:
 
-	def __init__(self, tls, sfunc=min):
+	def __init__(self, tls, sfunc=min, **kwargs):
 
 		self.tls = tls
 		self.imax = len(tls)
@@ -52,7 +52,7 @@ class balance_loader:
 
 		return _im, next(self.dg[_im])
 
-	def __call__(self, ndata=None):
+	def __call__(self, ndata=None, **kwargs):
 
 		for _ in range(self.ndata if ndata is None else ndata):
 			yield self.get_one()

@@ -21,7 +21,7 @@ def sort_list_reader(x, *args, clear_input=True, **kwargs):
 
 class sort_lines_reader:
 
-	def __init__(self, line_read=None):
+	def __init__(self, line_read=None, **kwargs):
 
 		self.line_read = line_read
 

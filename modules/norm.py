@@ -20,7 +20,7 @@ class LayerNorm(nn.LayerNorm):
 			self.register_parameter("bias", None)
 
 	# uncomment the forward function to override the pytorch default implementation in case needed
-	"""def forward(self, x):
+	"""def forward(self, x, **kwargs):
 
 		_std, _mean = torch.std_mean(x, dim=-1, unbiased=False, keepdim=True)# x.std(dim=-1, unbiased=False, keepdim=True), x.mean(dim=-1, keepdim=True)#.detach()
 		_xn = (x - _mean) / (_std + self.eps)

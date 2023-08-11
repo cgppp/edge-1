@@ -120,7 +120,7 @@ class Truecaser(BatchProcessor):
 
 class Detruecaser(BatchProcessor):
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
 
 		truecase_cmd = moses_scripts + sep.join(("recaser", "detruecase.perl"))
 		self.cmd = [perl_exec, truecase_cmd, "-b"]

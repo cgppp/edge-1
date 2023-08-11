@@ -10,7 +10,7 @@ from cnfg.server import batcher_maintain_interval as maintain_interval, batcher_
 
 class BatchWrapper:
 
-	def __init__(self, handler, wait_interval=wait_interval, maintain_interval=maintain_interval, watcher_interval=watcher_interval):
+	def __init__(self, handler, wait_interval=wait_interval, maintain_interval=maintain_interval, watcher_interval=watcher_interval, **kwargs):
 
 		self.handler, self.wait_interval, self.maintain_interval, self.watcher_interval = handler, wait_interval, maintain_interval, watcher_interval
 		self.ipool, self.opool, self.rids, self.idpool, self.cid, self.mids, self.ipool_lck, self.opool_lck, self.rids_lck, self.idpool_lck, self.cid_lck, self.mids_lck = {}, {}, set(), set(), 1, set(), Lock(), Lock(), Lock(), Lock(), Lock(), Lock()
@@ -18,7 +18,7 @@ class BatchWrapper:
 		self.running = True
 		self.t_process, self.t_mnt = start_thread_with_keeper([self.is_running], None, thread_keeper_interval, target=self.processor), start_thread_with_keeper([self.is_running], None, thread_keeper_interval, target=self.maintainer)
 
-	async def __call__(self, x):
+	async def __call__(self, x, *args, **kwargs):
 
 		_watcher_interval = self.watcher_interval
 		_id = None

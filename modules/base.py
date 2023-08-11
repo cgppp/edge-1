@@ -1130,7 +1130,7 @@ class ACTLossFunction(Function):
 
 class ACT_Loss(nn.Module):
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
 
 		super(ACT_Loss, self).__init__()
 

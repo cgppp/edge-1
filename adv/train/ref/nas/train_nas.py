@@ -35,7 +35,7 @@ class geTau:
 		self.k = float(k)
 		self.cur_step = 0
 
-	def __call__(self):
+	def __call__(self, *args, **kwargs):
 
 		self.cur_step += 1
 

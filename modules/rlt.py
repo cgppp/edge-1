@@ -164,7 +164,7 @@ class BernoulliParameter(nn.Module):
 		self.init_value = None if p is None or p <= 0.0 or p >= 1.0 else arcsigmoid(p)
 		self.maskp = nn.Parameter(tensor_in.abs().detach()) if self.init_value is None else nn.Parameter(tensor_in.new_empty(tensor_in.size()).fill_(self.init_value))
 
-	def forward(self):
+	def forward(self, *args, **kwargs):
 
 		return BernoulliMaskFunc(self.data, self.maskp.sigmoid(), False) if self.training else (self.data * (1.0 - self.maskp.sigmoid()))#.masked_fill(self.maskp.sigmoid().ge(0.5), 0.0)
 

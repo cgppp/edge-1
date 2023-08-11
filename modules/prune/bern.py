@@ -56,7 +56,7 @@ class BernoulliParameter(nn.Module):
 		self.ignore_mask = False
 		self.register_buffer("fixed_mask", None, persistent=False)
 
-	def forward(self):
+	def forward(self, *args, **kwargs):
 
 		if self.auto_mask and (self.fixed_mask is not None):
 			return self.data.masked_fill(self.fixed_mask, 0.0)

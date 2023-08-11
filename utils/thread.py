@@ -5,12 +5,12 @@ from time import sleep
 
 class LockHolder:
 
-	def __init__(self, value=None):
+	def __init__(self, value=None, **kwargs):
 
 		self.value = value
 		self.lck = Lock()
 
-	def __call__(self, *args):
+	def __call__(self, *args, **kwargs):
 
 		if args:
 			with self.lck:

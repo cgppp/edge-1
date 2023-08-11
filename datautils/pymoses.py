@@ -49,7 +49,7 @@ class Truecaser(BatchProcessor):
 
 class Detruecaser(BatchProcessor):
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
 
 		self.handler = MosesDetruecaser()
 

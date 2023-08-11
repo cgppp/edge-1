@@ -68,7 +68,7 @@ class bestfkeeper:
 
 class SaveModelCleaner:
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
 
 		self.holder = {}
 

@@ -10,7 +10,7 @@ from cnfg.vocab.plm.custbert import eos_id, init_normal_token_id, init_vocab, so
 
 class Tokenizer:
 
-	def __init__(self, vcbf, norm_u8=True, post_norm_func=None, uni_normer=uni_normer, add_sp_tokens=True, sos_id=sos_id, eos_id=eos_id, split=False, minfreq=False, vsize=vocab_size):
+	def __init__(self, vcbf, norm_u8=True, post_norm_func=None, uni_normer=uni_normer, add_sp_tokens=True, sos_id=sos_id, eos_id=eos_id, split=False, minfreq=False, vsize=vocab_size, **kwargs):
 
 		self.vcb = ldvocab(vcbf, minf=minfreq, omit_vsize=vsize, vanilla=False, init_vocab=init_vocab, init_normal_token_id=init_normal_token_id)[0]
 		self.norm_u8, self.uni_normer, self.post_norm_func, self.add_sp_tokens, self.sos_id, self.eos_id, self.split = norm_u8, uni_normer, post_norm_func, add_sp_tokens, self.vcb["<sos>"] if sos_id is None else sos_id, self.vcb["<eos>"] if eos_id is None else eos_id, split

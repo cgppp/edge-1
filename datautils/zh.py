@@ -29,7 +29,7 @@ class SentenceSplitter:
 
 class Tokenizer:
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
 
 		self.start()
 
