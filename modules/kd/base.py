@@ -5,7 +5,7 @@ from torch import nn
 from torch.autograd import Function
 
 from utils.torch.comp import torch_no_grad
-from utils.torch.ext import cosim, multinomial
+from utils.torch.ext import cosim as sim_func, multinomial
 
 class Argmax(nn.Module):
 
@@ -87,13 +87,27 @@ class TLogSoftMax(nn.Module):
 class GradientAdapterFunction(Function):
 
 	@staticmethod
-	def forward(ctx, inputs):
+	def forward(ctx, inputs, min_sim=0.0):
+
+		ctx.min_sim = min_sim
 
 		return inputs, inputs
 
 	@staticmethod
 	def backward(ctx, grad_main, grad_sub):
 
-		return grad_main.addcmul(cosim(grad_main, grad_sub, dim=-1, keepdim=True).clamp_(min=0.0), grad_sub) if (grad_main is not None) and ctx.needs_input_grad[0] else None
+		return grad_main.addcmul(sim_func(grad_main, grad_sub, dim=-1, keepdim=True).clamp_(min=ctx.min_sim), grad_sub) if (grad_main is not None) and ctx.needs_input_grad[0] else None, None
 
 GradientAdapterFunc = GradientAdapterFunction.apply
+
+class GradientAdapter(nn.Module):
+
+	def __init__(self, min_sim=0.0, **kwargs):
+
+		super(GradientAdapter, self).__init__()
+
+		self.min_sim = min_sim
+
+	def forward(self, x, **kwargs):
+
+		return GradientAdapterFunc(x, self.min_sim)

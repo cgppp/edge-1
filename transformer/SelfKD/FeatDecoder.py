@@ -12,11 +12,12 @@ from cnfg.vocab.base import pad_id
 
 class Decoder(DecoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, kd_layers=None, **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, kd_layers=None, min_sim=0.0, **kwargs):
 
 		super(Decoder, self).__init__(isize, nwd, num_layer, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=forbidden_index, **kwargs)
 
 		self.kd_layers = set() if kd_layers is None else (kd_layers if isinstance(kd_layers, set) else set(kd_layers))
+		self.min_sim = min_sim
 
 	def forward(self, inpute, inputo, src_pad_mask=None, gold=None, **kwargs):
 
@@ -34,7 +35,7 @@ class Decoder(DecoderBase):
 		kd_o = []
 		for prev_layer_ind, net in enumerate(self.nets):
 			if prev_layer_ind in self.kd_layers:
-				out, _ = GradientAdapterFunc(out)
+				out, _ = GradientAdapterFunc(out, self.min_sim)
 				kd_o.append(_)
 			out = net(inpute, out, src_pad_mask, _mask)
 

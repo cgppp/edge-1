@@ -65,6 +65,10 @@ def cosim(a, b, dim=-1, keepdim=False, eps=ieps_ln_default):
 
 	return a.mul(b).sum(dim=dim, keepdim=keepdim).div_(a.norm(p=2, dim=dim, keepdim=keepdim).mul(b.norm(p=2, dim=dim, keepdim=keepdim)).add_(eps))
 
+def pearson_corr(a, b, dim=-1, keepdim=False, eps=ieps_ln_default):
+
+	return cosim(a - a.mean(dim=dim, keepdim=True), b - b.mean(dim=dim, keepdim=True), dim=dim, keepdim=keepdim, eps=eps)
+
 def arcsigmoid(x):
 
 	return ((1.0 / x) - 1.0).log().neg()

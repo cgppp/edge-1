@@ -4,6 +4,7 @@ from cnfg.base import *
 
 kd_layers = (3, 6,)
 
+gradapt_min_sim = 0.0
 min_gold_p = 0.1
 num_topk = 64
 T = 1.0
