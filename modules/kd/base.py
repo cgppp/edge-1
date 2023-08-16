@@ -96,7 +96,12 @@ class GradientAdapterFunction(Function):
 	@staticmethod
 	def backward(ctx, grad_main, grad_sub):
 
-		return grad_main.addcmul(sim_func(grad_main, grad_sub, dim=-1, keepdim=True).clamp_(min=ctx.min_sim), grad_sub) if (grad_main is not None) and ctx.needs_input_grad[0] else None, None
+		_grad_input = None
+		if (grad_main is not None) and ctx.needs_input_grad[0]:
+			_ = sim_func(grad_main, grad_sub, dim=-1, keepdim=True)
+			_grad_input = grad_main.addcmul(_.masked_fill_(_.lt(ctx.min_sim), 0.0), grad_sub)
+
+		return _grad_input, None
 
 GradientAdapterFunc = GradientAdapterFunction.apply
 
