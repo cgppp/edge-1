@@ -98,8 +98,12 @@ class GradientAdapterFunction(Function):
 
 		_grad_input = None
 		if (grad_main is not None) and ctx.needs_input_grad[0]:
-			_ = sim_func(grad_main, grad_sub, dim=-1, keepdim=True)
-			_grad_input = grad_main.addcmul(_.masked_fill_(_.lt(ctx.min_sim), 0.0), grad_sub)
+			_min_sim = ctx.min_sim
+			if _min_sim == 0.0:
+				_grad_input = grad_main.addcmul(sim_func(grad_main, grad_sub, dim=-1, keepdim=True).clamp_(min=0.0), grad_sub)
+			else:
+				_ = sim_func(grad_main, grad_sub, dim=-1, keepdim=True)
+				_grad_input = grad_main.addcmul(_.masked_fill_(_.lt(_min_sim), 0.0), grad_sub)
 
 		return _grad_input, None
 
