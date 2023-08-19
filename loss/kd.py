@@ -95,9 +95,9 @@ class OrderDis(_Loss):
 
 		return orderdis_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, stable=self.stable)
 
-def sorder_loss(a, b, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False):
+def simorder_loss(a, b, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False, sim_func=pearson_corr):
 
-	_sim = cosim(a, b, dim=dim, keepdim=False, eps=eps)
+	_sim = sim_func(a, b, dim=dim, keepdim=False, eps=eps)
 	_sa = a.gather(dim, b.argsort(dim=dim, descending=False, stable=stable))
 	_n = _sa.size(-1) - 1
 	_order_loss = (_sa.narrow(dim, 1, _n) - _sa.narrow(dim, 0, _n)).clamp_(min=0.0).mean(dim)
@@ -119,13 +119,13 @@ def sorder_loss(a, b, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default, 
 
 	return loss
 
-class SOrder(_Loss):
+class SimOrder(_Loss):
 
-	def __init__(self, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False, **kwargs):
+	def __init__(self, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False, sim_func=pearson_corr, **kwargs):
 
-		super(SOrder, self).__init__()
-		self.dim, self.reduction, self.eps, self.stable = dim, reduction, eps, stable
+		super(SimOrder, self).__init__()
+		self.dim, self.reduction, self.eps, self.stable, self.sim_func = dim, reduction, eps, stable, sim_func
 
 	def forward(self, input, target, mask=None, **kwargs):
 
-		return sorder_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, eps=self.eps, stable=self.stable)
+		return simorder_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, eps=self.eps, stable=self.stable, sim_func=self.sim_func)
