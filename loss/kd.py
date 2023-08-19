@@ -19,26 +19,26 @@ def token_loss_mask_reduction(loss, mask=None, reduction="mean"):
 	if reduction != "none":
 		loss = loss.sum()
 	if _is_mean_reduction:
-		loss = loss / float(_num)
+		loss = loss.div_(float(_num))
 
 	return loss
 
-def cosim_loss(a, b, mask=None, dim=-1, eps=ieps_ln_default, reduction="mean"):
+def cosim_loss(a, b, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default):
 
 	return -token_loss_mask_reduction(cosim(a, b, dim=dim, keepdim=False, eps=eps), mask=mask, reduction=reduction)
 
 class Cosim(_Loss):
 
-	def __init__(self, dim=-1, eps=ieps_ln_default, reduction="mean", **kwargs):
+	def __init__(self, dim=-1, reduction="mean", eps=ieps_ln_default, **kwargs):
 
 		super(Cosim, self).__init__()
-		self.dim, self.eps, self.reduction = dim, eps, reduction
+		self.dim, self.reduction, self.eps = dim, reduction, eps
 
 	def forward(self, input, target, mask=None, **kwargs):
 
-		return cosim_loss(input, target, mask=mask, dim=self.dim, eps=self.eps, reduction=self.reduction)
+		return cosim_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, eps=self.eps)
 
-def pearson_loss(a, b, mask=None, dim=-1, eps=ieps_ln_default, reduction="mean"):
+def pearson_loss(a, b, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default):
 
 	return -token_loss_mask_reduction(pearson_corr(a, b, dim=dim, keepdim=False, eps=eps), mask=mask, reduction=reduction)
 
@@ -46,7 +46,7 @@ class PearsonCorr(Cosim):
 
 	def forward(self, input, target, mask=None, **kwargs):
 
-		return pearson_loss(input, target, mask=mask, dim=self.dim, eps=self.eps, reduction=self.reduction)
+		return pearson_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, eps=self.eps)
 
 def scaledis_loss(a, b, mask=None, dim=-1, reduction="mean", sort=True, stable=False):
 
@@ -82,7 +82,7 @@ def orderdis_loss(a, b, mask=None, dim=-1, reduction="mean", stable=False):
 	_sa = a.gather(dim, b.argsort(dim=dim, descending=False, stable=stable))
 	_n = _sa.size(-1) - 1
 
-	return token_loss_mask_reduction((_sa.narrow(dim, 1, _n) - _sa.narrow(dim, 0, _n)).clamp_(min=0.0).sum(dim), mask=mask, reduction=reduction)
+	return token_loss_mask_reduction((_sa.narrow(dim, 1, _n) - _sa.narrow(dim, 0, _n)).clamp_(min=0.0).mean(dim), mask=mask, reduction=reduction)
 
 class OrderDis(_Loss):
 
@@ -94,3 +94,38 @@ class OrderDis(_Loss):
 	def forward(self, input, target, mask=None, **kwargs):
 
 		return orderdis_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, stable=self.stable)
+
+def sorder_loss(a, b, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False):
+
+	_sim = cosim(a, b, dim=dim, keepdim=False, eps=eps)
+	_sa = a.gather(dim, b.argsort(dim=dim, descending=False, stable=stable))
+	_n = _sa.size(-1) - 1
+	_order_loss = (_sa.narrow(dim, 1, _n) - _sa.narrow(dim, 0, _n)).clamp_(min=0.0).mean(dim)
+
+	_is_mean_reduction = reduction == "mean"
+	if _is_mean_reduction:
+		_num = _sim.numel()
+	if mask is not None:
+		_sim.masked_fill_(mask, 0.0)
+		_order_loss.masked_fill_(mask, 0.0)
+		if _is_mean_reduction:
+			_num -= mask.int().sum().item()
+	if reduction != "none":
+		_sim = _sim.sum()
+		_order_loss = _order_loss.sum()
+	loss = _order_loss.sub_(_sim)
+	if _is_mean_reduction:
+		loss = loss.div_(float(_num))
+
+	return loss
+
+class SOrder(_Loss):
+
+	def __init__(self, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False, **kwargs):
+
+		super(SOrder, self).__init__()
+		self.dim, self.reduction, self.eps, self.stable = dim, reduction, eps, stable
+
+	def forward(self, input, target, mask=None, **kwargs):
+
+		return sorder_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, eps=self.eps, stable=self.stable)
