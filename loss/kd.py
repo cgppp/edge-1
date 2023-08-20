@@ -23,9 +23,9 @@ def token_loss_mask_reduction(loss, mask=None, reduction="mean"):
 
 	return loss
 
-def cosim_loss(a, b, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default):
+def cosim_loss(s, t, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default):
 
-	return -token_loss_mask_reduction(cosim(a, b, dim=dim, keepdim=False, eps=eps), mask=mask, reduction=reduction)
+	return -token_loss_mask_reduction(cosim(s, t, dim=dim, keepdim=False, eps=eps), mask=mask, reduction=reduction)
 
 class Cosim(_Loss):
 
@@ -38,9 +38,9 @@ class Cosim(_Loss):
 
 		return cosim_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, eps=self.eps)
 
-def pearson_loss(a, b, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default):
+def pearson_loss(s, t, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default):
 
-	return -token_loss_mask_reduction(pearson_corr(a, b, dim=dim, keepdim=False, eps=eps), mask=mask, reduction=reduction)
+	return -token_loss_mask_reduction(pearson_corr(s, t, dim=dim, keepdim=False, eps=eps), mask=mask, reduction=reduction)
 
 class PearsonCorr(Cosim):
 
@@ -48,21 +48,21 @@ class PearsonCorr(Cosim):
 
 		return pearson_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, eps=self.eps)
 
-def scaledis_loss(a, b, mask=None, dim=-1, reduction="mean", sort=True, stable=False):
+def scaledis_loss(s, t, mask=None, dim=-1, reduction="mean", sort=True, stable=False):
 
 	if sort:
-		_sb, _ib = b.sort(dim=dim, stable=stable)
-		_sa = a.gather(dim, _ib)
+		_st, _it = t.sort(dim=dim, stable=stable)
+		_ss = s.gather(dim, _it)
 	else:
-		_sa, _sb = a, b
-	_n = _sa.size(-1) - 1
-	_ha, _ta = _sa.narrow(dim, 0, _n), _sa.narrow(dim, 1, _n)
-	_hb, _tb = _sb.narrow(dim, 0, _n), _sb.narrow(dim, 1, _n)
-	_zero_mask = _ta.eq(0.0) | _tb.eq(0.0)
+		_ss, _st = s, t
+	_n = _ss.size(-1) - 1
+	_hs, _ts = _ss.narrow(dim, 0, _n), _ss.narrow(dim, 1, _n)
+	_ht, _tt = _st.narrow(dim, 0, _n), _st.narrow(dim, 1, _n)
+	_zero_mask = _ts.eq(0.0) | _tt.eq(0.0)
 	if torch_any_wodim(_zero_mask).item():
-		loss = (_ha / _ta - _hb / _tb).masked_fill(_zero_mask, 0.0).abs().sum(dim) / (float(_n) - _zero_mask.to(a.dtype).sum(dim))
+		loss = (_hs / _ts - _ht / _tt).masked_fill(_zero_mask, 0.0).abs().sum(dim) / (float(_n) - _zero_mask.to(s.dtype).sum(dim))
 	else:
-		loss = (_ha / _ta - _hb / _tb).abs().mean(dim)
+		loss = (_hs / _ts - _ht / _tt).abs().mean(dim)
 
 	return token_loss_mask_reduction(loss, mask=mask, reduction=reduction)
 
@@ -77,12 +77,12 @@ class ScaleDis(_Loss):
 
 		return scaledis_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, sort=self.sort, stable=self.stable)
 
-def orderdis_loss(a, b, mask=None, dim=-1, reduction="mean", stable=False):
+def orderdis_loss(s, t, mask=None, dim=-1, reduction="mean", stable=False):
 
-	_sa = a.gather(dim, b.argsort(dim=dim, descending=False, stable=stable))
-	_n = _sa.size(-1) - 1
+	_ss = s.gather(dim, t.argsort(dim=dim, descending=False, stable=stable))
+	_n = _ss.size(-1) - 1
 
-	return token_loss_mask_reduction((_sa.narrow(dim, 1, _n) - _sa.narrow(dim, 0, _n)).clamp_(min=0.0).mean(dim), mask=mask, reduction=reduction)
+	return token_loss_mask_reduction((_ss.narrow(dim, 1, _n) - _ss.narrow(dim, 0, _n)).clamp_(min=0.0).mean(dim), mask=mask, reduction=reduction)
 
 class OrderDis(_Loss):
 
@@ -95,12 +95,12 @@ class OrderDis(_Loss):
 
 		return orderdis_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, stable=self.stable)
 
-def simorder_loss(a, b, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False, sim_func=pearson_corr):
+def simorder_loss(s, t, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False, sim_func=pearson_corr):
 
-	_sim = sim_func(a, b, dim=dim, keepdim=False, eps=eps)
-	_sa = a.gather(dim, b.argsort(dim=dim, descending=False, stable=stable))
-	_n = _sa.size(-1) - 1
-	_order_loss = (_sa.narrow(dim, 1, _n) - _sa.narrow(dim, 0, _n)).clamp_(min=0.0).mean(dim)
+	_sim = sim_func(s, t, dim=dim, keepdim=False, eps=eps)
+	_ss = s.gather(dim, t.argsort(dim=dim, descending=False, stable=stable))
+	_n = _ss.size(-1) - 1
+	_order_loss = (_ss.narrow(dim, 1, _n) - _ss.narrow(dim, 0, _n)).clamp_(min=0.0).mean(dim)
 
 	_is_mean_reduction = reduction == "mean"
 	if _is_mean_reduction:

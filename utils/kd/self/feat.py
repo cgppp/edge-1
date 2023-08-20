@@ -3,7 +3,6 @@
 import torch
 
 #mse_loss may boost the magnitude and lead to convergence issue
-
 #from torch.nn.functional import mse_loss as loss_func
 
 from loss.kd import cosim_loss as loss_func
@@ -15,10 +14,8 @@ def get_kd_loss(x, mask=None):
 	#if mask is not None:
 		#_x.masked_fill_(mask, 0.0)
 	_n = _x.size(0) - 1
-	_t = _x.narrow(0, _n, 1).detach()
-	_s = _x.narrow(0, 0, _n)
 
-	return loss_func(_t, _s, mask=mask, reduction="sum")
+	return loss_func(_x.narrow(0, 0, _n), _x.narrow(0, _n, 1).detach(), mask=mask, reduction="sum")
 
 def get_iter_kd_loss(x, mask=None):
 
@@ -26,10 +23,8 @@ def get_iter_kd_loss(x, mask=None):
 	#if mask is not None:
 		#_x.masked_fill_(mask, 0.0)
 	_n = _x.size(0) - 1
-	_t = _x.narrow(0, 1, _n).detach()
-	_s = _x.narrow(0, 0, _n)
 
-	return loss_func(_t, _s, mask=mask, reduction="sum")
+	return loss_func(_x.narrow(0, 0, _n), _x.narrow(0, 1, _n).detach(), mask=mask, reduction="sum")
 
 class ATAKDLoss:
 
@@ -57,9 +52,7 @@ class ATAKDLoss:
 		#if mask is not None:
 			#_x.masked_fill_(mask, 0.0)
 		_nt = _x.size(0)
-		_t = _x.detach().unsqueeze(1)
-		_s = _x.index_select(0, self.get_index(_nt, device=_x.device)).view(_nt, _nt - 1, *_x.size()[1:])
 
-		return loss_func(_t, _s, mask=mask, reduction="sum")
+		return loss_func(_x.index_select(0, self.get_index(_nt, device=_x.device)).view(_nt, _nt - 1, *_x.size()[1:]), _x.detach().unsqueeze(1), mask=mask, reduction="sum")
 
 get_ata_kd_loss = ATAKDLoss()
