@@ -5,7 +5,7 @@ import torch
 #mse_loss may boost the magnitude and lead to convergence issue
 #from torch.nn.functional import mse_loss as loss_func
 
-from loss.kd import cosim_loss as loss_func
+from loss.kd import pearson_loss as loss_func
 from utils.kd.base import identity_norm as norm_func
 
 def get_kd_loss(x, mask=None):
