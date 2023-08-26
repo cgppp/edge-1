@@ -19,7 +19,7 @@ class Decoder(DecoderBase):
 		self.kd_layers = set() if kd_layers is None else (kd_layers if isinstance(kd_layers, set) else set(kd_layers))
 		self.min_sim = min_sim
 
-	def forward(self, inpute, inputo, src_pad_mask=None, gold=None, **kwargs):
+	def forward(self, inpute, inputo, src_pad_mask=None, gold=None, gold_pad_mask=None, **kwargs):
 
 		nquery = inputo.size(-1)
 
@@ -48,6 +48,6 @@ class Decoder(DecoderBase):
 		if self.training and (gold is not None):
 			if (prev_layer_ind + 1) in self.kd_layers:
 				kd_o.append(_last_layer_out)
-			return out, get_kd_loss(torch.stack(kd_o, dim=0), mask=inputo.eq(pad_id)) if len(kd_o) > 1 else out.new_zeros(1)
+			return out, get_kd_loss(torch.stack(kd_o, dim=0), mask=gold.eq(pad_id) if gold_pad_mask is None else gold_pad_mask) if len(kd_o) > 1 else out.new_zeros(1)
 		else:
 			return out

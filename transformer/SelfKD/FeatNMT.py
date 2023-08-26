@@ -31,13 +31,13 @@ class NMT(NMTBase):
 		if rel_pos_enabled:
 			share_rel_pos_cache(self)
 
-	def forward(self, inpute, inputo, mask=None, gold=None, **kwargs):
+	def forward(self, inpute, inputo, mask=None, gold=None, gold_pad_mask=None, **kwargs):
 
 		_mask = inpute.eq(pad_id).unsqueeze(1) if mask is None else mask
 
 		if self.training and (gold is not None):
 			ence, _enc_kd_loss = self.enc(inpute, mask=_mask, gold=gold)
-			out, _dec_kd_loss = self.dec(ence, inputo, src_pad_mask=_mask, gold=gold)
+			out, _dec_kd_loss = self.dec(ence, inputo, src_pad_mask=_mask, gold=gold, gold_pad_mask=gold_pad_mask)
 			return out, _enc_kd_loss + _dec_kd_loss
 		else:
 			return self.dec(self.enc(inpute, mask=_mask), inputo, src_pad_mask=_mask)
