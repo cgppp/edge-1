@@ -64,7 +64,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		loss_add = loss.data.item()
 		if use_kd:
 			loss_add_kd = kd_loss.item()
-			loss = loss + kd_loss * kd_loss_w
+			loss = loss.add(kd_loss, alpha=kd_loss_w)
 		else:
 			loss_add_kd = 0.0
 

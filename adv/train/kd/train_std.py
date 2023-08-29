@@ -62,7 +62,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 				loss = loss.sum()
 				kd_loss = torch.cat([_t.to(mv_device, non_blocking=True) for _t in kd_loss], dim=-1).sum()
 		loss_add = loss.data.item() + kd_loss.item()
-		loss = loss + kd_loss * kd_loss_w
+		loss = loss.add(kd_loss, alpha=kd_loss_w)
 
 		if scaler is None:
 			loss.backward()
