@@ -95,7 +95,7 @@ class OrderDis(_Loss):
 
 		return orderdis_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, stable=self.stable)
 
-def simorder_loss(s, t, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False, sim_func=pearson_corr):
+def simorder_loss(s, t, mask=None, dim=-1, reduction="mean", alpha=1.0, eps=ieps_ln_default, stable=False, sim_func=pearson_corr):
 
 	_sim = sim_func(s, t, dim=dim, keepdim=False, eps=eps)
 	_ss = s.gather(dim, t.argsort(dim=dim, descending=False, stable=stable))
@@ -113,7 +113,7 @@ def simorder_loss(s, t, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default
 	if reduction != "none":
 		_sim = _sim.sum()
 		_order_loss = _order_loss.sum()
-	loss = _order_loss.sub_(_sim)
+	loss = _order_loss.sub_(_sim) if alpha == 1.0 else (-_sim).add(_order_loss, alpha=alpha)
 	if _is_mean_reduction:
 		loss = loss.div_(float(_num))
 
@@ -121,11 +121,11 @@ def simorder_loss(s, t, mask=None, dim=-1, reduction="mean", eps=ieps_ln_default
 
 class SimOrder(_Loss):
 
-	def __init__(self, dim=-1, reduction="mean", eps=ieps_ln_default, stable=False, sim_func=pearson_corr, **kwargs):
+	def __init__(self, dim=-1, reduction="mean", alpha=1.0, eps=ieps_ln_default, stable=False, sim_func=pearson_corr, **kwargs):
 
 		super(SimOrder, self).__init__()
-		self.dim, self.reduction, self.eps, self.stable, self.sim_func = dim, reduction, eps, stable, sim_func
+		self.dim, self.reduction, self.alpha, self.eps, self.stable, self.sim_func = dim, reduction, alpha, eps, stable, sim_func
 
 	def forward(self, input, target, mask=None, **kwargs):
 
-		return simorder_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, eps=self.eps, stable=self.stable, sim_func=self.sim_func)
+		return simorder_loss(input, target, mask=mask, dim=self.dim, reduction=self.reduction, alpha=self.alpha, eps=self.eps, stable=self.stable, sim_func=self.sim_func)
