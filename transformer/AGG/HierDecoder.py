@@ -42,7 +42,7 @@ class DecoderLayer(nn.Module):
 				outs.append(out)
 			states_return = []
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(inpute, None if inputo is None else inputo[_tmp], src_pad_mask, tgt_pad_mask, out)
+				out, _state = net(inpute, (None, None,) if inputo[0] is None else inputo[_tmp], src_pad_mask, tgt_pad_mask, out)
 				outs.append(out)
 				states_return.append(_state)
 
