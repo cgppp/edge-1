@@ -1,6 +1,9 @@
 #encoding: utf-8
 
+from random import choice, random
 from re import compile, escape
+
+from utils.fmt.parser import parse_none
 
 def ordered_filter(lin):
 
@@ -99,12 +102,64 @@ class SubPair:
 
 		return rs
 
+	def set_ref(self, dbl, print_func=print):
+
+		_d = {}
+		for _k, _v in dbl:
+			if isinstance(_k, str) and isinstance(_v, str):
+				_lo, _ro = compute_offset(_k, _v)
+				if (_k in _d) and (print_func is not None):
+					print_func("%s: override %s -> %s" % (_k, _d[_k], _v,))
+				_d[_k] = (_v, _lo, _ro,)
+		_search = re_many_or(_d.keys(), optm=True, re_escape=self.re_escape, long_match=True).search
+		self.data, self.search = _d, _search
+
+class SubPairP:
+
+	def __init__(self, dbl, *args, allow_re=False, p=0.1, **kwargs):
+
+		self.re_escape, self.p = not allow_re, p
+		self.set_ref(dbl)
+
+	def handle(self, x, offset=0, p=None):
+
+		rs = x
+		_sind = None
+		if offset > 0:
+			_m = self.search(rs[offset:])
+			if _m is not None:
+				_sind, _eind = _m.start() + offset, _m.end() + offset
+		else:
+			_m = self.search(rs)
+			if _m is not None:
+				_sind, _eind = _m.start(), _m.end()
+		if _sind is not None:
+			_k = rs[_sind:_eind]
+			if _k in self.data:
+				_ = self.data[_k]
+				_v, _lo, _ro = _[0] if len(_) == 1 else choice(_)
+				if (_lo is None) or (rs[_sind + _lo:_eind + _ro] != _v):
+					_p = parse_none(p, self.p)
+					_ = len(rs)
+					if random() < _p:
+						rs = "%s%s%s" % (rs[:_sind], _v, rs[_eind:])
+						if _eind < _:
+							rs = self.handle(rs, offset=_eind + len(_v) - len(_k), p=_p)
+					else:
+						if _eind < _:
+							rs = self.handle(rs, offset=_eind, p=_p)
+
+		return rs
+
 	def set_ref(self, dbl):
 
 		_d = {}
 		for _k, _v in dbl:
 			if isinstance(_k, str) and isinstance(_v, str):
 				_lo, _ro = compute_offset(_k, _v)
-				_d[_k] = (_v, _lo, _ro,)
+				if _k in _d:
+					_d[_k].append((_v, _lo, _ro,))
+				else:
+					_d[_k] = [(_v, _lo, _ro,)]
 		_search = re_many_or(_d.keys(), optm=True, re_escape=self.re_escape, long_match=True).search
 		self.data, self.search = _d, _search

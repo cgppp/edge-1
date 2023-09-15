@@ -8,9 +8,11 @@ def share_rel_pos_cache(netin, share_emb=False):
 
 	rel_cache_d = {}
 	rel_map_cache_d = {}
+	rope_cache_d = {}
 	for net in netin.modules():
 		if isinstance(net, ModuleList):
 			base_nets = {}
+			rope_base_nets = {}
 			for layer in net.modules():
 				if isinstance(layer, (SelfAttn, MultiHeadAttn, CrossAttn,)):
 					if hasattr(layer, "rel_pemb") and (layer.rel_pemb is not None):
@@ -32,5 +34,17 @@ def share_rel_pos_cache(netin, share_emb=False):
 							layer.register_buffer("rel_pos", rel_cache_d[_key], persistent=False)
 						else:
 							rel_cache_d[_key] = layer.rel_pos
+					if hasattr(layer, "rope_sin") and (layer.rope_sin is not None):
+						_key = layer.rope_sin.size()
+						if _key in rope_base_nets:
+							layer.ref_ropem = rope_base_nets[_key]
+						else:
+							rope_base_nets[_key] = layer
+						if _key in rope_cache_d:
+							_rope_sin, _rope_cos = rope_cache_d[_key]
+							layer.register_buffer("rope_sin", _rope_sin, persistent=False)
+							layer.register_buffer("rope_cos", _rope_cos, persistent=False)
+						else:
+							rope_cache_d[_key] = (layer.rope_sin, layer.rope_cos,)
 
 	return netin

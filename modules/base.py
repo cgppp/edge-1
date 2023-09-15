@@ -12,6 +12,7 @@ from utils.base import reduce_model_list
 from utils.decode.beam import repeat_bsize_for_beam_tensor
 from utils.fmt.parser import parse_none
 from utils.relpos.bucket import build_rel_pos_bucket, build_rel_pos_bucket_map
+from utils.relpos.rope import apply_rope
 from utils.torch.comp import torch_no_grad
 from utils.torch.pyc import transfer_CNone_tuple
 
@@ -133,11 +134,7 @@ class PositionalEmb(nn.Module):
 
 		super(PositionalEmb, self).__init__()
 
-		self.num_pos = num_pos
-		self.num_dim = num_dim
-		self.poff = pos_offset
-		self.doff = dim_offset
-		self.alpha = alpha
+		self.num_pos, self.num_dim, self.poff, self.doff, self.alpha = num_pos, num_dim, pos_offset, dim_offset, alpha
 		self.register_buffer("w", torch.Tensor(num_pos, num_dim), persistent=False)
 		self.reset_parameters()
 
@@ -147,15 +144,15 @@ class PositionalEmb(nn.Module):
 
 		bsize, seql = x.size()
 
-		rs = self.w[:seql].unsqueeze(0) if seql <= self.num_pos else torch.cat((self.w, self.get_ext(seql, False)), 0).unsqueeze(0)
+		rs = self.w[:seql].unsqueeze(0) if seql <= self.num_pos else torch.cat((self.w, self.get_ext(seql, step_pick=False)), 0).unsqueeze(0)
 
 		return rs.expand(bsize, seql, self.num_dim) if expand else rs
 
 	def reset_parameters(self):
 
-		poff = self.poff
+		poff, doff = self.poff, self.doff
 		pos = torch.arange(poff, self.num_pos + poff, dtype=self.w.dtype, device=self.w.device).unsqueeze(1)
-		rdiv_term = (torch.arange(self.doff, self.num_dim + self.doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(1e4) / self.num_dim)).exp()
+		rdiv_term = (torch.arange(doff, self.num_dim + doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(1e4) / self.num_dim)).exp()
 		_tmp = pos * rdiv_term
 		if self.alpha != 1.0:
 			_tmp.mul_(self.alpha)
@@ -163,7 +160,7 @@ class PositionalEmb(nn.Module):
 
 	def get_ext(self, length, step_pick=False):
 
-		poff = self.poff
+		poff, doff = self.poff, self.doff
 
 		if step_pick:
 			pos = torch.as_tensor([length + poff], dtype=self.w.dtype, device=self.w.device).unsqueeze(1)
@@ -172,7 +169,7 @@ class PositionalEmb(nn.Module):
 			npos = self.num_pos
 			pos = torch.arange(npos + poff, length + poff, dtype=self.w.dtype, device=self.w.device).unsqueeze(1)
 			ed = self.w.new_empty(length - npos, self.num_dim)
-		rdiv_term = (torch.arange(self.doff, self.num_dim + self.doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(1e4) / self.num_dim)).exp()
+		rdiv_term = (torch.arange(doff, self.num_dim + doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(1e4) / self.num_dim)).exp()
 		_tmp = pos * rdiv_term
 		if self.alpha != 1.0:
 			_tmp.mul_(self.alpha)
@@ -184,7 +181,7 @@ class PositionalEmb(nn.Module):
 
 	def get_pos(self, step):
 
-		return self.w[step] if step < self.num_pos else self.get_ext(step, True).squeeze(0)
+		return self.w[step] if step < self.num_pos else self.get_ext(step, step_pick=True).squeeze(0)
 
 class MultiHeadAttn(nn.Module):
 
@@ -252,7 +249,7 @@ class MultiHeadAttn(nn.Module):
 				self.register_buffer("rel_pos", (_rpm.unsqueeze(0) - _rpm.unsqueeze(1)).clamp(min=self.clamp_min, max=self.clamp_max) + self.rel_shift, persistent=False)
 				self.register_buffer("rel_pos_map", None, persistent=False)
 			self.xseql = xseql
-			# the buffer can be shared inside the encoder or the decoder across layers for saving memory, by setting self.ref_rel_posm of self attns in deep layers to SelfAttn in layer 0, and sharing corresponding self.rel_pos
+			# the buffer can be shared inside the encoder or the decoder across layers for saving memory, by setting self.ref_rel_posm of self attns in deep layers to MultiHeadAttn in layer 0, and sharing corresponding self.rel_pos
 			self.ref_rel_posm = None
 			self.register_buffer("rel_pos_cache", None, persistent=False)
 		else:
@@ -432,7 +429,7 @@ class MultiHeadAttn(nn.Module):
 # Accelerated MultiHeadAttn for self attention, use when Q == K == V
 class SelfAttn(nn.Module):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=False, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
 		super(SelfAttn, self).__init__()
 
@@ -481,11 +478,20 @@ class SelfAttn(nn.Module):
 				self.register_buffer("rel_pos", (_rpm.unsqueeze(0) - _rpm.unsqueeze(1)).clamp(min=self.clamp_min, max=self.clamp_max) + self.rel_shift, persistent=False)
 				self.register_buffer("rel_pos_map", None, persistent=False)
 			self.xseql = xseql
-			# the buffer can be shared inside the encoder or the decoder across layers for saving memory, by setting self.ref_rel_posm of self attns in deep layers to SelfAttn in layer 0, and sharing corresponding self.rel_pos
+			# the buffer can be shared inside the encoder or the decoder across layers to save memory, by setting self.ref_rel_posm of self attns in deep layers to SelfAttn in layer 0, and sharing corresponding self.rel_pos
 			self.ref_rel_posm = None
 			self.register_buffer("rel_pos_cache", None, persistent=False)
 		else:
 			self.rel_pemb = None
+		if use_rope:
+			self.rope_poff, self.rope_doff, self.rope_alpha, self.xseql = rope_pos_offset, rope_dim_offset, rope_alpha, xseql
+			self.rope_reset_parameters()
+			# like self.ref_rel_posm
+			self.ref_ropem = None
+			self.register_buffer("rope_sin_cache", None, persistent=False)
+			self.register_buffer("rope_cos_cache", None, persistent=False)
+		else:
+			self.register_buffer("rope_sin", None, persistent=False)
 
 		if self.c_available():
 			self.c_init()
@@ -497,15 +503,33 @@ class SelfAttn(nn.Module):
 		adim = self.attn_dim
 
 		real_iQ, real_iK, real_iV = self.adaptor(iQ).view(bsize, nquery, 3, nheads, adim).unbind(2)
-		real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
-
-		if states is not None:
-			_h_real_iK, _h_real_iV = states
-			if _h_real_iK is None:
-				seql = nquery
+		_h_real_iK = None
+		seql = nquery
+		if self.rope_sin is None:
+			if states is not None:
+				_h_real_iK, _h_real_iV = states
+				if _h_real_iK is None:
+					seql = nquery
+				else:
+					seql = nquery + _h_real_iK.size(-1)
+					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=1), torch.cat((_h_real_iV, real_iV,), dim=1)
+		else:
+			if states is not None:
+				_h_real_iK, _h_real_iV = states
+				if _h_real_iK is None:
+					seql = nquery
+				else:
+					_step_len = _h_real_iK.size(1)
+					seql = nquery + _step_len
+			if self.ref_ropem is None:
+				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(nquery, _step_len, seql)
+				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
 			else:
-				seql = nquery + _h_real_iK.size(-1)
-				real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
+				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
+			real_iQ, real_iK = apply_rope(real_iQ, self.rope_sin_cache, self.rope_cos_cache), apply_rope(real_iK, self.rope_sin_cache, self.rope_cos_cache)
+			if _h_real_iK is not None:
+				real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=1), torch.cat((_h_real_iV, real_iV,), dim=1)
+		real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
 
 		scores = real_iQ.matmul(real_iK)
 
@@ -548,6 +572,62 @@ class SelfAttn(nn.Module):
 	def reset_buffer(self, value=None):
 
 		self.rel_pos_cache = value
+
+	def rope_reset_parameters(self):
+
+		poff, doff = self.rope_poff, self.rope_doff
+		pos = torch.arange(poff, self.xseql + poff, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device).unsqueeze(1)
+		rdiv_term = (torch.arange(doff, self.attn_dim + doff, 2, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device) * -(log(1e4) / self.attn_dim)).exp()
+		_tmp = pos * rdiv_term
+		if self.rope_alpha != 1.0:
+			_tmp.mul_(self.rope_alpha)
+		self.register_buffer("rope_sin", _tmp.sin(), persistent=False)
+		self.register_buffer("rope_cos", _tmp.cos(), persistent=False)
+
+	def rope_get_ext(self, length, step_pick=False, xseql=None):
+
+		poff, doff = self.rope_poff, self.rope_doff
+
+		if step_pick:
+			pos = torch.as_tensor([length + poff], dtype=self.rope_sin.dtype, device=self.rope_sin.device).unsqueeze(1)
+		else:
+			npos = self.xseql if xseql is None else xseql
+			pos = torch.arange(npos + poff, length + poff, dtype=self.rope_sin.dtype, device=self.rope_sin.device).unsqueeze(1)
+		rdiv_term = (torch.arange(doff, self.attn_dim + doff, 2, dtype=self.rope_sin.dtype, device=self.rope_sin.device) * -(log(1e4) / self.attn_dim)).exp()
+		_tmp = pos * rdiv_term
+		if self.rope_alpha != 1.0:
+			_tmp.mul_(self.rope_alpha)
+
+		return _tmp.sin(), _tmp.cos()
+
+	def rope_get_pos(self, step):
+
+		return (self.rope_sin.narrow(0, step, 1), self.rope_cos.narrow(0, step, 1)) if step < self.xseql else self.rope_get_ext(step, step_pick=True)
+
+	def rope_narrow(self, slen, step_len, elen=None):
+
+		_sid = slen - 1
+		if step_len == 1:
+			return self.rope_get_pos(_sid)
+		_elen = (slen + step_len) if elen is None else elen
+		_xseql = self.xseql
+		if _elen <= _xseql:
+			return self.rope_sin.narrow(0, _sid, step_len), self.rope_cos.narrow(0, _sid, step_len)
+		else:
+			if _sid < _xseql:
+				_ext_sin, _ext_cos = self.rope_get_ext(_elen, step_pick=False)
+				_ = _xseql - slen
+				return torch.cat((self.rope_sin.narrow(0, _sid, _), _ext_sin,), 0), torch.cat((self.rope_cos.narrow(0, _sid, _), _ext_cos,), 0)
+			else:
+				return self.rope_get_ext(_elen, step_pick=False, xseql=slen)
+
+	def rope_get(self, seql):
+
+		if seql <= self.xseql:
+			return self.rope_sin[:seql], self.rope_cos[:seql]
+		else:
+			_ext_sin, _ext_cos = self.rope_get_ext(seql, step_pick=False)
+			return torch.cat((self.rope_sin, _ext_sin,), 0), torch.cat((self.rope_cos, _ext_cos,), 0)
 
 	def c_available(self):
 
