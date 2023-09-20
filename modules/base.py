@@ -197,7 +197,7 @@ class MultiHeadAttn(nn.Module):
 	# sparsenorm: using sparse normer or standard softmax
 	# bind_qk: query and key can share a same linear transformation for the Reformer: The Efficient Transformer (https://arxiv.org/abs/2001.04451) paper.
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, v_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=0, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, sparsenorm=False, bind_qk=False, xseql=cache_len_default, is_decoding=False, **kwargs):
+	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, v_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=0, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sparsenorm=False, bind_qk=False, xseql=cache_len_default, is_decoding=False, **kwargs):
 
 		super(MultiHeadAttn, self).__init__()
 
@@ -254,6 +254,15 @@ class MultiHeadAttn(nn.Module):
 			self.register_buffer("rel_pos_cache", None, persistent=False)
 		else:
 			self.rel_pemb = None
+		if use_rope:
+			self.rope_poff, self.rope_doff, self.rope_alpha, self.xseql = rope_pos_offset, rope_dim_offset, rope_alpha, xseql
+			self.rope_reset_parameters()
+			# like self.ref_rel_posm
+			self.ref_ropem = None
+			self.register_buffer("rope_sin_cache", None, persistent=False)
+			self.register_buffer("rope_cos_cache", None, persistent=False)
+		else:
+			self.register_buffer("rope_sin", None, persistent=False)
 
 		self.register_buffer("real_iK", None, persistent=False)
 		self.register_buffer("real_iV", None, persistent=False)
@@ -280,26 +289,60 @@ class MultiHeadAttn(nn.Module):
 		# real_iK: MultiHead iK (bsize, seql, vsize) => (bsize, nheads, adim, seql)
 		# real_iV: MultiHead iV (bsize, seql, vsize) => (bsize, nheads, seql, adim)
 
-		real_iQ = self.query_adaptor(iQ).view(bsize, nquery, nheads, adim).transpose(1, 2)
+		if self.rope_sin is None:
+			real_iQ = self.query_adaptor(iQ).view(bsize, nquery, nheads, adim).transpose(1, 2)
 
-		if (self.real_iK is not None) and self.iK.is_set_to(iK) and self.is_decoding:
-			real_iK = self.real_iK
+			if (self.real_iK is not None) and self.iK.is_set_to(iK) and self.is_decoding:
+				real_iK = self.real_iK
+			else:
+				real_iK = self.key_adaptor(iK).view(bsize, seql, nheads, adim).permute(0, 2, 3, 1)
+				if self.is_decoding:
+					self.iK, self.real_iK = iK, real_iK
+			if (self.real_iV is not None) and self.iV.is_set_to(iV) and (not self.training):
+				real_iV = self.real_iV
+			else:
+				real_iV = self.value_adaptor(iV).view(bsize, seql, nheads, adim).transpose(1, 2)
+				if not self.training:
+					self.iV, self.real_iV = iV, real_iV
+			if states is not None:
+				_h_real_iK, _h_real_iV = states
+				if _h_real_iK is not None:
+					seql += _h_real_iK.size(-1)
+					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 		else:
-			real_iK = self.key_adaptor(iK).view(bsize, seql, nheads, adim).permute(0, 2, 3, 1)
-			if self.is_decoding:
-				self.iK, self.real_iK = iK, real_iK
-		if (self.real_iV is not None) and self.iV.is_set_to(iV) and (not self.training):
-			real_iV = self.real_iV
-		else:
-			real_iV = self.value_adaptor(iV).view(bsize, seql, nheads, adim).transpose(1, 2)
-			if not self.training:
-				self.iV, self.real_iV = iV, real_iV
-
-		if states is not None:
-			_h_real_iK, _h_real_iV = states
+			real_iQ = self.query_adaptor(iQ).view(bsize, nquery, nheads, adim)
+			_set_iK = False
+			if (self.real_iK is not None) and self.iK.is_set_to(iK) and self.is_decoding:
+				real_iK = self.real_iK
+				_iK_rope = False
+			else:
+				real_iK = self.key_adaptor(iK).view(bsize, seql, nheads, adim)
+				_iK_rope = True
+				_set_iK = self.is_decoding
+			if (self.real_iV is not None) and self.iV.is_set_to(iV) and (not self.training):
+				real_iV = self.real_iV
+			else:
+				real_iV = self.value_adaptor(iV).view(bsize, seql, nheads, adim).transpose(1, 2)
+				if not self.training:
+					self.iV, self.real_iV = iV, real_iV
+			_h_real_iK = None
+			if states is not None:
+				_h_real_iK, _h_real_iV = states
+				if _h_real_iK is not None:
+					_slen = _h_real_iK.size(-1)
+					seql += _slen
+			if self.ref_ropem is None:
+				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(_slen, nquery, seql)
+				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
+			else:
+				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
+			real_iQ = apply_rope(real_iQ, self.rope_sin_cache, self.rope_cos_cache).transpose(1, 2)
+			if _iK_rope:
+				real_iK = apply_rope(real_iK, self.rope_sin_cache, self.rope_cos_cache).permute(0, 2, 3, 1)
 			if _h_real_iK is not None:
-				seql += _h_real_iK.size(-1)
 				real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
+			if _set_iK:
+				self.iK, self.real_iK = iK, real_iK
 
 		# scores (bsize, nheads, nquery, adim) * (bsize, nheads, adim, seql) => (bsize, nheads, nquery, seql)
 
@@ -365,6 +408,62 @@ class MultiHeadAttn(nn.Module):
 		if self.real_iV is not None:
 			self.real_iV = self.real_iV.index_select(dim, indices)
 
+	def rope_reset_parameters(self):
+
+		poff, doff = self.rope_poff, self.rope_doff
+		pos = torch.arange(poff, self.xseql + poff, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device).unsqueeze(1)
+		rdiv_term = (torch.arange(doff, self.attn_dim + doff, 2, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device) * -(log(1e4) / self.attn_dim)).exp()
+		_tmp = pos * rdiv_term
+		if self.rope_alpha != 1.0:
+			_tmp.mul_(self.rope_alpha)
+		self.register_buffer("rope_sin", _tmp.sin(), persistent=False)
+		self.register_buffer("rope_cos", _tmp.cos(), persistent=False)
+
+	def rope_get_ext(self, length, step_pick=False, xseql=None):
+
+		poff, doff = self.rope_poff, self.rope_doff
+
+		if step_pick:
+			pos = torch.as_tensor([length + poff], dtype=self.rope_sin.dtype, device=self.rope_sin.device).unsqueeze(1)
+		else:
+			npos = self.xseql if xseql is None else xseql
+			pos = torch.arange(npos + poff, length + poff, dtype=self.rope_sin.dtype, device=self.rope_sin.device).unsqueeze(1)
+		rdiv_term = (torch.arange(doff, self.attn_dim + doff, 2, dtype=self.rope_sin.dtype, device=self.rope_sin.device) * -(log(1e4) / self.attn_dim)).exp()
+		_tmp = pos * rdiv_term
+		if self.rope_alpha != 1.0:
+			_tmp.mul_(self.rope_alpha)
+
+		return _tmp.sin(), _tmp.cos()
+
+	def rope_get_pos(self, step):
+
+		return (self.rope_sin.narrow(0, step, 1), self.rope_cos.narrow(0, step, 1)) if step < self.xseql else self.rope_get_ext(step, step_pick=True)
+
+	def rope_narrow(self, slen, step_len, elen=None):
+
+		_sid = slen - 1
+		if step_len == 1:
+			return self.rope_get_pos(_sid)
+		_elen = (slen + step_len) if elen is None else elen
+		_xseql = self.xseql
+		if _elen <= _xseql:
+			return self.rope_sin.narrow(0, _sid, step_len), self.rope_cos.narrow(0, _sid, step_len)
+		else:
+			if _sid < _xseql:
+				_ext_sin, _ext_cos = self.rope_get_ext(_elen, step_pick=False)
+				_ = _xseql - slen
+				return torch.cat((self.rope_sin.narrow(0, _sid, _), _ext_sin,), 0), torch.cat((self.rope_cos.narrow(0, _sid, _), _ext_cos,), 0)
+			else:
+				return self.rope_get_ext(_elen, step_pick=False, xseql=slen)
+
+	def rope_get(self, seql):
+
+		if seql <= self.xseql:
+			return self.rope_sin[:seql], self.rope_cos[:seql]
+		else:
+			_ext_sin, _ext_cos = self.rope_get_ext(seql, step_pick=False)
+			return torch.cat((self.rope_sin, _ext_sin,), 0), torch.cat((self.rope_cos, _ext_cos,), 0)
+
 	def c_available(self):
 
 		return use_c_backend_mhattn and (type(self) == MultiHeadAttn) and (type(self.normer) == nn.Softmax) and ((self.rel_pos is None) or (self.rel_pos_map is None))
@@ -429,7 +528,7 @@ class MultiHeadAttn(nn.Module):
 # Accelerated MultiHeadAttn for self attention, use when Q == K == V
 class SelfAttn(nn.Module):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=False, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
 		super(SelfAttn, self).__init__()
 
@@ -506,30 +605,31 @@ class SelfAttn(nn.Module):
 		_h_real_iK = None
 		seql = nquery
 		if self.rope_sin is None:
+			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
 				if _h_real_iK is None:
 					seql = nquery
 				else:
 					seql = nquery + _h_real_iK.size(-1)
-					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=1), torch.cat((_h_real_iV, real_iV,), dim=1)
+					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 		else:
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
 				if _h_real_iK is None:
 					seql = nquery
 				else:
-					_step_len = _h_real_iK.size(1)
-					seql = nquery + _step_len
+					_slen = _h_real_iK.size(-1)
+					seql = nquery + _slen
 			if self.ref_ropem is None:
-				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(nquery, _step_len, seql)
+				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(_slen, nquery, seql)
 				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
 			else:
 				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
 			real_iQ, real_iK = apply_rope(real_iQ, self.rope_sin_cache, self.rope_cos_cache), apply_rope(real_iK, self.rope_sin_cache, self.rope_cos_cache)
+			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
 			if _h_real_iK is not None:
-				real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=1), torch.cat((_h_real_iV, real_iV,), dim=1)
-		real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
+				real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 
 		scores = real_iQ.matmul(real_iK)
 

@@ -159,6 +159,8 @@ cache_len_default = 256
 use_k_relative_position = 0
 relative_position_max_bucket_distance = 0
 disable_std_pemb = False
+# use rotary position embedding proposed in [RoFormer: Enhanced Transformer with Rotary Position Embedding](https://arxiv.org/abs/2104.09864).
+use_rope = False
 
 # using fast implementation of label smoothing loss, but it cannot exclude the negative impact of special tokens, like <pad>, on training. `forbidden_indexes` in `cnfg/base.py` shall be set to None to enable.
 use_fast_loss = True

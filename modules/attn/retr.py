@@ -5,6 +5,7 @@ from math import sqrt
 
 from modules.base import CrossAttn as CrossAttnBase, ResCrossAttn as ResCrossAttnBase, ResSelfAttn as ResSelfAttnBase, SelfAttn as SelfAttnBase
 from modules.sampler import Retriever
+from utils.relpos.rope import apply_rope
 from utils.torch.comp import exist_any, torch_no_grad
 
 from cnfg.ihyp import *
@@ -32,12 +33,33 @@ class SelfAttn(SelfAttnBase):
 		adim = self.attn_dim
 
 		real_iQ, real_iK, real_iV = self.adaptor(iQ).view(bsize, nquery, 3, nheads, adim).unbind(2)
-
-		real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2).contiguous()
-		if states is not None:
-			_h_real_iK, _h_real_iV = states
+		_h_real_iK = None
+		seql = nquery
+		if self.rope_sin is None:
+			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
+			if states is not None:
+				_h_real_iK, _h_real_iV = states
+				if _h_real_iK is None:
+					seql = nquery
+				else:
+					seql = nquery + _h_real_iK.size(-1)
+					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
+		else:
+			if states is not None:
+				_h_real_iK, _h_real_iV = states
+				if _h_real_iK is None:
+					seql = nquery
+				else:
+					_slen = _h_real_iK.size(-1)
+					seql = nquery + _slen
+			if self.ref_ropem is None:
+				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(_slen, nquery, seql)
+				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
+			else:
+				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
+			real_iQ, real_iK = apply_rope(real_iQ, self.rope_sin_cache, self.rope_cos_cache), apply_rope(real_iK, self.rope_sin_cache, self.rope_cos_cache)
+			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
 			if _h_real_iK is not None:
-				seql = nquery + _h_real_iK.size(-1)
 				real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 
 		scores = real_iQ.matmul(real_iK)

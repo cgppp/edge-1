@@ -37,7 +37,7 @@ inplace_after_Custom_Act = use_adv_act_default and (adv_act not in set(["sigmoid
 
 # relative position encoding
 use_k_relative_position_encoder, use_k_relative_position_decoder = parse_double_value_tuple(use_k_relative_position)
-rel_pos_enabled = (max(use_k_relative_position_encoder, use_k_relative_position_decoder) > 0)
+rel_pos_enabled = (max(use_k_relative_position_encoder, use_k_relative_position_decoder) > 0) or use_rope
 relative_position_max_bucket_distance_encoder, relative_position_max_bucket_distance_decoder = parse_double_value_tuple(relative_position_max_bucket_distance)
 disable_std_pemb_encoder, disable_std_pemb_decoder = parse_double_value_tuple(disable_std_pemb)
 relpos_reduction_with_zeros = True
