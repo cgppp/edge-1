@@ -602,7 +602,7 @@ class SelfAttn(nn.Module):
 			self.xseql, self.uni_direction_reduction = xseql, uni_direction_reduction
 			_rpm = torch.arange(0, xseql, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device)
 			_ = (_rpm.unsqueeze(0) - _rpm.unsqueeze(1))
-			self.register_buffer("alibi", torch.arange(1, self.num_head + 1, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device).mul_(8.0 / self.num_head).view(self.num_head, 1, 1) * (_.clamp_(max=0.0) if uni_direction_reduction else _.abs_().neg_()).unsqueeze(0), persistent=False)
+			self.register_buffer("alibi", torch.pow(2.0, torch.arange(1, self.num_head + 1, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device).mul_(8.0 / self.num_head).neg_()).view(self.num_head, 1, 1) * (_.clamp_(max=0.0) if uni_direction_reduction else _.abs_().neg_()).unsqueeze(0), persistent=False)
 			self.ref_alibim = None
 			self.register_buffer("alibi_cache", None, persistent=False)
 		else:
@@ -690,9 +690,9 @@ class SelfAttn(nn.Module):
 		if length <= self.xseql:
 			return self.alibi.narrow(1, sid, length - sid).narrow(2, 0, length)
 		else:
-			_ = (torch.arange(sid, length, dtype=self.alibi.dtype, device=self.alibi.device).unsqueeze(0) - torch.arange(0, length, dtype=self.alibi.dtype, device=self.alibi.device).unsqueeze(1))
+			_ = torch.arange(sid, length, dtype=self.alibi.dtype, device=self.alibi.device).unsqueeze(0) - torch.arange(0, length, dtype=self.alibi.dtype, device=self.alibi.device).unsqueeze(1)
 
-			return torch.arange(1, self.num_head + 1, dtype=self.alibi.dtype, device=self.alibi.device).mul_(8.0 / self.num_head).view(self.num_head, 1, 1) * (_.clamp_(max=0.0) if uni_direction_reduction else _.abs_().neg_()).unsqueeze(0)
+			return torch.pow(2.0, torch.arange(1, self.num_head + 1, dtype=self.alibi.dtype, device=self.alibi.device).mul_(8.0 / self.num_head).neg_()).view(self.num_head, 1, 1) * (_.clamp_(max=0.0) if self.uni_direction_reduction else _.abs_().neg_()).unsqueeze(0)
 
 	def reset_buffer(self, value=None):
 
