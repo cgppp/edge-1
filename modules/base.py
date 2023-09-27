@@ -284,6 +284,7 @@ class MultiHeadAttn(nn.Module):
 		seql = iK.size(1)
 		nheads = self.num_head
 		adim = self.attn_dim
+		sid = 0
 
 		# real_iQ: MultiHead iQ (bsize, num_query, vsize) => (bsize, nheads, nquery, adim)
 		# real_iK: MultiHead iK (bsize, seql, vsize) => (bsize, nheads, adim, seql)
@@ -307,7 +308,8 @@ class MultiHeadAttn(nn.Module):
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
 				if _h_real_iK is not None:
-					seql += _h_real_iK.size(-1)
+					sid = _h_real_iK.size(-1)
+					seql += sid
 					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 		else:
 			real_iQ = self.query_adaptor(iQ).view(bsize, nquery, nheads, adim)
@@ -329,10 +331,10 @@ class MultiHeadAttn(nn.Module):
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
 				if _h_real_iK is not None:
-					_slen = _h_real_iK.size(-1)
-					seql += _slen
+					sid = _h_real_iK.size(-1)
+					seql += sid
 			if self.ref_ropem is None:
-				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(_slen, nquery, seql)
+				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(sid, nquery, seql)
 				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
 			else:
 				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
@@ -349,7 +351,7 @@ class MultiHeadAttn(nn.Module):
 		scores = real_iQ.matmul(real_iK)
 
 		if self.rel_pemb is not None:
-			self.rel_pos_cache = self.get_rel_pos(seql).narrow(0, seql - nquery, nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
+			self.rel_pos_cache = self.get_rel_pos(seql, sid=sid).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
 			scores += real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)
 
 		scores = scores / sqrt(adim)
@@ -379,20 +381,25 @@ class MultiHeadAttn(nn.Module):
 
 		return self
 
-	def get_rel_pos(self, length):
+	def get_rel_pos(self, length, sid=0):
 
 		if length <= self.xseql:
-			return self.rel_pos.narrow(0, 0, length).narrow(1, 0, length)
+			return self.rel_pos.narrow(0, sid, length - sid).narrow(1, 0, length)
 		else:
 			if self.rel_pos_map is None:
-				_rpm = torch.arange(0, length, dtype=self.rel_pos.dtype, device=self.rel_pos.device)
-				return ((_rpm.unsqueeze(0) - _rpm.unsqueeze(1)).clamp(min=self.clamp_min, max=self.clamp_max) + self.rel_shift)
+				return (torch.arange(sid, length, dtype=self.rel_pos.dtype, device=self.rel_pos.device).unsqueeze(0) - torch.arange(0, length, dtype=self.rel_pos.dtype, device=self.rel_pos.device).unsqueeze(1)).clamp_(min=self.clamp_min, max=self.clamp_max).add_(self.rel_shift)
 			else:
-				return build_rel_pos_bucket(length, k_rel_pos=self.rel_shift, max_len=self.clamp_max, uni_direction=self.clamp_min, device=self.rel_pos.device, dis_map=self.rel_pos_map)
+				return build_rel_pos_bucket(length, sid=sid, k_rel_pos=self.rel_shift, max_len=self.clamp_max, uni_direction=self.clamp_min, device=self.rel_pos.device, dis_map=self.rel_pos_map)
 
 	def reset_buffer(self, value=None):
 
-		self.iK = self.iV = self.real_iK = self.real_iV = self.rel_pos_cache = value
+		self.iK = self.iV = self.real_iK = self.real_iV = value
+		if hasattr(self, "rel_pos_cache"):
+			self.rel_pos_cache = value
+		if hasattr(self, "rope_sin_cache"):
+			self.rope_sin_cache = value
+		if hasattr(self, "rope_cos_cache"):
+			self.rope_cos_cache = value
 
 	def repeat_buffer(self, beam_size):
 
@@ -528,7 +535,7 @@ class MultiHeadAttn(nn.Module):
 # Accelerated MultiHeadAttn for self attention, use when Q == K == V
 class SelfAttn(nn.Module):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
 		super(SelfAttn, self).__init__()
 
@@ -591,6 +598,15 @@ class SelfAttn(nn.Module):
 			self.register_buffer("rope_cos_cache", None, persistent=False)
 		else:
 			self.register_buffer("rope_sin", None, persistent=False)
+		if use_alibi:
+			self.xseql, self.uni_direction_reduction = xseql, uni_direction_reduction
+			_rpm = torch.arange(0, xseql, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device)
+			_ = (_rpm.unsqueeze(0) - _rpm.unsqueeze(1))
+			self.register_buffer("alibi", torch.arange(1, self.num_head + 1, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device).mul_(8.0 / self.num_head).view(self.num_head, 1, 1) * (_.clamp_(max=0.0) if uni_direction_reduction else _.abs_().neg_()).unsqueeze(0), persistent=False)
+			self.ref_alibim = None
+			self.register_buffer("alibi_cache", None, persistent=False)
+		else:
+			self.register_buffer("alibi", None, persistent=False)
 
 		if self.c_available():
 			self.c_init()
@@ -604,25 +620,23 @@ class SelfAttn(nn.Module):
 		real_iQ, real_iK, real_iV = self.adaptor(iQ).view(bsize, nquery, 3, nheads, adim).unbind(2)
 		_h_real_iK = None
 		seql = nquery
+		sid = 0
 		if self.rope_sin is None:
 			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
-				if _h_real_iK is None:
-					seql = nquery
-				else:
-					seql = nquery + _h_real_iK.size(-1)
+				if _h_real_iK is not None:
+					sid = _h_real_iK.size(-1)
+					seql = nquery + sid
 					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 		else:
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
-				if _h_real_iK is None:
-					seql = nquery
-				else:
-					_slen = _h_real_iK.size(-1)
-					seql = nquery + _slen
+				if _h_real_iK is not None:
+					sid = _h_real_iK.size(-1)
+					seql = nquery + sid
 			if self.ref_ropem is None:
-				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(_slen, nquery, seql)
+				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(sid, nquery, seql)
 				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
 			else:
 				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
@@ -638,8 +652,11 @@ class SelfAttn(nn.Module):
 				self.rel_pos_cache = self.get_rel_pos(nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
 				scores += real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, nquery).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)
 			else:
-				self.rel_pos_cache = self.get_rel_pos(seql).narrow(0, seql - nquery, nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
+				self.rel_pos_cache = self.get_rel_pos(seql, sid=sid).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
 				scores += real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)
+		if self.alibi is not None:
+			self.alibi_cache = (self.get_alibi(nquery) if states is None else self.get_alibi(seql, sid=sid)).contiguous() if self.ref_alibim is None else self.ref_alibim.alibi_cache
+			scores += self.alibi_cache
 
 		scores = scores / sqrt(adim)
 
@@ -658,20 +675,35 @@ class SelfAttn(nn.Module):
 		else:
 			return out, (real_iK, real_iV,)
 
-	def get_rel_pos(self, length):
+	def get_rel_pos(self, length, sid=0):
 
 		if length <= self.xseql:
-			return self.rel_pos.narrow(0, 0, length).narrow(1, 0, length)
+			return self.rel_pos.narrow(0, sid, length - sid).narrow(1, 0, length)
 		else:
 			if self.rel_pos_map is None:
-				_rpm = torch.arange(0, length, dtype=self.rel_pos.dtype, device=self.rel_pos.device)
-				return ((_rpm.unsqueeze(0) - _rpm.unsqueeze(1)).clamp(min=self.clamp_min, max=self.clamp_max) + self.rel_shift)
+				return (torch.arange(sid, length, dtype=self.rel_pos.dtype, device=self.rel_pos.device).unsqueeze(0) - torch.arange(0, length, dtype=self.rel_pos.dtype, device=self.rel_pos.device).unsqueeze(1)).clamp_(min=self.clamp_min, max=self.clamp_max).add_(self.rel_shift)
 			else:
-				return build_rel_pos_bucket(length, k_rel_pos=self.rel_shift, max_len=self.clamp_max, uni_direction=self.clamp_min, device=self.rel_pos.device, dis_map=self.rel_pos_map)
+				return build_rel_pos_bucket(length, sid=sid, k_rel_pos=self.rel_shift, max_len=self.clamp_max, uni_direction=self.clamp_min, device=self.rel_pos.device, dis_map=self.rel_pos_map)
+
+	def get_alibi(self, length, sid=0):
+
+		if length <= self.xseql:
+			return self.alibi.narrow(1, sid, length - sid).narrow(2, 0, length)
+		else:
+			_ = (torch.arange(sid, length, dtype=self.alibi.dtype, device=self.alibi.device).unsqueeze(0) - torch.arange(0, length, dtype=self.alibi.dtype, device=self.alibi.device).unsqueeze(1))
+
+			return torch.arange(1, self.num_head + 1, dtype=self.alibi.dtype, device=self.alibi.device).mul_(8.0 / self.num_head).view(self.num_head, 1, 1) * (_.clamp_(max=0.0) if uni_direction_reduction else _.abs_().neg_()).unsqueeze(0)
 
 	def reset_buffer(self, value=None):
 
-		self.rel_pos_cache = value
+		if hasattr(self, "rel_pos_cache"):
+			self.rel_pos_cache = value
+		if hasattr(self, "rope_sin_cache"):
+			self.rope_sin_cache = value
+		if hasattr(self, "rope_cos_cache"):
+			self.rope_cos_cache = value
+		if hasattr(self, "alibi_cache"):
+			self.alibi_cache = value
 
 	def rope_reset_parameters(self):
 

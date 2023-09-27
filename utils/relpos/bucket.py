@@ -36,18 +36,17 @@ def build_rel_pos_bucket_map(k_rel_pos=32, max_len=128, uni_direction=False, dev
 
 	return torch.cat((torch.arange(0, _thres, dtype=torch.long, device=device), _m,), dim=-1) if uni_direction else torch.cat((-_m.flip(-1), torch.arange(-_thres + 1, _thres, dtype=torch.long, device=device), _m,), dim=-1).add_(k_rel_pos)
 
-def build_rel_pos_bucket_distance(length, max_len=128, uni_direction=False, device=None):
+def build_rel_pos_bucket_distance(length, sid=0, max_len=128, uni_direction=False, device=None):
 
-	_ = torch.arange(0, length, dtype=torch.long, device=device)
-	_ = (_.unsqueeze(0) - _.unsqueeze(1))
+	_ = (torch.arange(sid, length, dtype=torch.long, device=device).unsqueeze(0) - torch.arange(0, length, dtype=torch.long, device=device).unsqueeze(1))
 	_max_side = max_len - 1
 
-	return -(_.clamp(min=-_max_side, max=0)) if uni_direction else _.clamp(min=-_max_side, max=_max_side).add_(_max_side)
+	return _.clamp_(min=-_max_side, max=0).neg_() if uni_direction else _.clamp_(min=-_max_side, max=_max_side).add_(_max_side)
 
 def map_rel_pos_bucket_distance(dis_map, distance):
 
 	return dis_map.index_select(0, distance.view(-1)).view_as(distance)
 
-def build_rel_pos_bucket(length, k_rel_pos=32, max_len=128, uni_direction=False, device=None, dis_map=None):
+def build_rel_pos_bucket(length, sid=0, k_rel_pos=32, max_len=128, uni_direction=False, device=None, dis_map=None):
 
-	return map_rel_pos_bucket_distance(build_rel_pos_bucket_map(k_rel_pos=k_rel_pos, max_len=max_len, uni_direction=uni_direction, device=device) if dis_map is None else dis_map, build_rel_pos_bucket_distance(length, max_len=max_len, uni_direction=uni_direction, device=dis_map.device if (device is None) and (dis_map is not None) else device))
+	return map_rel_pos_bucket_distance(build_rel_pos_bucket_map(k_rel_pos=k_rel_pos, max_len=max_len, uni_direction=uni_direction, device=device) if dis_map is None else dis_map, build_rel_pos_bucket_distance(length, sid=sid, max_len=max_len, uni_direction=uni_direction, device=dis_map.device if (device is None) and (dis_map is not None) else device))

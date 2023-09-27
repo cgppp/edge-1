@@ -9,10 +9,12 @@ def share_rel_pos_cache(netin, share_emb=False):
 	rel_cache_d = {}
 	rel_map_cache_d = {}
 	rope_cache_d = {}
+	alibi_cache_d = {}
 	for net in netin.modules():
 		if isinstance(net, ModuleList):
 			base_nets = {}
 			rope_base_nets = {}
+			alibi_base_nets = {}
 			for layer in net.modules():
 				if isinstance(layer, (SelfAttn, MultiHeadAttn, CrossAttn,)):
 					if hasattr(layer, "rel_pemb") and (layer.rel_pemb is not None):
@@ -46,5 +48,15 @@ def share_rel_pos_cache(netin, share_emb=False):
 							layer.register_buffer("rope_cos", _rope_cos, persistent=False)
 						else:
 							rope_cache_d[_key] = (layer.rope_sin, layer.rope_cos,)
+					if hasattr(layer, "alibi") and (layer.alibi is not None):
+						_key = (layer.alibi.size(), layer.uni_direction_reduction,)
+						if _key in alibi_base_nets:
+							layer.ref_alibim = alibi_base_nets[_key]
+						else:
+							alibi_base_nets[_key] = layer
+						if _key in alibi_cache_d:
+							layer.register_buffer("alibi", alibi_cache_d[_key], persistent=False)
+						else:
+							alibi_cache_d[_key] = layer.alibi
 
 	return netin

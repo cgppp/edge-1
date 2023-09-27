@@ -22,6 +22,8 @@ relative_position_max_bucket_distance = 0
 # use rotary position embedding proposed in [RoFormer: Enhanced Transformer with Rotary Position Embedding](https://arxiv.org/abs/2104.09864).
 disable_std_pemb = False
 use_rope = False
+# use ALiBi position encoding proposed in [Train Short, Test Long: Attention with Linear Biases Enables Input Length Extrapolation](https://openreview.net/forum?id=R8sQPpGCv0).
+use_alibi = False
 
 # using fast implementation of label smoothing loss, but it cannot exclude the negative impact of special tokens, like <pad>, on training. `forbidden_indexes` in `cnfg/base.py` shall be set to None to enable.
 use_fast_loss = True
