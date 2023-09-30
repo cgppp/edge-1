@@ -16,9 +16,9 @@ from cnfg.plm.t5.ihyp import *
 
 class SelfAttn(SelfAttnBase):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
-		super(SelfAttn, self).__init__(isize, hsize, osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
+		super(SelfAttn, self).__init__(isize, hsize, osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, use_alibi=use_alibi, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
 
 		self.ref_rel_emb = None
 		self.rel_emb_cache = None
@@ -30,27 +30,23 @@ class SelfAttn(SelfAttnBase):
 		adim = self.attn_dim
 
 		real_iQ, real_iK, real_iV = self.adaptor(iQ).view(bsize, nquery, 3, nheads, adim).unbind(2)
-		_h_real_iK = None
-		seql = nquery
+		_h_real_iK, seql, sid = None, nquery, 0
 		if self.rope_sin is None:
 			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
-				if _h_real_iK is None:
-					seql = nquery
-				else:
-					seql = nquery + _h_real_iK.size(-1)
+				if _h_real_iK is not None:
+					sid = _h_real_iK.size(-1)
+					seql = nquery + sid
 					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 		else:
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
-				if _h_real_iK is None:
-					seql = nquery
-				else:
-					_slen = _h_real_iK.size(-1)
-					seql = nquery + _slen
+				if _h_real_iK is not None:
+					sid = _h_real_iK.size(-1)
+					seql = nquery + sid
 			if self.ref_ropem is None:
-				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(_slen, nquery, seql)
+				_rope_sin, _rope_cos = self.get_rope(seql, sid=sid)
 				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
 			else:
 				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
@@ -68,9 +64,12 @@ class SelfAttn(SelfAttnBase):
 				self.rel_pos_cache = self.get_rel_pos(nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
 				self.rel_emb_cache = (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, nquery).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).contiguous()
 			else:
-				self.rel_pos_cache = self.get_rel_pos(seql).narrow(0, seql - nquery, nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
+				self.rel_pos_cache = self.get_rel_pos(seql, sid=sid).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
 				self.rel_emb_cache = (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).contiguous()
 			scores += self.rel_emb_cache
+		if self.alibi is not None:
+			self.alibi_cache = (self.get_alibi(nquery) if states is None else self.get_alibi(seql, sid=sid)).contiguous() if self.ref_alibim is None else self.ref_alibim.alibi_cache
+			scores += self.alibi_cache
 
 		## t5 does not scale attention scores
 		#scores = scores / sqrt(adim)

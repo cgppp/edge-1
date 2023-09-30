@@ -197,7 +197,7 @@ class MultiHeadAttn(nn.Module):
 	# sparsenorm: using sparse normer or standard softmax
 	# bind_qk: query and key can share a same linear transformation for the Reformer: The Efficient Transformer (https://arxiv.org/abs/2001.04451) paper.
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, v_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=0, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sparsenorm=False, bind_qk=False, xseql=cache_len_default, is_decoding=False, **kwargs):
+	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, v_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=0, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, bind_qk=False, xseql=cache_len_default, is_decoding=False, **kwargs):
 
 		super(MultiHeadAttn, self).__init__()
 
@@ -256,13 +256,24 @@ class MultiHeadAttn(nn.Module):
 			self.rel_pemb = None
 		if use_rope:
 			self.rope_poff, self.rope_doff, self.rope_alpha, self.xseql = rope_pos_offset, rope_dim_offset, rope_alpha, xseql
-			self.rope_reset_parameters()
+			_sin, _cos = self.rope_build(self.xseql, sid=0, dtype=self.query_adaptor.weight.dtype, device=self.query_adaptor.weight.device)
+			self.register_buffer("rope_sin", _sin, persistent=False)
+			self.register_buffer("rope_cos", _cos, persistent=False)
 			# like self.ref_rel_posm
 			self.ref_ropem = None
 			self.register_buffer("rope_sin_cache", None, persistent=False)
 			self.register_buffer("rope_cos_cache", None, persistent=False)
 		else:
 			self.register_buffer("rope_sin", None, persistent=False)
+		if use_alibi:
+			self.xseql, self.uni_direction_reduction = xseql, uni_direction_reduction
+			_rpm = torch.arange(0, xseql, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device)
+			_ = (_rpm.unsqueeze(0) - _rpm.unsqueeze(1))
+			self.register_buffer("alibi", torch.pow(2.0, torch.arange(1, self.num_head + 1, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device).mul_(8.0 / self.num_head).neg_()).view(self.num_head, 1, 1) * (_.clamp_(max=0.0) if uni_direction_reduction else _.abs_().neg_()).unsqueeze(0), persistent=False)
+			self.ref_alibim = None
+			self.register_buffer("alibi_cache", None, persistent=False)
+		else:
+			self.register_buffer("alibi", None, persistent=False)
 
 		self.register_buffer("real_iK", None, persistent=False)
 		self.register_buffer("real_iV", None, persistent=False)
@@ -334,7 +345,7 @@ class MultiHeadAttn(nn.Module):
 					sid = _h_real_iK.size(-1)
 					seql += sid
 			if self.ref_ropem is None:
-				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(sid, nquery, seql)
+				_rope_sin, _rope_cos = self.get_rope(seql, sid=sid)
 				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
 			else:
 				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
@@ -353,6 +364,9 @@ class MultiHeadAttn(nn.Module):
 		if self.rel_pemb is not None:
 			self.rel_pos_cache = self.get_rel_pos(seql, sid=sid).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
 			scores += real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)
+		if self.alibi is not None:
+			self.alibi_cache = self.get_alibi(seql, sid=sid).contiguous() if self.ref_alibim is None else self.ref_alibim.alibi_cache
+			scores += self.alibi_cache
 
 		scores = scores / sqrt(adim)
 
@@ -391,6 +405,15 @@ class MultiHeadAttn(nn.Module):
 			else:
 				return build_rel_pos_bucket(length, sid=sid, k_rel_pos=self.rel_shift, max_len=self.clamp_max, uni_direction=self.clamp_min, device=self.rel_pos.device, dis_map=self.rel_pos_map)
 
+	def get_alibi(self, length, sid=0):
+
+		if length <= self.xseql:
+			return self.alibi.narrow(1, sid, length - sid).narrow(2, 0, length)
+		else:
+			_ = torch.arange(sid, length, dtype=self.alibi.dtype, device=self.alibi.device).unsqueeze(0) - torch.arange(0, length, dtype=self.alibi.dtype, device=self.alibi.device).unsqueeze(1)
+
+			return torch.pow(2.0, torch.arange(1, self.num_head + 1, dtype=self.alibi.dtype, device=self.alibi.device).mul_(8.0 / self.num_head).neg_()).view(self.num_head, 1, 1) * (_.clamp_(max=0.0) if self.uni_direction_reduction else _.abs_().neg_()).unsqueeze(0)
+
 	def reset_buffer(self, value=None):
 
 		self.iK = self.iV = self.real_iK = self.real_iV = value
@@ -400,6 +423,8 @@ class MultiHeadAttn(nn.Module):
 			self.rope_sin_cache = value
 		if hasattr(self, "rope_cos_cache"):
 			self.rope_cos_cache = value
+		if hasattr(self, "alibi_cache"):
+			self.alibi_cache = value
 
 	def repeat_buffer(self, beam_size):
 
@@ -415,61 +440,31 @@ class MultiHeadAttn(nn.Module):
 		if self.real_iV is not None:
 			self.real_iV = self.real_iV.index_select(dim, indices)
 
-	def rope_reset_parameters(self):
+	def rope_build(self, length, sid=0, dtype=None, device=None):
 
-		poff, doff = self.rope_poff, self.rope_doff
-		pos = torch.arange(poff, self.xseql + poff, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, self.attn_dim + doff, 2, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device) * -(log(1e4) / self.attn_dim)).exp()
-		_tmp = pos * rdiv_term
-		if self.rope_alpha != 1.0:
-			_tmp.mul_(self.rope_alpha)
-		self.register_buffer("rope_sin", _tmp.sin(), persistent=False)
-		self.register_buffer("rope_cos", _tmp.cos(), persistent=False)
+		poff, doff, adim = self.rope_poff, self.rope_doff, self.attn_dim
 
-	def rope_get_ext(self, length, step_pick=False, xseql=None):
-
-		poff, doff = self.rope_poff, self.rope_doff
-
-		if step_pick:
-			pos = torch.as_tensor([length + poff], dtype=self.rope_sin.dtype, device=self.rope_sin.device).unsqueeze(1)
-		else:
-			npos = self.xseql if xseql is None else xseql
-			pos = torch.arange(npos + poff, length + poff, dtype=self.rope_sin.dtype, device=self.rope_sin.device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, self.attn_dim + doff, 2, dtype=self.rope_sin.dtype, device=self.rope_sin.device) * -(log(1e4) / self.attn_dim)).exp()
+		pos = torch.arange(sid + poff, length + poff, dtype=dtype, device=device).unsqueeze(1)
+		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=dtype, device=device) * -(log(1e4) / adim)).exp()
 		_tmp = pos * rdiv_term
 		if self.rope_alpha != 1.0:
 			_tmp.mul_(self.rope_alpha)
 
 		return _tmp.sin(), _tmp.cos()
 
-	def rope_get_pos(self, step):
+	def get_rope(self, length, sid=0):
 
-		return (self.rope_sin.narrow(0, step, 1), self.rope_cos.narrow(0, step, 1)) if step < self.xseql else self.rope_get_ext(step, step_pick=True)
-
-	def rope_narrow(self, slen, step_len, elen=None):
-
-		_sid = slen - 1
-		if step_len == 1:
-			return self.rope_get_pos(_sid)
-		_elen = (slen + step_len) if elen is None else elen
 		_xseql = self.xseql
-		if _elen <= _xseql:
-			return self.rope_sin.narrow(0, _sid, step_len), self.rope_cos.narrow(0, _sid, step_len)
+		if length <= _xseql:
+			_ = length - sid
+			return self.rope_sin.narrow(0, sid, _), self.rope_cos.narrow(0, sid, _)
 		else:
-			if _sid < _xseql:
-				_ext_sin, _ext_cos = self.rope_get_ext(_elen, step_pick=False)
-				_ = _xseql - slen
-				return torch.cat((self.rope_sin.narrow(0, _sid, _), _ext_sin,), 0), torch.cat((self.rope_cos.narrow(0, _sid, _), _ext_cos,), 0)
+			if sid < _xseql:
+				_sin, _cos = self.rope_build(length, sid=_xseql, dtype=self.rope_sin.dtype, device=self.rope_sin.device)
+				_ = _xseql - sid
+				return torch.cat((self.rope_sin.narrow(0, sid, _), _sin,), 0), torch.cat((self.rope_cos.narrow(0, sid, _), _cos,), 0)
 			else:
-				return self.rope_get_ext(_elen, step_pick=False, xseql=slen)
-
-	def rope_get(self, seql):
-
-		if seql <= self.xseql:
-			return self.rope_sin[:seql], self.rope_cos[:seql]
-		else:
-			_ext_sin, _ext_cos = self.rope_get_ext(seql, step_pick=False)
-			return torch.cat((self.rope_sin, _ext_sin,), 0), torch.cat((self.rope_cos, _ext_cos,), 0)
+				return self.rope_build(length, sid=sid, dtype=self.rope_sin.dtype, device=self.rope_sin.device)
 
 	def c_available(self):
 
@@ -591,7 +586,9 @@ class SelfAttn(nn.Module):
 			self.rel_pemb = None
 		if use_rope:
 			self.rope_poff, self.rope_doff, self.rope_alpha, self.xseql = rope_pos_offset, rope_dim_offset, rope_alpha, xseql
-			self.rope_reset_parameters()
+			_sin, _cos = self.rope_build(self.xseql, sid=0, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device)
+			self.register_buffer("rope_sin", _sin, persistent=False)
+			self.register_buffer("rope_cos", _cos, persistent=False)
 			# like self.ref_rel_posm
 			self.ref_ropem = None
 			self.register_buffer("rope_sin_cache", None, persistent=False)
@@ -618,9 +615,7 @@ class SelfAttn(nn.Module):
 		adim = self.attn_dim
 
 		real_iQ, real_iK, real_iV = self.adaptor(iQ).view(bsize, nquery, 3, nheads, adim).unbind(2)
-		_h_real_iK = None
-		seql = nquery
-		sid = 0
+		_h_real_iK, seql, sid = None, nquery, 0
 		if self.rope_sin is None:
 			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
 			if states is not None:
@@ -636,7 +631,7 @@ class SelfAttn(nn.Module):
 					sid = _h_real_iK.size(-1)
 					seql = nquery + sid
 			if self.ref_ropem is None:
-				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(sid, nquery, seql)
+				_rope_sin, _rope_cos = self.get_rope(seql, sid=sid)
 				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
 			else:
 				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
@@ -705,61 +700,31 @@ class SelfAttn(nn.Module):
 		if hasattr(self, "alibi_cache"):
 			self.alibi_cache = value
 
-	def rope_reset_parameters(self):
+	def rope_build(self, length, sid=0, dtype=None, device=None):
 
-		poff, doff = self.rope_poff, self.rope_doff
-		pos = torch.arange(poff, self.xseql + poff, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, self.attn_dim + doff, 2, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device) * -(log(1e4) / self.attn_dim)).exp()
-		_tmp = pos * rdiv_term
-		if self.rope_alpha != 1.0:
-			_tmp.mul_(self.rope_alpha)
-		self.register_buffer("rope_sin", _tmp.sin(), persistent=False)
-		self.register_buffer("rope_cos", _tmp.cos(), persistent=False)
+		poff, doff, adim = self.rope_poff, self.rope_doff, self.attn_dim
 
-	def rope_get_ext(self, length, step_pick=False, xseql=None):
-
-		poff, doff = self.rope_poff, self.rope_doff
-
-		if step_pick:
-			pos = torch.as_tensor([length + poff], dtype=self.rope_sin.dtype, device=self.rope_sin.device).unsqueeze(1)
-		else:
-			npos = self.xseql if xseql is None else xseql
-			pos = torch.arange(npos + poff, length + poff, dtype=self.rope_sin.dtype, device=self.rope_sin.device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, self.attn_dim + doff, 2, dtype=self.rope_sin.dtype, device=self.rope_sin.device) * -(log(1e4) / self.attn_dim)).exp()
+		pos = torch.arange(sid + poff, length + poff, dtype=dtype, device=device).unsqueeze(1)
+		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=dtype, device=device) * -(log(1e4) / adim)).exp()
 		_tmp = pos * rdiv_term
 		if self.rope_alpha != 1.0:
 			_tmp.mul_(self.rope_alpha)
 
 		return _tmp.sin(), _tmp.cos()
 
-	def rope_get_pos(self, step):
+	def get_rope(self, length, sid=0):
 
-		return (self.rope_sin.narrow(0, step, 1), self.rope_cos.narrow(0, step, 1)) if step < self.xseql else self.rope_get_ext(step, step_pick=True)
-
-	def rope_narrow(self, slen, step_len, elen=None):
-
-		_sid = slen - 1
-		if step_len == 1:
-			return self.rope_get_pos(_sid)
-		_elen = (slen + step_len) if elen is None else elen
 		_xseql = self.xseql
-		if _elen <= _xseql:
-			return self.rope_sin.narrow(0, _sid, step_len), self.rope_cos.narrow(0, _sid, step_len)
+		if length <= _xseql:
+			_ = length - sid
+			return self.rope_sin.narrow(0, sid, _), self.rope_cos.narrow(0, sid, _)
 		else:
-			if _sid < _xseql:
-				_ext_sin, _ext_cos = self.rope_get_ext(_elen, step_pick=False)
-				_ = _xseql - slen
-				return torch.cat((self.rope_sin.narrow(0, _sid, _), _ext_sin,), 0), torch.cat((self.rope_cos.narrow(0, _sid, _), _ext_cos,), 0)
+			if sid < _xseql:
+				_sin, _cos = self.rope_build(length, sid=_xseql, dtype=self.rope_sin.dtype, device=self.rope_sin.device)
+				_ = _xseql - sid
+				return torch.cat((self.rope_sin.narrow(0, sid, _), _sin,), 0), torch.cat((self.rope_cos.narrow(0, sid, _), _cos,), 0)
 			else:
-				return self.rope_get_ext(_elen, step_pick=False, xseql=slen)
-
-	def rope_get(self, seql):
-
-		if seql <= self.xseql:
-			return self.rope_sin[:seql], self.rope_cos[:seql]
-		else:
-			_ext_sin, _ext_cos = self.rope_get_ext(seql, step_pick=False)
-			return torch.cat((self.rope_sin, _ext_sin,), 0), torch.cat((self.rope_cos, _ext_cos,), 0)
+				return self.rope_build(length, sid=sid, dtype=self.rope_sin.dtype, device=self.rope_sin.device)
 
 	def c_available(self):
 

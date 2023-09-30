@@ -63,27 +63,23 @@ class SelfAttn(SelfAttnBase):
 		nheads, ngroup, adim = self.num_head, self.ngroup, self.attn_dim
 
 		real_iQ, real_iK, real_iV = self.adaptor(iQ).view(bsize, nquery, 3, nheads, adim).unbind(2)
-		_h_real_iK = None
-		seql = nquery
+		_h_real_iK, seql, sid = None, nquery, 0
 		if self.rope_sin is None:
 			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
-				if _h_real_iK is None:
-					seql = nquery
-				else:
-					seql = nquery + _h_real_iK.size(-1)
+				if _h_real_iK is not None:
+					sid = _h_real_iK.size(-1)
+					seql = nquery + sid
 					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 		else:
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
-				if _h_real_iK is None:
-					seql = nquery
-				else:
-					_slen = _h_real_iK.size(-1)
-					seql = nquery + _slen
+				if _h_real_iK is not None:
+					sid = _h_real_iK.size(-1)
+					seql = nquery + sid
 			if self.ref_ropem is None:
-				_rope_sin, _rope_cos = self.rope_get(seql) if _h_real_iK is None else self.rope_narrow(_slen, nquery, seql)
+				_rope_sin, _rope_cos = self.get_rope(seql, sid=sid)
 				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
 			else:
 				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
@@ -97,10 +93,13 @@ class SelfAttn(SelfAttnBase):
 		if self.rel_pemb is not None:
 			if states is None:
 				self.rel_pos_cache = self.get_rel_pos(nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
-				scores += real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, nquery).permute(1, 2, 0, 3)
+				scores += real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, nquery).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)
 			else:
-				self.rel_pos_cache = self.get_rel_pos(seql).narrow(0, seql - nquery, nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
-				scores += real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3)
+				self.rel_pos_cache = self.get_rel_pos(seql, sid=sid).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
+				scores += real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)
+		if self.alibi is not None:
+			self.alibi_cache = (self.get_alibi(nquery) if states is None else self.get_alibi(seql, sid=sid)).contiguous() if self.ref_alibim is None else self.ref_alibim.alibi_cache
+			scores += self.alibi_cache
 
 		scores = scores / sqrt(adim)
 
