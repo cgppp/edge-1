@@ -152,7 +152,7 @@ class PositionalEmb(nn.Module):
 
 		poff, doff = self.poff, self.doff
 		pos = torch.arange(poff, self.num_pos + poff, dtype=self.w.dtype, device=self.w.device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, self.num_dim + doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(1e4) / self.num_dim)).exp()
+		rdiv_term = (torch.arange(doff, self.num_dim + doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(sinusoid_base_frequency) / self.num_dim)).exp()
 		_tmp = pos * rdiv_term
 		if self.alpha != 1.0:
 			_tmp.mul_(self.alpha)
@@ -169,7 +169,7 @@ class PositionalEmb(nn.Module):
 			npos = self.num_pos
 			pos = torch.arange(npos + poff, length + poff, dtype=self.w.dtype, device=self.w.device).unsqueeze(1)
 			ed = self.w.new_empty(length - npos, self.num_dim)
-		rdiv_term = (torch.arange(doff, self.num_dim + doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(1e4) / self.num_dim)).exp()
+		rdiv_term = (torch.arange(doff, self.num_dim + doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(sinusoid_base_frequency) / self.num_dim)).exp()
 		_tmp = pos * rdiv_term
 		if self.alpha != 1.0:
 			_tmp.mul_(self.alpha)
@@ -445,7 +445,7 @@ class MultiHeadAttn(nn.Module):
 		poff, doff, adim = self.rope_poff, self.rope_doff, self.attn_dim
 
 		pos = torch.arange(sid + poff, length + poff, dtype=dtype, device=device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=dtype, device=device) * -(log(1e4) / adim)).exp()
+		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=dtype, device=device) * -(log(sinusoid_base_frequency) / adim)).exp()
 		_tmp = pos * rdiv_term
 		if self.rope_alpha != 1.0:
 			_tmp.mul_(self.rope_alpha)
@@ -705,7 +705,7 @@ class SelfAttn(nn.Module):
 		poff, doff, adim = self.rope_poff, self.rope_doff, self.attn_dim
 
 		pos = torch.arange(sid + poff, length + poff, dtype=dtype, device=device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=dtype, device=device) * -(log(1e4) / adim)).exp()
+		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=dtype, device=device) * -(log(sinusoid_base_frequency) / adim)).exp()
 		_tmp = pos * rdiv_term
 		if self.rope_alpha != 1.0:
 			_tmp.mul_(self.rope_alpha)
@@ -1454,7 +1454,7 @@ class CoordinateEmb(nn.Module):
 		nstep = self.num_steps
 		pos = torch.arange(poff, npos + poff, dtype=self.w.dtype, device=self.w.device).view(1, npos, 1)
 		step = torch.arange(poff, nstep + poff, dtype=self.w.dtype, device=self.w.device).view(nstep, 1, 1)
-		rdiv_term = (torch.arange(self.doff, self.num_dim + self.doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(1e4) / self.num_dim)).exp()
+		rdiv_term = (torch.arange(self.doff, self.num_dim + self.doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(sinusoid_base_frequency) / self.num_dim)).exp()
 		_tmp1, _tmp2 = pos * rdiv_term, step * rdiv_term
 		if self.alpha != 1.0:
 			_tmp1.mul_(self.alpha)
@@ -1473,7 +1473,7 @@ class CoordinateEmb(nn.Module):
 			npos = self.num_pos
 			_pos = torch.arange(npos + poff if step <= self.num_steps else poff, length + poff, dtype=self.w.dtype, device=self.w.device).unsqueeze(1)
 			ed = self.w.new_empty(length - npos, self.num_dim)
-		rdiv_term = (torch.arange(self.doff, self.num_dim + self.doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(1e4) / self.num_dim)).exp()
+		rdiv_term = (torch.arange(self.doff, self.num_dim + self.doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(sinusoid_base_frequency) / self.num_dim)).exp()
 		_tmp1, _tmp2 = _pos * rdiv_term, _step * rdiv_term
 		if self.alpha != 1.0:
 			_tmp1.mul_(self.alpha)

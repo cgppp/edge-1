@@ -141,8 +141,8 @@ Configuration of following variables:
 # reducing the optimization difficulty of models
 ease_optimization = True
 
-# using lipschitz constraint parameter initialization in [Lipschitz Constrained Parameter Initialization for Deep Transformers](https://aclanthology.org/2020.acl-main.38/)
-lipschitz_initialization = True
+# using lipschitz constraint parameter initialization in [Lipschitz Constrained Parameter Initialization for Deep Transformers](https://aclanthology.org/2020.acl-main.38/), None to disable
+lipschitz_scale = 1.0
 
 # using advanced activation function, choices: None, "GeLU", "Swish", "Sigmoid", "NormSwish"
 advance_activation_function = None

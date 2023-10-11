@@ -6,7 +6,7 @@ from torch.nn.init import _calculate_fan_in_and_fan_out
 
 from utils.torch.comp import torch_no_grad
 
-from cnfg.hyp import lipschitz_initialization, lipschitz_scale
+from cnfg.hyp import lipschitz_scale
 
 def xavier_uniform_(tensor, gain=1.0):
 
@@ -36,7 +36,7 @@ def kaiming_uniform_(tensor, gain=1.0):
 
 	return tensor
 
-def init_model_params_glorot(modin, gain=1.0):
+def init_model_params_glorot(modin, gain=1.0, **kwargs):
 
 	_scale = sqrt(6.0)
 	if gain is not None and gain > 0.0 and gain != 1.0:
@@ -50,7 +50,7 @@ def init_model_params_glorot(modin, gain=1.0):
 
 	return modin
 
-def init_model_params_kaiming(modin, gain=1.0):
+def init_model_params_kaiming(modin, gain=1.0, **kwargs):
 
 	_scale = sqrt(3.0)
 	if gain is not None and gain > 0.0 and gain != 1.0:
@@ -64,14 +64,19 @@ def init_model_params_kaiming(modin, gain=1.0):
 
 	return modin
 
-def init_model_params_lipschitz(modin, gain_glorot=sqrt(1.0/3.0) * lipschitz_scale, gain_kaiming=sqrt(1.0/3.0) * lipschitz_scale):
+def init_model_params_lipschitz(modin, gain_glorot=sqrt(1.0/3.0), gain_kaiming=sqrt(1.0/3.0), lipschitz_scale=lipschitz_scale, **kwargs):
 
-	_tmpm = init_model_params_kaiming(modin, gain=gain_kaiming)
+	_gain_glorot, _gain_kaiming = gain_glorot, gain_kaiming
+	if lipschitz_scale != 1.0:
+		_gain_glorot *= lipschitz_scale
+		_gain_kaiming *= lipschitz_scale
+
+	_tmpm = init_model_params_kaiming(modin, gain=_gain_kaiming)
 
 	with torch_no_grad():
 		for _m in _tmpm.modules():
 			if isinstance(_m, Embedding):
-				init_model_params_glorot(_m, gain=gain_glorot)
+				init_model_params_glorot(_m, gain=_gain_glorot)
 				if _m.padding_idx is not None:
 					_m.weight[_m.padding_idx].zero_()
 			elif isinstance(_m, Linear):
@@ -85,6 +90,6 @@ def init_model_params_lipschitz(modin, gain_glorot=sqrt(1.0/3.0) * lipschitz_sca
 
 	return _tmpm
 
-def init_model_params(modin, lipschitz_init=lipschitz_initialization):
+def init_model_params(modin, lipschitz_scale=lipschitz_scale, **kwargs):
 
-	return init_model_params_lipschitz(modin) if lipschitz_init else init_model_params_glorot(modin, gain=1.0)
+	return init_model_params_glorot(modin, gain=1.0, **kwargs) if lipschitz_scale is None else init_model_params_lipschitz(modin, lipschitz_scale=lipschitz_scale, **kwargs)

@@ -146,7 +146,7 @@ class Decoder(DecoderBase):
 		out = self.wemb(inputo)
 
 		if self.pemb is not None:
-			out = self.pemb(inputo, expand=False).add(out, alpha=sqrt(out.size(-1)))
+			out = self.pemb(inputo, expand=False).add(out)#, alpha=sqrt(out.size(-1))
 		if self.drop is not None:
 			out = self.drop(out)
 

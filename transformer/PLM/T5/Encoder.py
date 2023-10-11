@@ -97,7 +97,7 @@ class Encoder(EncoderBase):
 		out = self.wemb(inputs)
 
 		if self.pemb is not None:
-			out = self.pemb(inputs, expand=False).add(out, alpha=sqrt(out.size(-1)))
+			out = self.pemb(inputs, expand=False).add(out)#, alpha=sqrt(out.size(-1))
 		if self.drop is not None:
 			out = self.drop(out)
 

@@ -35,6 +35,9 @@ use_adv_act_default = advance_activation_function is not None
 adv_act = advance_activation_function.lower() if use_adv_act_default else None
 inplace_after_Custom_Act = use_adv_act_default and (adv_act not in set(["sigmoid"]))
 
+# absolute position encoding
+sinusoid_base_frequency = 1e4
+
 # relative position encoding
 use_k_relative_position_encoder, use_k_relative_position_decoder = parse_double_value_tuple(use_k_relative_position)
 rel_pos_enabled = (max(use_k_relative_position_encoder, use_k_relative_position_decoder) > 0) or use_rope or use_alibi
