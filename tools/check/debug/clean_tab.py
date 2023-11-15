@@ -6,7 +6,7 @@ from os.path import isfile, join as pjoin
 
 def check_file_type(fname):
 
-	return fname.endswith(".py") or fname.endswith(".sh") or fname.endswith(".md") or fname.endswith(".cpp") or fname.endswith(".h")
+	return fname.endswith(".py") or fname.endswith(".sh") or fname.endswith(".md") or fname.endswith(".cpp") or fname.endswith(".h") or fname.endswith(".cu")
 
 def clean_lspace(lin):
 
@@ -33,7 +33,7 @@ def clean_tab(fname):
 
 	cache = []
 	prev_emp = False
-	is_cpp_file = fname.endswith(".cpp") or fname.endswith(".h")
+	is_cpp_file = fname.endswith(".cpp") or fname.endswith(".h") or fname.endswith(".cu")
 	with open(fname, "rb") as f:
 		for line in f:
 			tmp = line.rstrip()

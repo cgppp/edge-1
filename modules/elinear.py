@@ -151,6 +151,7 @@ class Linear(nn.Module):
 		return nnFunc.linear(nnFunc.linear(input, self.weight_h, None), self.weight, _bias)
 
 	def extra_repr(self):
+
 		return "in_features={}, hidden_features={}, out_features={}, bias={}".format(self.in_features, self.hidden_features, self.out_features, self.bias is not None)
 
 	def fix_init(self):
@@ -166,4 +167,5 @@ class Linear(nn.Module):
 			_rsm.weight.copy_(self.weight.mm(self.weight_h))
 			if self.bias is not None:
 				_rsm.bias.copy_(self.bias.sum(0) if self.nbias > 1 else self.bias)
+
 		return _rsm

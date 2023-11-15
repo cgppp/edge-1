@@ -97,7 +97,7 @@ class PositionwiseFF(nn.Module):
 		try:
 			import mulang_eff_ppff_cpp
 		except Exception as e:
-			mulang_eff_ppff_cpp = load(name="mulang_eff_ppff_cpp", sources=["modules/cpp/mulang/eff/pffn/ppff.cpp", "modules/cpp/mulang/eff/pffn/ppff_func.cpp", "modules/cpp/base/ffn/pff_func.cpp", "modules/cpp/act/act_func.cpp"], extra_cflags=["-fopenmp"])
+			mulang_eff_ppff_cpp = load(name="mulang_eff_ppff_cpp", sources=["modules/cpp/mulang/eff/pffn/ppff.cpp", "modules/cpp/mulang/eff/pffn/ppff_func.cpp", "modules/cpp/base/ffn/pff_func.cpp", "modules/cpp/act/act_func.cpp"], extra_cflags=extra_compile_args + ["-fopenmp"])
 		self.c_forward_func = mulang_eff_ppff_cpp.forward
 		for net in self.nets:
 			net.c_init()

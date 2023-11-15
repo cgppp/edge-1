@@ -92,4 +92,4 @@ def init_model_params_lipschitz(modin, gain_glorot=sqrt(1.0/3.0), gain_kaiming=s
 
 def init_model_params(modin, lipschitz_scale=lipschitz_scale, **kwargs):
 
-	return init_model_params_glorot(modin, gain=1.0, **kwargs) if lipschitz_scale is None else init_model_params_lipschitz(modin, lipschitz_scale=lipschitz_scale, **kwargs)
+	return init_model_params_glorot(modin, **kwargs) if lipschitz_scale is None else init_model_params_lipschitz(modin, lipschitz_scale=lipschitz_scale, **kwargs)

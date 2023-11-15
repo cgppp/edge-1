@@ -82,11 +82,11 @@ class PositionwiseFF(nn.Module):
 		try:
 			import pff_cpp
 		except Exception as e:
-			pff_cpp = load(name="pff_cpp", sources=["modules/cpp/base/ffn/pff.cpp", "modules/cpp/base/ffn/pff_func.cpp", "modules/cpp/act/act_func.cpp"])
+			pff_cpp = load(name="pff_cpp", sources=["modules/cpp/base/ffn/pff.cpp", "modules/cpp/base/ffn/pff_func.cpp", "modules/cpp/act/act_func.cpp"], extra_cflags=extra_compile_args)
 		try:
 			import act_cpp
 		except Exception as e:
-			act_cpp = load(name="act_cpp", sources=["modules/cpp/act/act.cpp", "modules/cpp/act/act_func.cpp"])
+			act_cpp = load(name="act_cpp", sources=["modules/cpp/act/act.cpp", "modules/cpp/act/act_func.cpp"], extra_cflags=extra_compile_args)
 		self.c_forward_func = pff_cpp.forward
 		self.c_act_func = act_cpp.get_func(adv_act if use_adv_act_default else "relu")
 		self.c_build_cache()
@@ -475,7 +475,7 @@ class MultiHeadAttn(nn.Module):
 		try:
 			import attn_cpp
 		except Exception as e:
-			attn_cpp = load(name="attn_cpp", sources=["modules/cpp/base/attn/attn.cpp"])
+			attn_cpp = load(name="attn_cpp", sources=["modules/cpp/base/attn/attn.cpp"], extra_cflags=extra_compile_args)
 		self.c_forward_func = attn_cpp.forward
 		self.c_build_cache()
 		if bind:
@@ -735,7 +735,7 @@ class SelfAttn(nn.Module):
 		try:
 			import self_attn_cpp
 		except Exception as e:
-			self_attn_cpp = load(name="self_attn_cpp", sources=["modules/cpp/base/attn/self/attn.cpp"])
+			self_attn_cpp = load(name="self_attn_cpp", sources=["modules/cpp/base/attn/self/attn.cpp"], extra_cflags=extra_compile_args)
 		self.c_forward_func = self_attn_cpp.forward
 		self.c_build_cache()
 		if bind:
@@ -867,7 +867,7 @@ class CrossAttn(nn.Module):
 		try:
 			import cross_attn_cpp
 		except Exception as e:
-			cross_attn_cpp = load(name="cross_attn_cpp", sources=["modules/cpp/base/attn/cross/attn.cpp"])
+			cross_attn_cpp = load(name="cross_attn_cpp", sources=["modules/cpp/base/attn/cross/attn.cpp"], extra_cflags=extra_compile_args)
 		self.c_forward_func = cross_attn_cpp.forward
 		self.c_build_cache()
 		if bind:
@@ -957,7 +957,7 @@ class ResMHAttn(nn.Module):
 		try:
 			import res_attn_cpp
 		except Exception as e:
-			res_attn_cpp = load(name="res_attn_cpp", sources=["modules/cpp/base/resattn/attn.cpp"])
+			res_attn_cpp = load(name="res_attn_cpp", sources=["modules/cpp/base/resattn/attn.cpp"], extra_cflags=extra_compile_args)
 		self.c_forward_func = res_attn_cpp.forward
 		self.c_build_cache()
 		if bind:
@@ -1058,7 +1058,7 @@ class ResSelfAttn(nn.Module):
 		try:
 			import res_self_attn_cpp
 		except Exception as e:
-			res_self_attn_cpp = load(name="res_self_attn_cpp", sources=["modules/cpp/base/resattn/self/attn.cpp"])
+			res_self_attn_cpp = load(name="res_self_attn_cpp", sources=["modules/cpp/base/resattn/self/attn.cpp"], extra_cflags=extra_compile_args)
 		self.c_forward_func = res_self_attn_cpp.forward
 		self.c_build_cache()
 		if bind:
@@ -1152,7 +1152,7 @@ class ResCrossAttn(nn.Module):
 		try:
 			import res_cross_attn_cpp
 		except Exception as e:
-			res_cross_attn_cpp = load(name="res_cross_attn_cpp", sources=["modules/cpp/base/resattn/cross/attn.cpp"])
+			res_cross_attn_cpp = load(name="res_cross_attn_cpp", sources=["modules/cpp/base/resattn/cross/attn.cpp"], extra_cflags=extra_compile_args)
 		self.c_forward_func = res_cross_attn_cpp.forward
 		self.c_build_cache()
 		if bind:

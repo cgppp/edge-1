@@ -2,11 +2,13 @@
 
 from torch.autograd import Function
 
+from cnfg.ihyp import extra_compile_args
+
 try:
 	import lgate_nocx_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgate_nocx_cpp = load(name="lgate_nocx_cpp", sources=["modules/cpp/hplstm/lgate_nocx.cpp"])
+	lgate_nocx_cpp = load(name="lgate_nocx_cpp", sources=["modules/cpp/hplstm/lgate_nocx.cpp"], extra_cflags=extra_compile_args)
 
 class LGateNocxFunction(Function):
 

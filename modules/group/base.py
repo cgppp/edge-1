@@ -6,7 +6,7 @@ from torch import nn
 
 from utils.torch.comp import torch_no_grad
 
-from cnfg.ihyp import bind_c_forward, use_c_backend_group
+from cnfg.ihyp import bind_c_forward, extra_compile_args, use_c_backend_group
 
 class GroupLinear(nn.Module):
 
@@ -82,7 +82,7 @@ class GroupLinear(nn.Module):
 				import group_cpp
 			except Exception as e:
 				from torch.utils.cpp_extension import load
-				group_cpp = load(name="group_cpp", sources=["modules/cpp/group/group.cpp", "modules/cpp/group/group_func.cpp"])
+				group_cpp = load(name="group_cpp", sources=["modules/cpp/group/group.cpp", "modules/cpp/group/group_func.cpp"], extra_cflags=extra_compile_args)
 			self.c_forward_func = group_cpp.forward
 		except:
 			self.c_forward_func = None

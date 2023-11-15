@@ -3,10 +3,12 @@
 from torch.autograd import Function
 from torch.utils.cpp_extension import load
 
+from cnfg.ihyp import extra_compile_args
+
 try:
 	import movavg_cpp
 except Exception as e:
-	movavg_cpp = load(name="movavg_cpp", sources=["utils/cpp/movavg.cpp"])
+	movavg_cpp = load(name="movavg_cpp", sources=["utils/cpp/movavg.cpp"], extra_cflags=extra_compile_args)
 
 class MovAvgFunction(Function):
 

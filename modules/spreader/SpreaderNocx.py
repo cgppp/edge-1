@@ -2,11 +2,13 @@
 
 from torch.autograd import Function
 
+from cnfg.ihyp import extra_compile_args
+
 try:
 	import spreader_nocx_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	spreader_nocx_cpp = load(name="spreader_nocx_cpp", sources=["modules/cpp/spreader/spreader_nocx.cpp"])
+	spreader_nocx_cpp = load(name="spreader_nocx_cpp", sources=["modules/cpp/spreader/spreader_nocx.cpp"], extra_cflags=extra_compile_args)
 
 class SpreaderNocxFunction(Function):
 

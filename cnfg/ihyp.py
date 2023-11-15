@@ -45,6 +45,10 @@ relative_position_max_bucket_distance_encoder, relative_position_max_bucket_dist
 disable_std_pemb_encoder, disable_std_pemb_decoder = parse_double_value_tuple(disable_std_pemb)
 relpos_reduction_with_zeros = True
 
+# c compiler args
+extra_compile_args = ["-Ofast", "-march=native", "-pipe"]
+extra_cuda_compile_args = ["-Xptxas", "-O3", "--use_fast_math", "-arch=native"]
+
 # torch_compile args
 torch_compile_args = []
 torch_compile_kwargs = {"fullgraph": False, "dynamic": False}

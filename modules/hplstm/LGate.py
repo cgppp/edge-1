@@ -2,11 +2,13 @@
 
 from torch.autograd import Function
 
+from cnfg.ihyp import extra_compile_args
+
 try:
 	import lgate_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgate_cpp = load(name="lgate_cpp", sources=["modules/cpp/hplstm/lgate.cpp"])
+	lgate_cpp = load(name="lgate_cpp", sources=["modules/cpp/hplstm/lgate.cpp"], extra_cflags=extra_compile_args)
 
 class LGateFunction(Function):
 
