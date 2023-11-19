@@ -21,11 +21,11 @@ __global__ void cuda_id_weight_acc_sm_(float *x, int *idx, float *weight, float 
 	int block_id = blockIdx.x;
 	int thread_id = threadIdx.x;
 	int i_osize, osize_eid, bsize_sid, bsize_eid, bsize_per_thread, num_act_threads;
+	int bsize_m1 = bsize - 1;
 	if (num_blocks < osize) {
 		int osize_per_block = (osize - 1) / num_blocks + 1;
 		i_osize = block_id * osize_per_block;
 		osize_eid = i_osize + osize_per_block;
-		int bsize_m1 = bsize - 1;
 		bsize_per_thread = bsize_m1 / num_threads + 1;
 		bsize_sid = thread_id * bsize_per_thread;
 		num_act_threads = bsize_m1 / bsize_per_thread + 1;
@@ -34,7 +34,6 @@ __global__ void cuda_id_weight_acc_sm_(float *x, int *idx, float *weight, float 
 		int block_per_osize = num_blocks / osize;
 		i_osize = block_id / block_per_osize;
 		osize_eid = i_osize + 1;
-		int bsize_m1 = bsize - 1;
 		bsize_per_thread = bsize_m1 / (block_per_osize * num_threads) + 1;
 		int block_id_osize = block_id % block_per_osize;
 		bsize_sid = (block_id_osize * num_threads + thread_id) * bsize_per_thread;
@@ -93,43 +92,40 @@ __global__ void cuda_id_weight_acc_sm_opb_(float *x, int *idx, float *weight, fl
 	int thread_id = threadIdx.x;
 	int i_osize = block_id * osize_per_block;
 	int bsize_sid = thread_id * bsize_per_thread;
-	if ((i_osize < osize) && (bsize_sid < bsize)) {
-		int osize_eid = i_osize + osize_per_block;
-		if (osize_eid > osize) {
-			osize_eid = osize;
+	int osize_eid = i_osize + osize_per_block;
+	if (osize_eid > osize) {
+		osize_eid = osize;
+	}
+	int bsize_eid = bsize_sid + bsize_per_thread;
+	if (bsize_eid > bsize) {
+		bsize_eid = bsize;
+	}
+	extern __shared__ int sm[];
+	int* idx_cache = sm;
+	float* weight_cache = (float*)&idx_cache[ncon];
+	bool cnt_odim = i_osize < osize_eid;
+	while (cnt_odim) {
+		int osize_ncon_base = i_osize * ncon;
+		int i_con = thread_id;
+		while (i_con < ncon) {
+			int id_weight_offset = osize_ncon_base + i_con;
+			idx_cache[i_con] = idx[id_weight_offset];
+			weight_cache[i_con] = weight[id_weight_offset];
+			i_con += num_threads;
 		}
-		int bsize_eid = bsize_sid + bsize_per_thread;
-		if (bsize_eid > bsize) {
-			bsize_eid = bsize;
-		}
-		int num_act_threads = (bsize - 1) / bsize_per_thread + 1;
-		extern __shared__ int sm[];
-		int* idx_cache = sm;
-		float* weight_cache = (float*)&idx_cache[ncon];
-		bool cnt_odim = i_osize < osize_eid;
-		while (cnt_odim) {
-			int osize_ncon_base = i_osize * ncon;
-			int i_con = thread_id;
-			while (i_con < ncon) {
-				int id_weight_offset = osize_ncon_base + i_con;
-				idx_cache[i_con] = idx[id_weight_offset];
-				weight_cache[i_con] = weight[id_weight_offset];
-				i_con += num_act_threads;
+		__syncthreads();
+		for (int i_bsize = bsize_sid; i_bsize < bsize_eid; i_bsize++) {
+			float _dp = 0.0;
+			int x_base = i_bsize * isize;
+			for (int i_con = 0; i_con < ncon; i_con++) {
+				_dp += x[x_base + idx_cache[i_con]] * weight_cache[i_con];
 			}
+			rs[i_bsize * osize + i_osize] = _dp;
+		}
+		i_osize += 1;
+		cnt_odim = i_osize < osize_eid;
+		if (cnt_odim) {
 			__syncthreads();
-			for (int i_bsize = bsize_sid; i_bsize < bsize_eid; i_bsize++) {
-				float _dp = 0.0;
-				int x_base = i_bsize * isize;
-				for (int i_con = 0; i_con < ncon; i_con++) {
-					_dp += x[x_base + idx_cache[i_con]] * weight_cache[i_con];
-				}
-				rs[i_bsize * osize + i_osize] = _dp;
-			}
-			i_osize += 1;
-			cnt_odim = i_osize < osize_eid;
-			if (cnt_odim) {
-				__syncthreads();
-			}
 		}
 	}
 }
@@ -216,11 +212,11 @@ __global__ void cuda_id_weight_acc_grad_sm_(float *x, int *idx, float *weight, t
 	int block_id = blockIdx.x;
 	int thread_id = threadIdx.x;
 	int i_osize, osize_eid, bsize_sid, bsize_eid, bsize_per_thread, num_act_threads;
+	int bsize_m1 = (bsize - 1);
 	if (num_blocks < osize) {
 		int osize_per_block = (osize - 1) / num_blocks + 1;
 		i_osize = block_id * osize_per_block;
 		osize_eid = i_osize + osize_per_block;
-		int bsize_m1 = (bsize - 1);
 		bsize_per_thread = bsize_m1 / num_threads + 1;
 		bsize_sid = thread_id * bsize_per_thread;
 		num_act_threads = bsize_m1 / bsize_per_thread + 1;
@@ -229,7 +225,6 @@ __global__ void cuda_id_weight_acc_grad_sm_(float *x, int *idx, float *weight, t
 		int block_per_osize = num_blocks / osize;
 		i_osize = block_id / block_per_osize;
 		osize_eid = i_osize + 1;
-		int bsize_m1 = bsize - 1;
 		bsize_per_thread = bsize_m1 / (block_per_osize * num_threads) + 1;
 		int block_id_osize = block_id % block_per_osize;
 		bsize_sid = (block_id_osize * num_threads + thread_id) * bsize_per_thread;
@@ -286,41 +281,38 @@ __global__ void cuda_id_weight_acc_grad_sm_opb_(float *x, int *idx, float *weigh
 	int thread_id = threadIdx.x;
 	int i_osize = block_id * osize_per_block;
 	int bsize_sid = thread_id * bsize_per_thread;
-	if ((i_osize < osize) && (bsize_sid < bsize)) {
-		int osize_eid = i_osize + osize_per_block;
-		if (osize_eid > osize) {
-			osize_eid = osize;
+	int osize_eid = i_osize + osize_per_block;
+	if (osize_eid > osize) {
+		osize_eid = osize;
+	}
+	int bsize_eid = bsize_sid + bsize_per_thread;
+	if (bsize_eid > bsize) {
+		bsize_eid = bsize;
+	}
+	extern __shared__ int idx_cache[];
+	bool cnt_odim = i_osize < osize_eid;
+	while (cnt_odim) {
+		int osize_ncon_base = i_osize * ncon;
+		int i_con = thread_id;
+		while (i_con < ncon) {
+			idx_cache[i_con] = idx[osize_ncon_base + i_con];
+			i_con += num_threads;
 		}
-		int bsize_eid = bsize_sid + bsize_per_thread;
-		if (bsize_eid > bsize) {
-			bsize_eid = bsize;
-		}
-		int num_act_threads = (bsize - 1) / bsize_per_thread + 1;
-		extern __shared__ int idx_cache[];
-		bool cnt_odim = i_osize < osize_eid;
-		while (cnt_odim) {
-			int osize_ncon_base = i_osize * ncon;
-			int i_con = thread_id;
-			while (i_con < ncon) {
-				idx_cache[i_con] = idx[osize_ncon_base + i_con];
-				i_con += num_act_threads;
+		__syncthreads();
+		for (int i_bsize = bsize_sid; i_bsize < bsize_eid; i_bsize++) {
+			int x_base = i_bsize * isize;
+			float grad_weight_scalar = grad_output[i_bsize][i_osize];//[i_bsize * osize + i_osize]
+			for (int i_con = 0; i_con < ncon; i_con++) {
+				int x_ind = x_base + idx_cache[i_con];
+				int weight_ind = osize_ncon_base + i_con;
+				atomicAdd(&grad_x[x_ind], weight[weight_ind] * grad_weight_scalar);
+				atomicAdd(&grad_weight[weight_ind], x[x_ind] * grad_weight_scalar);
 			}
+		}
+		i_osize += 1;
+		cnt_odim = i_osize < osize_eid;
+		if (cnt_odim) {
 			__syncthreads();
-			for (int i_bsize = bsize_sid; i_bsize < bsize_eid; i_bsize++) {
-				int x_base = i_bsize * isize;
-				float grad_weight_scalar = grad_output[i_bsize][i_osize];//[i_bsize * osize + i_osize]
-				for (int i_con = 0; i_con < ncon; i_con++) {
-					int x_ind = x_base + idx_cache[i_con];
-					int weight_ind = osize_ncon_base + i_con;
-					atomicAdd(&grad_x[x_ind], weight[weight_ind] * grad_weight_scalar);
-					atomicAdd(&grad_weight[weight_ind], x[x_ind] * grad_weight_scalar);
-				}
-			}
-			i_osize += 1;
-			cnt_odim = i_osize < osize_eid;
-			if (cnt_odim) {
-				__syncthreads();
-			}
 		}
 	}
 }
@@ -402,9 +394,10 @@ at::Tensor id_weightacc_cuda_forward_(torch::Tensor x, torch::Tensor idx, torch:
 	int grid_size;
 
 	if (ncon < MAX_Forward_NCON_Share_MEM) {
+		int bsize_m1 = bsize - 1;
 		if (bsize > MAX_BLOCK_SIZE) {
 			block_size = MAX_BLOCK_SIZE;
-			grid_size = osize * ((bsize - 1) / MAX_BLOCK_SIZE + 1);
+			grid_size = osize * (bsize_m1 / MAX_BLOCK_SIZE + 1);
 		}
 		else {
 			block_size = bsize;
@@ -415,11 +408,18 @@ at::Tensor id_weightacc_cuda_forward_(torch::Tensor x, torch::Tensor idx, torch:
 		}
 		//cuda_id_weight_acc_sm_<<<grid_size, block_size, (ncon * (sizeof(int) + sizeof(float)))>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), rs.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon);
 		if (grid_size < osize) {
-			cuda_id_weight_acc_sm_opb_<<<grid_size, block_size, (ncon * (sizeof(int) + sizeof(float)))>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), rs.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon, (bsize - 1) / block_size + 1, (osize - 1) / grid_size + 1);
+			int bsize_per_thread = bsize_m1 / block_size + 1;
+			block_size = bsize_m1 / bsize_per_thread + 1;
+			int osize_m1 = osize - 1;
+			int osize_per_block = osize_m1 / grid_size + 1;
+			grid_size = osize_m1 / osize_per_block + 1;
+			cuda_id_weight_acc_sm_opb_<<<grid_size, block_size, (ncon * (sizeof(int) + sizeof(float)))>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), rs.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon, bsize_per_thread, osize_per_block);
 		}
 		else {
 			int block_per_osize = grid_size / osize;
-			cuda_id_weight_acc_sm_bpo_<<<grid_size, block_size, (ncon * (sizeof(int) + sizeof(float)))>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), rs.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon, (bsize - 1) / (block_per_osize * block_size) + 1, block_per_osize);
+			int bsize_per_thread = bsize_m1 / (block_per_osize * block_size) + 1;
+			block_size = bsize_m1 / (block_per_osize * bsize_per_thread) + 1;
+			cuda_id_weight_acc_sm_bpo_<<<grid_size, block_size, (ncon * (sizeof(int) + sizeof(float)))>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), rs.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon, bsize_per_thread, block_per_osize);
 		}
 	}
 	else {
@@ -455,9 +455,10 @@ std::vector<torch::Tensor> id_weightacc_cuda_backward_(torch::Tensor x, torch::T
 	int grid_size;
 
 	if (ncon < MAX_Backward_NCON_Share_MEM) {
+		int bsize_m1 = bsize - 1;
 		if (bsize > MAX_BLOCK_SIZE) {
 			block_size = MAX_BLOCK_SIZE;
-			grid_size = osize * ((bsize - 1) / MAX_BLOCK_SIZE + 1);
+			grid_size = osize * (bsize_m1 / MAX_BLOCK_SIZE + 1);
 		}
 		else {
 			block_size = bsize;
@@ -468,11 +469,18 @@ std::vector<torch::Tensor> id_weightacc_cuda_backward_(torch::Tensor x, torch::T
 		}
 		//cuda_id_weight_acc_grad_sm_<<<grid_size, block_size, ncon * sizeof(int)>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), grad_output.packed_accessor32<float, 2>(), grad_x.data_ptr<float>(), grad_weight.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon);
 		if (grid_size < osize) {
-			cuda_id_weight_acc_grad_sm_opb_<<<grid_size, block_size, ncon * sizeof(int)>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), grad_output.packed_accessor32<float, 2>(), grad_x.data_ptr<float>(), grad_weight.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon, (bsize - 1) / block_size + 1, (osize - 1) / grid_size + 1);
+			int bsize_per_thread = bsize_m1 / block_size + 1;
+			block_size = bsize_m1 / bsize_per_thread + 1;
+			int osize_m1 = osize - 1;
+			int osize_per_block = osize_m1 / grid_size + 1;
+			grid_size = osize_m1 / osize_per_block + 1;
+			cuda_id_weight_acc_grad_sm_opb_<<<grid_size, block_size, ncon * sizeof(int)>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), grad_output.packed_accessor32<float, 2>(), grad_x.data_ptr<float>(), grad_weight.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon, bsize_per_thread, osize_per_block);
 		}
 		else {
 			int block_per_osize = grid_size / osize;
-			cuda_id_weight_acc_grad_sm_bpo_<<<grid_size, block_size, ncon * sizeof(int)>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), grad_output.packed_accessor32<float, 2>(), grad_x.data_ptr<float>(), grad_weight.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon, (bsize - 1) / (block_per_osize * block_size) + 1, block_per_osize);
+			int bsize_per_thread = bsize_m1 / (block_per_osize * block_size) + 1;
+			block_size = bsize_m1 / (block_per_osize * bsize_per_thread) + 1;
+			cuda_id_weight_acc_grad_sm_bpo_<<<grid_size, block_size, ncon * sizeof(int)>>>(x.data_ptr<float>(), idx.data_ptr<int>(), weight.data_ptr<float>(), grad_output.packed_accessor32<float, 2>(), grad_x.data_ptr<float>(), grad_weight.data_ptr<float>(), (int)bsize, (int)isize, (int)osize, (int)ncon, bsize_per_thread, block_per_osize);
 		}
 	}
 	else {
