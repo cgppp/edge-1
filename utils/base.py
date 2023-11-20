@@ -10,6 +10,8 @@ from random import seed as rpyseed
 from torch import Tensor
 from torch.nn import ModuleDict
 
+from utils.torch.comp import torch_no_grad
+
 from cnfg.vocab.base import pad_id
 
 def pad_tensors(tensor_list, dim=-1):
@@ -144,6 +146,18 @@ def get_module_nl(m, nl):
 
 	return _m, _success
 
+def get_attr_nl(m, nl, dv=None):
+
+	_m, _success = m, True
+	for _tmp in nl:
+		if hasattr(_m, _tmp):
+			_m = getattr(_m, _tmp, dv)
+		else:
+			_success = False
+			break
+
+	return _m, _success
+
 def add_module(m, strin, m_add, print_func=print, **kwargs):
 
 	_name_list = strin.split(".")
@@ -185,6 +199,36 @@ def add_buffer(m, strin, b_add, persistent=True, print_func=print, **kwargs):
 			print_func(strin)
 
 	return m
+
+def load_tensor_attr(m, strin, t, print_func=print, **kwargs):
+
+	_name_list = strin.split(".")
+	if len(_name_list) == 1:
+		if hasattr(m, strin):
+			_t = getattr(m, strin, None)
+			if isinstance(_t, Tensor):
+				with torch_no_grad():
+					_t.copy_(t)
+			elif print_func is not None:
+				print_func(strin)
+		elif print_func is not None:
+			print_func(strin)
+	else:
+		_m, _success = get_attr_nl(m, _name_list[:-1])
+		if _success:
+			_t = getattr(_m, _name_list[-1], None)
+			if isinstance(_t, Tensor):
+				with torch_no_grad():
+					_t.copy_(t)
+			elif print_func is not None:
+				print_func(strin)
+		elif print_func is not None:
+			print_func(strin)
+
+def load_tensor_attrd(m, din, **kwargs):
+
+	for _k, _v in din.items():
+		load_tensor_attr(m, _k, _v, **kwargs)
 
 def is_buffer_persistent(m, strin, persistent=True, print_func=print, **kwargs):
 

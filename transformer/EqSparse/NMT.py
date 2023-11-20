@@ -3,7 +3,10 @@
 from transformer.EqSparse.Decoder import Decoder
 from transformer.EqSparse.Encoder import Encoder
 from transformer.NMT import NMT as NMTBase
+from utils.base import load_tensor_attrd
+from utils.eqsparse import get_conn
 from utils.fmt.parser import parse_double_value_tuple
+from utils.h5serial import h5load, h5save
 from utils.relpos.base import share_rel_pos_cache
 
 from cnfg.ihyp import *
@@ -24,3 +27,11 @@ class NMT(NMTBase):
 
 		if rel_pos_enabled:
 			share_rel_pos_cache(self)
+
+	def save_conn_to_file(self, fname):
+
+		h5save(get_conn(self), fname, h5args=h5zipargs)
+
+	def load_conn_from_file(self, fname):
+
+		load_tensor_attrd(self, h5load(fname, restore_list=False))

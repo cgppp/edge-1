@@ -84,3 +84,12 @@ def build_random_conn_inds(in_features, out_features, num_conn):
 		return build_random_conn_inds_eq(in_features, out_features, num_conn)
 	else:
 		return build_random_conn_inds_samp(in_features, out_features, num_conn)
+
+def get_conn(m):
+
+	rsd = {}
+	for _n, _m in m.named_modules():
+		if hasattr(_m, "conn"):
+			rsd["%s.conn" % _n] = _m.conn
+
+	return rsd
