@@ -15,4 +15,4 @@ class EqsLinear(EqsLinearBase):
 
 		_x_size = x.size()
 
-		return IdWeightAccFunc(x, self.conn, self.weight, self.bias) if len(_x_size) == 2 else IdWeightAccFunc(x.view(-1, _x_size[-1]), self.conn, self.weight, self.bias).view(*_x_size[:-1], self.weight.size(-1))
+		return IdWeightAccFunc(x, self.conn, self.weight, self.bias) if len(_x_size) == 2 else IdWeightAccFunc(x.view(-1, _x_size[-1]), self.conn, self.weight, self.bias).view(*_x_size[:-1], self.weight.size(0))

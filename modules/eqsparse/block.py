@@ -16,7 +16,7 @@ from cnfg.ihyp import *
 
 class PositionwiseFF(PositionwiseFFBase):
 
-	def __init__(self, isize, hsize=None, dropout=0.0, act_drop=None, num_conn=None, norm_residual=norm_residual_default, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn, **kwargs):
+	def __init__(self, isize, hsize=None, dropout=0.0, act_drop=None, norm_residual=norm_residual_default, num_conn=None, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn, **kwargs):
 
 		_hsize = isize * 4 if hsize is None else hsize
 		_act_drop = parse_none(act_drop, dropout)
@@ -49,7 +49,7 @@ class PositionwiseFF(PositionwiseFFBase):
 
 class SelfAttn(SelfAttnBase):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, num_conn=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, **kwargs):
+	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, num_conn=None, **kwargs):
 
 		super(SelfAttn, self).__init__(isize, hsize, osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, **kwargs)
 
@@ -59,7 +59,7 @@ class SelfAttn(SelfAttnBase):
 
 class CrossAttn(CrossAttnBase):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, num_conn=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, **kwargs):
+	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, num_conn=None, **kwargs):
 
 		super(CrossAttn, self).__init__(isize, hsize, osize, num_head=num_head, dropout=dropout, k_isize=k_isize, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, **kwargs)
 
