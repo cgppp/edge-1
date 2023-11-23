@@ -32,7 +32,7 @@ class IdWeightAccFunction(Function):
 
 		bsize, isize = x.size()
 		osize, ncon = weight.size()
-		rs = x.new_empty(x.size())
+		rs = x.new_empty(bsize, osize)
 		rs = (idweightacc_cuda if x.is_cuda else idweightacc_cpp).forward_(x, idx, weight, rs, bsize, isize, osize, ncon) if bias is None else (idweightacc_bias_cuda if x.is_cuda else idweightacc_bias_cpp).forward_(x, idx, weight, bias, rs, bsize, isize, osize, ncon)
 		ctx.save_for_backward(x, idx, weight)
 
