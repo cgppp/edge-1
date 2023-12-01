@@ -47,7 +47,7 @@ class PropEmb(nn.Module):
 
 class InferEmb(PropEmb):
 
-	def __init__(self, isize, hsize=None, num_pos=64, scale=1.0, act_drop=None, prev_act_ln=True, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn, **kwargs):
+	def __init__(self, isize, hsize=None, num_pos=64, scale=1.0, act_drop=0.0, prev_act_ln=True, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn, **kwargs):
 
 		super(InferEmb, self).__init__(isize, num_pos=num_pos, scale=scale, **kwargs)
 
@@ -76,8 +76,8 @@ class InferEmb(PropEmb):
 			_.append(Linear(_hsize // 2, isize, bias=enable_bias))
 		if scale == 1.0:
 			_.append(nn.Softmax(-1))
-		if _act_drop > 0.0:
-			_.insert(_drop_ind, Dropout(_act_drop, inplace=inplace_after_Custom_Act))
+		if act_drop > 0.0:
+			_.insert(_drop_ind, Dropout(act_drop, inplace=inplace_after_Custom_Act))
 		self.net = nn.Sequential(*_)
 		self.normer_csum = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.normer_sum = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
