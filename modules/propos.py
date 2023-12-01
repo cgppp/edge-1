@@ -6,6 +6,7 @@ from torch import Tensor, nn
 
 from modules.act import Custom_Act, LGLU, get_act
 from modules.base import Linear
+from modules.dropout import Dropout
 from utils.propos import pos2p
 from utils.torch.comp import torch_no_grad
 
