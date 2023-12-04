@@ -5,6 +5,8 @@ from re import compile, escape
 
 from utils.fmt.parser import parse_none
 
+raw_compile = lambda x: compile(escape(x))
+
 def ordered_filter(lin):
 
 	_ = set()
