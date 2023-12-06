@@ -90,9 +90,9 @@ class InferEmb(PropEmb):
 		if states is None:
 			states_return = x.cumsum(dim=1)
 		else:
-			states_return = x if x.size(1) == 1 else x.cumsum(dim=1)
+			states_return = x
 			if isinstance(states, Tensor):
-				states_return.add_(states)
+				states_return = states_return + states
 
 		out = self.net(torch.cat((self.normer_csum(states_return), self.normer_sum(s).expand_as(states_return),), dim=-1))
 		if self.scale != 1.0:
