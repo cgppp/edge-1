@@ -65,7 +65,8 @@ class Decoder(DecoderBase):
 				inpute = inpute.masked_fill_(src_pad_mask.view(*inpute.size()[:2], 1), 0.0)
 			#sqrt_isize = sqrt(out.size(-1))
 			_inpute_sum = inpute.sum(1, keepdim=True)
-			out, _state = self.pemb(out, _inpute_sum, states="init").add_(out)#alpha=sqrt_isize
+			_pemb, _state = self.pemb(out, _inpute_sum, states="init")
+			out = _pemb.add_(out)#alpha=sqrt_isize
 			states["pemb"] = _state
 		if self.drop is not None:
 			out = self.drop(out)
@@ -87,7 +88,8 @@ class Decoder(DecoderBase):
 
 			out = self.wemb(wds)
 			if self.pemb is not None:
-				out, _state = self.pemb(out, _inpute_sum, states=states["pemb"]).add_(out)#alpha=sqrt_isize
+				_pemb, _state = self.pemb(out, _inpute_sum, states=states["pemb"])
+				out = _pemb.add_(out)#alpha=sqrt_isize
 				states["pemb"] = _state
 			if self.drop is not None:
 				out = self.drop(out)
@@ -131,7 +133,8 @@ class Decoder(DecoderBase):
 				inpute = inpute.masked_fill_(src_pad_mask.view(*inpute.size()[:2], 1), 0.0)
 			#sqrt_isize = sqrt(out.size(-1))
 			_inpute_sum = inpute.sum(1, keepdim=True)
-			out, _state = self.pemb(out, _inpute_sum, states="init").add_(out)#alpha=sqrt_isize
+			_pemb, _state = self.pemb(out, _inpute_sum, states="init")
+			out = _pemb.add_(out)#alpha=sqrt_isize
 			states["pemb"] = _state
 
 		if self.drop is not None:
@@ -169,7 +172,8 @@ class Decoder(DecoderBase):
 
 			out = self.wemb(wds)
 			if self.pemb is not None:
-				out, _state = self.pemb(out, _inpute_sum, states=states["pemb"]).add_(out)#alpha=sqrt_isize
+				_pemb, _state = self.pemb(out, _inpute_sum, states=states["pemb"])
+				out = _pemb.add_(out)#alpha=sqrt_isize
 				states["pemb"] = _state
 
 			if self.drop is not None:
