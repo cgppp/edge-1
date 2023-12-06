@@ -160,7 +160,7 @@ class Decoder(DecoderBase):
 		done_trans = wds.view(bsize, beam_size).eq(eos_id)
 
 		if self.pemb is not None:
-			_inpute_sum = _inpute_sum.repeat(1, beam_size, 1).view(real_bsize, 1, isize)
+			_inpute_sum = _inpute_sum.repeat(1, beam_size, 1).view(real_bsize, 1, _inpute_sum.size(-1))
 
 		self.repeat_cross_attn_buffer(beam_size)
 
