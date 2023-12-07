@@ -7,6 +7,7 @@ from torch import Tensor, nn
 from modules.act import Custom_Act, LGLU, get_act
 from modules.base import Linear
 from modules.dropout import Dropout
+from modules.normer import MRNormer, MinNormer
 from utils.propos import pos2p
 from utils.torch.comp import torch_no_grad
 
@@ -82,6 +83,7 @@ class InferEmb(PropEmb):
 		self.net = nn.Sequential(*_)
 		self.normer_csum = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.normer_sum = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
+		self.normer = nn.Softmax(-1)
 
 	# x: (bsize, seql, isize)
 	# s: (bsize, 1, isize)
@@ -96,7 +98,8 @@ class InferEmb(PropEmb):
 
 		out = self.net(torch.cat((self.normer_csum(states_return), self.normer_sum(s).expand_as(states_return),), dim=-1))
 		if self.scale != 1.0:
-			out = out.mul_(self.scale).softmax(-1)
+			out = out.mul_(self.scale)
+		out = self.normer(out)
 		_osize = out.size()
 
 		out = out.mm(self.weight) if len(_osize) == 2 else out.view(-1, _osize[-1]).mm(self.weight).view(*_osize[:-1], self.weight.size(-1))
