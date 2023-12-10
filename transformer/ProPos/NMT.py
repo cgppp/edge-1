@@ -10,7 +10,7 @@ from cnfg.ihyp import *
 
 class NMT(NMTBase):
 
-	def __init__(self, isize, snwd, tnwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, global_emb=False, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindDecoderEmb=True, forbidden_index=None, num_pos=64, scale=1.0, **kwargs):
+	def __init__(self, isize, snwd, tnwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, global_emb=False, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindDecoderEmb=True, forbidden_index=None, num_pos=None, scale=1.0, **kwargs):
 
 		enc_layer, dec_layer = parse_double_value_tuple(num_layer)
 

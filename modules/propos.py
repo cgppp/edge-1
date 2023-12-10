@@ -8,6 +8,7 @@ from modules.act import Custom_Act, LGLU, get_act
 from modules.base import Linear
 from modules.dropout import Dropout
 from modules.normer import MRNormer, MinNormer
+from utils.fmt.parser import parse_none
 from utils.propos import pos2p
 from utils.torch.comp import torch_no_grad
 
@@ -15,12 +16,13 @@ from cnfg.ihyp import *
 
 class PropEmb(nn.Module):
 
-	def __init__(self, isize, num_pos=64, scale=1.0, **kwargs):
+	def __init__(self, isize, num_pos=None, scale=1.0, **kwargs):
 
 		super(PropEmb, self).__init__()
 
+		_num_pos = parse_none(num_pos, isize)
 		self.scale = scale
-		self.weight = nn.Parameter(torch.Tensor(num_pos, isize))
+		self.weight = nn.Parameter(torch.Tensor(_num_pos, isize))
 		self.reset_parameters()
 
 	# x: (bsize, seql, ...)
@@ -49,9 +51,11 @@ class PropEmb(nn.Module):
 
 class InferEmb(PropEmb):
 
-	def __init__(self, isize, hsize=None, num_pos=64, scale=1.0, act_drop=0.0, prev_act_ln=True, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn, **kwargs):
+	def __init__(self, isize, hsize=None, num_pos=None, scale=1.0, act_drop=0.0, prev_act_ln=True, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn, **kwargs):
 
-		super(InferEmb, self).__init__(isize, num_pos=num_pos, scale=scale, **kwargs)
+		_num_pos = parse_none(num_pos, isize)
+
+		super(InferEmb, self).__init__(isize, num_pos=_num_pos, scale=scale, **kwargs)
 
 		_hsize = isize * 4 if hsize is None else hsize
 
@@ -64,7 +68,7 @@ class InferEmb(PropEmb):
 			_.append(nn.LayerNorm(_hsize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters))
 			_drop_ind += 1
 		if use_glu is None:
-			_.extend([Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_hsize, num_pos)])
+			_.extend([Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_hsize, _num_pos)])
 		else:
 			use_glu = use_glu.lower()
 			if use_glu == "glu":
