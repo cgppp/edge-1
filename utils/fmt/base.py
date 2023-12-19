@@ -18,7 +18,8 @@ iter_to_float = lambda lin: map(float, lin)
 def sys_open(fname, mode="r", compresslevel=raw_cache_compression_level, **kwargs):
 
 	if fname == "-":
-		return ((sys.stdin.buffer if "r" in mode else sys.stdout.buffer) if "b" in mode else (sys.stdin if "r" in mode else sys.stdout))
+		_ = sys.stdin if "r" in mode else sys.stdout
+		return _.buffer if "b" in mode else _
 	else:
 		if fname.endswith(".gz"):
 			return gz_open(fname, mode=mode, compresslevel=compresslevel, **kwargs)
