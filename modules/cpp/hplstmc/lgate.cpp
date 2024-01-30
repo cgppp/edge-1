@@ -7,16 +7,12 @@
 template <typename TS> inline void omp_lgate_forward_(TS *fgate, TS *igh, TS *init_cell, TS *cell, int bsize, int seqlen, int nhead, int isize) {
 
 	int _seq_shift = nhead * isize;
-	#pragma omp parallel for
+	#pragma omp parallel for collapse(3) schedule(static)
 	for (int i_bsize = 0; i_bsize < bsize; i_bsize++) {
-		int _b_base = i_bsize * seqlen * _seq_shift;
-		#pragma omp parallel for
 		for (int i_head = 0; i_head < nhead; i_head ++) {
-			int _h_shift = i_head * isize;
-			int _bh_base = _b_base + _h_shift;
-			#pragma omp parallel for
 			for (int i_isize = 0; i_isize < isize; i_isize++) {
-				int _i_base = _bh_base + i_isize;
+				int _h_shift = i_head * isize;
+				int _i_base = i_bsize * seqlen * _seq_shift + _h_shift + i_isize;
 				TS c = igh[_i_base] + init_cell[_h_shift + i_isize] * fgate[_i_base];
 				cell[_i_base] = c;
 				for (int i = 1; i < seqlen; i++) {
@@ -36,17 +32,13 @@ template <typename TS> inline void omp_lgate_backward_(torch::TensorAccessor<TS,
 	int _seq_shift = nhead * isize;
 	int last_index = seqlen - 1;
 	if (last_index > 0) {
-		#pragma omp parallel for
+		#pragma omp parallel for collapse(3) schedule(static)
 		for (int i_bsize = 0; i_bsize < bsize; i_bsize++) {
-			int _bhi_base = i_bsize * _seq_shift;
-			int _b_base = _bhi_base * seqlen;
-			#pragma omp parallel for
 			for (int i_head = 0; i_head < nhead; i_head ++) {
-				int _h_base = i_head * isize;
-				int _bsh_base = _b_base + last_index * _seq_shift + _h_base;
-				#pragma omp parallel for
 				for (int i_isize = 0; i_isize < isize; i_isize++) {
-					int _i_base = _bsh_base + i_isize;
+					int _bhi_base = i_bsize * _seq_shift;
+					int _h_base = i_head * isize;
+					int _i_base = _bhi_base * seqlen + last_index * _seq_shift + _h_base + i_isize;
 					TS agc = grad_cell[i_bsize][last_index][i_head][i_isize];
 					for (int i = last_index; i > 0; i--) {
 						grad_igh[_i_base] = agc;
@@ -63,17 +55,13 @@ template <typename TS> inline void omp_lgate_backward_(torch::TensorAccessor<TS,
 		}
 	}
 	else {
-		#pragma omp parallel for
+		#pragma omp parallel for collapse(3) schedule(static)
 		for (int i_bsize = 0; i_bsize < bsize; i_bsize++) {
-			int _bhi_base = i_bsize * _seq_shift;
-			int _b_base = _bhi_base;// * seqlen equals to 1
-			#pragma omp parallel for
 			for (int i_head = 0; i_head < nhead; i_head ++) {
-				int _h_base = i_head * isize;
-				int _bsh_base = _b_base + _h_base; // + last_index * _seq_shift (last_index is 0)
-				#pragma omp parallel for
 				for (int i_isize = 0; i_isize < isize; i_isize++) {
-					int _i_base = _bsh_base + i_isize;
+					int _bhi_base = i_bsize * _seq_shift;
+					int _h_base = i_head * isize;
+					int _i_base = _bhi_base + _h_base + i_isize;// * seqlen equals to 1; + last_index * _seq_shift (last_index is 0)
 					TS gc = grad_cell[i_bsize][0][i_head][i_isize];
 					grad_igh[_i_base] = gc;
 					grad_prev_cell[_bhi_base + _h_base + i_isize] = gc * fgate[_i_base];
