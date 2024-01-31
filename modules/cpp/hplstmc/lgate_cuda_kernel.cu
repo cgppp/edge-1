@@ -19,7 +19,7 @@ template <typename TS> __global__ void cuda_lgate_(TS *fgate, TS *igh, TS *init_
 	int block_id = blockIdx.x;
 	int thread_id = threadIdx.x;
 	//extern __shared__ TS sm[];
-	for (int _i = block_id; i < eid; i+=num_blocks) {
+	for (int _i = block_id; _i < eid; _i+=num_blocks) {
 		int i_head = _i / bsize;
 		int i_bsize = _i % bsize;
 		for (int i_isize = thread_id; i_isize < isize; i_isize+=num_threads) {
@@ -45,7 +45,7 @@ template <typename TS> __global__ void cuda_lgate_grad_(torch::PackedTensorAcces
 	int block_id = blockIdx.x;
 	int thread_id = threadIdx.x;
 	if (last_index > 0) {
-		for (int _i = block_id; i < eid; i+=num_blocks) {
+		for (int _i = block_id; _i < eid; _i+=num_blocks) {
 			int i_head = _i / bsize;
 			int i_bsize = _i % bsize;
 			for (int i_isize = thread_id; i_isize < isize; i_isize+=num_threads) {
@@ -67,7 +67,7 @@ template <typename TS> __global__ void cuda_lgate_grad_(torch::PackedTensorAcces
 		}
 	}
 	else {
-		for (int _i = block_id; i < eid; i+=num_blocks) {
+		for (int _i = block_id; _i < eid; _i+=num_blocks) {
 			int i_head = _i / bsize;
 			int i_bsize = _i % bsize;
 			for (int i_isize = thread_id; i_isize < isize; i_isize+=num_threads) {
@@ -99,7 +99,7 @@ template <typename TS> at::Tensor lgate_cuda_forward(torch::Tensor fgate, torch:
 
 	cuda_lgate_<TS><<<grid_size, block_size>>>(fgate.data_ptr<TS>(), igh.data_ptr<TS>(), init_cell.data_ptr<TS>(), cell.data_ptr<TS>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize);//, (block_size * sizeof(TS))
 
-	return rs;
+	return cell;
 }
 
 template <typename TS> std::vector<torch::Tensor> lgate_cuda_backward(torch::Tensor grad_cell, torch::Tensor cell, torch::Tensor fgate, torch::Tensor init_cell, torch::Tensor grad_fgate, torch::Tensor grad_igh, torch::Tensor grad_prev_cell, int bsize, int seqlen, int nhead, int isize) {
@@ -119,4 +119,14 @@ template <typename TS> std::vector<torch::Tensor> lgate_cuda_backward(torch::Ten
 	cuda_lgate_grad_<TS><<<grid_size, block_size>>>(grad_cell.packed_accessor32<TS, 4>(), cell.data_ptr<TS>(), fgate.data_ptr<TS>(), init_cell.data_ptr<TS>(), grad_fgate.data_ptr<TS>(), grad_igh.data_ptr<TS>(), grad_prev_cell.data_ptr<TS>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize, seqlen - 1);
 
 	return {grad_fgate, grad_igh, grad_prev_cell};
+}
+
+at::Tensor lgate_cuda_forward_float(torch::Tensor fgate, torch::Tensor igh, torch::Tensor init_cell, torch::Tensor cell, int bsize, int seqlen, int nhead, int isize) {
+
+	return lgate_cuda_forward<float>(fgate, igh, init_cell, cell, bsize, seqlen, nhead, isize);
+}
+
+std::vector<torch::Tensor> lgate_cuda_backward_float(torch::Tensor grad_cell, torch::Tensor cell, torch::Tensor fgate, torch::Tensor init_cell, torch::Tensor grad_fgate, torch::Tensor grad_igh, torch::Tensor grad_prev_cell, int bsize, int seqlen, int nhead, int isize) {
+
+	return lgate_cuda_backward<float>(grad_cell, cell, fgate, init_cell, grad_fgate, grad_igh, grad_prev_cell, bsize, seqlen, nhead, isize);
 }
