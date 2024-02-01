@@ -82,7 +82,7 @@ template <typename scalar_t> __global__ void cuda_lgate_grad_(torch::PackedTenso
 	}
 }
 
-template <typename scalar_t> at::Tensor lgate_cuda_forward(torch::Tensor fgate, torch::Tensor igh, torch::Tensor init_cell, torch::Tensor cell, int bsize, int seqlen, int nhead, int isize) {
+at::Tensor lgate_cuda_forward(torch::Tensor fgate, torch::Tensor igh, torch::Tensor init_cell, torch::Tensor cell, int bsize, int seqlen, int nhead, int isize) {
 
 	int block_size = isize;
 	if (block_size > MAX_BLOCK_SIZE) {
@@ -101,7 +101,7 @@ template <typename scalar_t> at::Tensor lgate_cuda_forward(torch::Tensor fgate, 
 	return cell;
 }
 
-template <typename scalar_t> std::vector<torch::Tensor> lgate_cuda_backward(torch::Tensor grad_cell, torch::Tensor cell, torch::Tensor fgate, torch::Tensor init_cell, torch::Tensor grad_fgate, torch::Tensor grad_igh, torch::Tensor grad_prev_cell, int bsize, int seqlen, int nhead, int isize) {
+std::vector<torch::Tensor> lgate_cuda_backward(torch::Tensor grad_cell, torch::Tensor cell, torch::Tensor fgate, torch::Tensor init_cell, torch::Tensor grad_fgate, torch::Tensor grad_igh, torch::Tensor grad_prev_cell, int bsize, int seqlen, int nhead, int isize) {
 
 	int block_size = isize;
 	if (block_size > MAX_BLOCK_SIZE) {
@@ -115,7 +115,7 @@ template <typename scalar_t> std::vector<torch::Tensor> lgate_cuda_backward(torc
 		grid_size /= ((grid_size - 1) / MAX_GRID_SIZE + 1);
 	}
 
-	AT_DISPATCH_FLOATING_TYPES(igh.type(), "lgate_backward_cuda", ([&] {cuda_lgate_grad_<scalar_t><<<grid_size, block_size>>>(grad_cell.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(), cell.data_ptr<scalar_t>(), fgate.data_ptr<scalar_t>(), init_cell.data_ptr<scalar_t>(), grad_fgate.data_ptr<scalar_t>(), grad_igh.data_ptr<scalar_t>(), grad_prev_cell.data_ptr<scalar_t>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize, seqlen - 1);}));
+	AT_DISPATCH_FLOATING_TYPES(grad_cell.type(), "lgate_backward_cuda", ([&] {cuda_lgate_grad_<scalar_t><<<grid_size, block_size>>>(grad_cell.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(), cell.data_ptr<scalar_t>(), fgate.data_ptr<scalar_t>(), init_cell.data_ptr<scalar_t>(), grad_fgate.data_ptr<scalar_t>(), grad_igh.data_ptr<scalar_t>(), grad_prev_cell.data_ptr<scalar_t>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize, seqlen - 1);}));
 
 	return {grad_fgate, grad_igh, grad_prev_cell};
 }
