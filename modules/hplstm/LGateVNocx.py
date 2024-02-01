@@ -5,17 +5,17 @@ from torch.autograd import Function
 from cnfg.ihyp import extra_compile_args
 
 try:
-	import lgate_nocx_cpp
+	import lgatev_nocx_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgate_nocx_cpp = load(name="lgate_nocx_cpp", sources=["modules/cpp/hplstm/lgate_nocx.cpp"], extra_cflags=extra_compile_args)
+	lgatev_nocx_cpp = load(name="lgatev_nocx_cpp", sources=["modules/cpp/hplstm/lgatev_nocx.cpp"], extra_cflags=extra_compile_args)
 
 class LGateNocxFunction(Function):
 
 	@staticmethod
 	def forward(ctx, fgate, igh, dim=None, inplace=False):
 
-		cell = lgate_nocx_cpp.forward(fgate, igh, dim, inplace)
+		cell = lgatev_nocx_cpp.forward(fgate, igh, dim, inplace)
 		ctx.save_for_backward(cell, fgate)
 		ctx.dim = dim
 
@@ -28,7 +28,7 @@ class LGateNocxFunction(Function):
 		if needs_grad_fgate or needs_grad_igh:
 			cell, fgate = ctx.saved_variables
 			if needs_grad_fgate:
-				grad_fgate, grad_igh = lgate_nocx_cpp.backward(grad_cell, cell, fgate, ctx.dim)
+				grad_fgate, grad_igh = lgatev_nocx_cpp.backward(grad_cell, cell, fgate, ctx.dim)
 				return grad_fgate if needs_grad_fgate else None, grad_igh if needs_grad_igh else None, None, None
 			else:
 				grad_igh = lgate_nocx_cpp.backward_no_fgate(grad_cell, fgate, ctx.dim)

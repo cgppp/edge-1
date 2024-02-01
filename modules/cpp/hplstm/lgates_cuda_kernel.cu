@@ -1,5 +1,4 @@
 #include <torch/extension.h>
-//#include <cuda.h>
 #include <cuda_runtime.h>
 #include <vector>
 
@@ -12,20 +11,20 @@
 
 // fgate, igh, cell: (bsize, seql, nhead, isize)
 // init_cell: (nhead, isize)
-template <typename TS> __global__ void cuda_lgate_(TS *fgate, TS *igh, TS *init_cell, TS *cell, int bsize, int seqlen, int nhead, int isize, int eid, int seq_shift) {
+template <typename scalar_t> __global__ void cuda_lgate_(scalar_t* __restrict__ fgate, scalar_t* __restrict__ igh, scalar_t* __restrict__ init_cell, scalar_t* __restrict__ cell, int bsize, int seqlen, int nhead, int isize, int eid, int seq_shift) {
 
 	int num_blocks = gridDim.x;
 	int num_threads = blockDim.x;
 	int block_id = blockIdx.x;
 	int thread_id = threadIdx.x;
-	//extern __shared__ TS sm[];
+	//extern __shared__ scalar_t sm[];
 	for (int _i = block_id; _i < eid; _i+=num_blocks) {
 		int i_head = _i / bsize;
 		int i_bsize = _i % bsize;
 		for (int i_isize = thread_id; i_isize < isize; i_isize+=num_threads) {
 			int _h_shift = i_head * isize;
 			int _i_base = i_bsize * seqlen * seq_shift + _h_shift + i_isize;
-			TS c = igh[_i_base] + init_cell[_h_shift + i_isize] * fgate[_i_base];
+			scalar_t c = igh[_i_base] + init_cell[_h_shift + i_isize] * fgate[_i_base];
 			cell[_i_base] = c;
 			for (int i = 1; i < seqlen; i++) {
 				_i_base += seq_shift;
@@ -38,7 +37,7 @@ template <typename TS> __global__ void cuda_lgate_(TS *fgate, TS *igh, TS *init_
 // grad_cell, cell, fgate, grad_fgate, grad_igh: (bsize, seql, nhead, isize)
 // init_cell: (nhead, isize)
 // grad_prev_cell: (bsize, nhead, isize)
-template <typename TS> __global__ void cuda_lgate_grad_(torch::PackedTensorAccessor32<TS, 4> grad_cell, TS *cell, TS *fgate, TS *init_cell, TS *grad_fgate, TS *grad_igh, TS *grad_prev_cell, int bsize, int seqlen, int nhead, int isize, int eid, int seq_shift, int last_index) {
+template <typename scalar_t> __global__ void cuda_lgate_grad_(torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> grad_cell, scalar_t* __restrict__ cell, scalar_t* __restrict__ fgate, scalar_t* __restrict__ init_cell, scalar_t* __restrict__ grad_fgate, scalar_t* __restrict__ grad_igh, scalar_t* __restrict__ grad_prev_cell, int bsize, int seqlen, int nhead, int isize, int eid, int seq_shift, int last_index) {
 
 	int num_blocks = gridDim.x;
 	int num_threads = blockDim.x;
@@ -52,7 +51,7 @@ template <typename TS> __global__ void cuda_lgate_grad_(torch::PackedTensorAcces
 				int _bhi_base = i_bsize * seq_shift;
 				int _h_base = i_head * isize;
 				int _i_base = _bhi_base * seqlen + last_index * seq_shift + _h_base + i_isize;
-				TS agc = grad_cell[i_bsize][last_index][i_head][i_isize];
+				scalar_t agc = grad_cell[i_bsize][last_index][i_head][i_isize];
 				for (int i = last_index; i > 0; i--) {
 					grad_igh[_i_base] = agc;
 					int _i_base_new = _i_base - seq_shift;
@@ -74,7 +73,7 @@ template <typename TS> __global__ void cuda_lgate_grad_(torch::PackedTensorAcces
 				int _bhi_base = i_bsize * seq_shift;
 				int _h_base = i_head * isize;
 				int _i_base = _bhi_base + _h_base + i_isize;// * seqlen equals to 1; + last_index * _seq_shift (last_index is 0)
-				TS gc = grad_cell[i_bsize][0][i_head][i_isize];
+				scalar_t gc = grad_cell[i_bsize][0][i_head][i_isize];
 				grad_igh[_i_base] = gc;
 				grad_prev_cell[_bhi_base + _h_base + i_isize] = gc * fgate[_i_base];
 				grad_fgate[_i_base] = gc * init_cell[_h_base + i_isize];
@@ -83,7 +82,7 @@ template <typename TS> __global__ void cuda_lgate_grad_(torch::PackedTensorAcces
 	}
 }
 
-template <typename TS> at::Tensor lgate_cuda_forward(torch::Tensor fgate, torch::Tensor igh, torch::Tensor init_cell, torch::Tensor cell, int bsize, int seqlen, int nhead, int isize) {
+template <typename scalar_t> at::Tensor lgate_cuda_forward(torch::Tensor fgate, torch::Tensor igh, torch::Tensor init_cell, torch::Tensor cell, int bsize, int seqlen, int nhead, int isize) {
 
 	int block_size = isize;
 	if (block_size > MAX_BLOCK_SIZE) {
@@ -97,12 +96,12 @@ template <typename TS> at::Tensor lgate_cuda_forward(torch::Tensor fgate, torch:
 		grid_size /= ((grid_size - 1) / MAX_GRID_SIZE + 1);
 	}
 
-	cuda_lgate_<TS><<<grid_size, block_size>>>(fgate.data_ptr<TS>(), igh.data_ptr<TS>(), init_cell.data_ptr<TS>(), cell.data_ptr<TS>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize);//, (block_size * sizeof(TS))
+	AT_DISPATCH_FLOATING_TYPES(igh.type(), "lgate_forward_cuda", ([&] {cuda_lgate_<scalar_t><<<grid_size, block_size>>>(fgate.data_ptr<scalar_t>(), igh.data_ptr<scalar_t>(), init_cell.data_ptr<scalar_t>(), cell.data_ptr<scalar_t>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize);}));
 
 	return cell;
 }
 
-template <typename TS> std::vector<torch::Tensor> lgate_cuda_backward(torch::Tensor grad_cell, torch::Tensor cell, torch::Tensor fgate, torch::Tensor init_cell, torch::Tensor grad_fgate, torch::Tensor grad_igh, torch::Tensor grad_prev_cell, int bsize, int seqlen, int nhead, int isize) {
+template <typename scalar_t> std::vector<torch::Tensor> lgate_cuda_backward(torch::Tensor grad_cell, torch::Tensor cell, torch::Tensor fgate, torch::Tensor init_cell, torch::Tensor grad_fgate, torch::Tensor grad_igh, torch::Tensor grad_prev_cell, int bsize, int seqlen, int nhead, int isize) {
 
 	int block_size = isize;
 	if (block_size > MAX_BLOCK_SIZE) {
@@ -116,17 +115,7 @@ template <typename TS> std::vector<torch::Tensor> lgate_cuda_backward(torch::Ten
 		grid_size /= ((grid_size - 1) / MAX_GRID_SIZE + 1);
 	}
 
-	cuda_lgate_grad_<TS><<<grid_size, block_size>>>(grad_cell.packed_accessor32<TS, 4>(), cell.data_ptr<TS>(), fgate.data_ptr<TS>(), init_cell.data_ptr<TS>(), grad_fgate.data_ptr<TS>(), grad_igh.data_ptr<TS>(), grad_prev_cell.data_ptr<TS>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize, seqlen - 1);
+	AT_DISPATCH_FLOATING_TYPES(igh.type(), "lgate_backward_cuda", ([&] {cuda_lgate_grad_<scalar_t><<<grid_size, block_size>>>(grad_cell.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(), cell.data_ptr<scalar_t>(), fgate.data_ptr<scalar_t>(), init_cell.data_ptr<scalar_t>(), grad_fgate.data_ptr<scalar_t>(), grad_igh.data_ptr<scalar_t>(), grad_prev_cell.data_ptr<scalar_t>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize, seqlen - 1);}));
 
 	return {grad_fgate, grad_igh, grad_prev_cell};
-}
-
-at::Tensor lgate_cuda_forward_float(torch::Tensor fgate, torch::Tensor igh, torch::Tensor init_cell, torch::Tensor cell, int bsize, int seqlen, int nhead, int isize) {
-
-	return lgate_cuda_forward<float>(fgate, igh, init_cell, cell, bsize, seqlen, nhead, isize);
-}
-
-std::vector<torch::Tensor> lgate_cuda_backward_float(torch::Tensor grad_cell, torch::Tensor cell, torch::Tensor fgate, torch::Tensor init_cell, torch::Tensor grad_fgate, torch::Tensor grad_igh, torch::Tensor grad_prev_cell, int bsize, int seqlen, int nhead, int isize) {
-
-	return lgate_cuda_backward<float>(grad_cell, cell, fgate, init_cell, grad_fgate, grad_igh, grad_prev_cell, bsize, seqlen, nhead, isize);
 }

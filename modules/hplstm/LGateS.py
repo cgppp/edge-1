@@ -5,15 +5,15 @@ from torch.autograd import Function
 from cnfg.ihyp import extra_compile_args, extra_cuda_compile_args
 
 try:
-	import lgatec_cpp
+	import lgates_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgatec_cpp = load(name="lgatec_cpp", sources=["modules/cpp/hplstmc/lgate.cpp"], extra_cflags=extra_compile_args + ["-fopenmp"])
+	lgates_cpp = load(name="lgates_cpp", sources=["modules/cpp/hplstm/lgates.cpp"], extra_cflags=extra_compile_args + ["-fopenmp"])
 try:
-	import lgatec_cuda
+	import lgates_cuda
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgatec_cuda = load(name="lgatec_cuda", sources=["modules/cpp/hplstmc/lgate_cuda.cpp", "modules/cpp/hplstmc/lgate_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
+	lgates_cuda = load(name="lgates_cuda", sources=["modules/cpp/hplstm/lgates_cuda.cpp", "modules/cpp/hplstm/lgates_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
 
 class LGateFunction(Function):
 
@@ -22,7 +22,7 @@ class LGateFunction(Function):
 
 		cell = igh if inplace else igh.new_empty(igh.size())
 		bsize, seql, nhead, isize = igh.size()
-		cell = (lgatec_cuda if igh.is_cuda else lgatec_cpp).forward(fgate, igh, init_cell, cell, bsize, seql, nhead, isize)
+		cell = (lgates_cuda if igh.is_cuda else lgates_cpp).forward(fgate, igh, init_cell, cell, bsize, seql, nhead, isize)
 		ctx.save_for_backward(cell, fgate, init_cell)
 
 		return cell
@@ -37,7 +37,7 @@ class LGateFunction(Function):
 			grad_igh = cell.new_empty(cell.size())
 			bsize, seqlen, nhead, isize = grad_cell.size()
 			grad_init_cell = init_cell.new_empty(bsize, nhead, isize)
-			grad_fgate, grad_igh, grad_init_cell = (lgatec_cuda if grad_cell.is_cuda else lgatec_cpp).backward(grad_cell, cell, fgate, init_cell, grad_fgate, grad_igh, grad_init_cell, bsize, seqlen, nhead, isize)
+			grad_fgate, grad_igh, grad_init_cell = (lgates_cuda if grad_cell.is_cuda else lgates_cpp).backward(grad_cell, cell, fgate, init_cell, grad_fgate, grad_igh, grad_init_cell, bsize, seqlen, nhead, isize)
 			return grad_fgate if needs_grad_fgate else None, grad_igh if needs_grad_igh else None, grad_init_cell.sum(0) if needs_grad_init_cell else None, None
 		else:
 			return None, None, None, None

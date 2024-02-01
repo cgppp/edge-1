@@ -6,7 +6,7 @@ from LGate import LGateFunc
 a = torch.randn(2,3,5,requires_grad=True)
 b = torch.randn(2,3,5,requires_grad=True)
 c = torch.randn(2,5,requires_grad=True)
-rs = LGateFunc(a,b.clone(),c,1,True)
+rs = LGateFunc(a,b.clone(),c,True)
 rs.sum().backward()
 ag=a.grad.clone()
 bg=b.grad.clone()

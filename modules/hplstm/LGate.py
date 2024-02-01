@@ -2,22 +2,31 @@
 
 from torch.autograd import Function
 
-from cnfg.ihyp import extra_compile_args
+from cnfg.ihyp import extra_compile_args, extra_cuda_compile_args
 
 try:
-	import lgate_cpp
+	import lgatev_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgate_cpp = load(name="lgate_cpp", sources=["modules/cpp/hplstm/lgate.cpp"], extra_cflags=extra_compile_args)
+	lgatev_cpp = load(name="lgatev_cpp", sources=["modules/cpp/hplstm/lgatev.cpp"], extra_cflags=extra_compile_args)
+try:
+	import lgates_cuda
+except Exception as e:
+	from torch.utils.cpp_extension import load
+	lgates_cuda = load(name="lgates_cuda", sources=["modules/cpp/hplstm/lgates_cuda.cpp", "modules/cpp/hplstm/lgates_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
 
 class LGateFunction(Function):
 
 	@staticmethod
-	def forward(ctx, fgate, igh, init_cell, dim=None, inplace=False):
+	def forward(ctx, fgate, igh, init_cell, inplace=False):
 
-		cell = lgate_cpp.forward(fgate, igh, init_cell, dim, inplace)
+		if igh.is_cuda:
+			cell = igh if inplace else igh.new_empty(igh.size())
+			bsize, seql, nhead, isize = igh.size()
+			cell = lgates_cuda.forward(fgate, igh, init_cell, cell, bsize, seql, nhead, isize)
+		else:
+			cell = lgatev_cpp.forward(fgate, igh, init_cell, 1, inplace)
 		ctx.save_for_backward(cell, fgate, init_cell)
-		ctx.dim = dim
 
 		return cell
 
@@ -27,13 +36,20 @@ class LGateFunction(Function):
 		needs_grad_fgate, needs_grad_igh, needs_grad_init_cell = ctx.needs_input_grad[0:3]
 		if needs_grad_fgate or needs_grad_igh or needs_grad_init_cell:
 			cell, fgate, init_cell = ctx.saved_variables
-			if needs_grad_fgate:
-				grad_fgate, grad_igh, grad_init_cell = lgate_cpp.backward(grad_cell, cell, fgate, init_cell, ctx.dim)
-				return grad_fgate if needs_grad_fgate else None, grad_igh if needs_grad_igh else None, grad_init_cell if needs_grad_init_cell else None, None, None
+			if grad_cell.is_cuda:
+				grad_fgate = fgate.new_empty(fgate.size())
+				grad_igh = cell.new_empty(cell.size())
+				bsize, seqlen, nhead, isize = grad_cell.size()
+				grad_init_cell = init_cell.new_empty(bsize, nhead, isize)
+				grad_fgate, grad_igh, grad_init_cell = lgates_cuda.backward(grad_cell, cell, fgate, init_cell, grad_fgate, grad_igh, grad_init_cell, bsize, seqlen, nhead, isize)
 			else:
-				grad_igh, grad_init_cell = lgate_cpp.backward_no_fgate(grad_cell, fgate, ctx.dim)
-				return None, grad_igh if needs_grad_igh else None, grad_init_cell if needs_grad_init_cell else None, None, None
+				if needs_grad_fgate:
+					grad_fgate, grad_igh, grad_init_cell = lgatev_cpp.backward(grad_cell, cell, fgate, init_cell, 1)
+				else:
+					grad_igh, grad_init_cell = lgate_cpp.backward_no_fgate(grad_cell, fgate, 1)
+					grad_fgate = None
+			return grad_fgate if needs_grad_fgate else None, grad_igh if needs_grad_igh else None, grad_init_cell.sum(0) if needs_grad_init_cell else None, None
 		else:
-			return None, None, None, None, None
+			return None, None, None, None
 
 LGateFunc = LGateFunction.apply
