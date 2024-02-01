@@ -31,8 +31,6 @@ class DecoderLayer(nn.Module):
 		self.net = HPLSTM(isize, num_head=num_head, osize=isize, fhsize=_fhsize, dropout=dropout, act_drop=act_drop)
 		self.cross_attn = ResCrossAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual)
 
-		self.layer_normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
-
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 
 	def forward(self, inpute, inputo, src_pad_mask=None, query_unit=None, **kwargs):
