@@ -96,7 +96,8 @@ at::Tensor lgate_cuda_forward(torch::Tensor fgate, torch::Tensor igh, torch::Ten
 		grid_size /= ((grid_size - 1) / MAX_GRID_SIZE + 1);
 	}
 
-	AT_DISPATCH_FLOATING_TYPES(igh.type(), "lgate_forward_cuda", ([&] {cuda_lgate_<scalar_t><<<grid_size, block_size>>>(fgate.data_ptr<scalar_t>(), igh.data_ptr<scalar_t>(), init_cell.data_ptr<scalar_t>(), cell.data_ptr<scalar_t>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize);}));
+	// https://hub.yzuu.cf/pytorch/pytorch/blob/main/aten/src/ATen/Dispatch.h
+	AT_DISPATCH_FLOATING_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, igh.type(), "lgate_forward_cuda", ([&] {cuda_lgate_<scalar_t><<<grid_size, block_size>>>(fgate.data_ptr<scalar_t>(), igh.data_ptr<scalar_t>(), init_cell.data_ptr<scalar_t>(), cell.data_ptr<scalar_t>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize);}));
 
 	return cell;
 }
@@ -115,7 +116,7 @@ std::vector<torch::Tensor> lgate_cuda_backward(torch::Tensor grad_cell, torch::T
 		grid_size /= ((grid_size - 1) / MAX_GRID_SIZE + 1);
 	}
 
-	AT_DISPATCH_FLOATING_TYPES(grad_cell.type(), "lgate_backward_cuda", ([&] {cuda_lgate_grad_<scalar_t><<<grid_size, block_size>>>(grad_cell.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(), cell.data_ptr<scalar_t>(), fgate.data_ptr<scalar_t>(), init_cell.data_ptr<scalar_t>(), grad_fgate.data_ptr<scalar_t>(), grad_igh.data_ptr<scalar_t>(), grad_prev_cell.data_ptr<scalar_t>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize, seqlen - 1);}));
+	AT_DISPATCH_FLOATING_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, grad_cell.type(), "lgate_backward_cuda", ([&] {cuda_lgate_grad_<scalar_t><<<grid_size, block_size>>>(grad_cell.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(), cell.data_ptr<scalar_t>(), fgate.data_ptr<scalar_t>(), init_cell.data_ptr<scalar_t>(), grad_fgate.data_ptr<scalar_t>(), grad_igh.data_ptr<scalar_t>(), grad_prev_cell.data_ptr<scalar_t>(), bsize, seqlen, nhead, isize, nhead * bsize, nhead * isize, seqlen - 1);}));
 
 	return {grad_fgate, grad_igh, grad_prev_cell};
 }
