@@ -8,37 +8,59 @@ from utils.torch.comp import torch_no_grad
 
 from cnfg.ihyp import bind_c_forward, extra_compile_args, use_c_backend_group
 
-class GroupLinear(nn.Module):
+class GroupLinearCore(nn.Module):
 
 	# isize: input dimension (dimension per group * ngroup)
 	# osize: output dimension (dimension per group * ngroup)
 	# ngroup: number of group
 	# bias: enable bias or not
-	# trans_input: split input into groups before computing
-	# shuffle: shuffle across groups for output
-	# flatten_output: concatenate outputs of groups
+	def __init__(self, isize, osize, ngroup, bias=True, **kwargs):
 
-	def __init__(self, isize, osize, ngroup, bias=True, trans_input=True, shuffle=False, flatten_output=True, **kwargs):
+		super(GroupLinearCore, self).__init__()
 
-		super(GroupLinear, self).__init__()
-
-		self.ngroup, self.shuffle, self.flatten_output, self.trans_input = ngroup, shuffle, flatten_output, trans_input
-		self.del_gdim = self.flatten_output and (not self.trans_input)
-		self.i_gdim = self.trans_input and (not self.flatten_output)
+		self.ngroup = ngroup
 		self.isize = isize // ngroup
 		self.osize = osize // ngroup
 
 		self.weight = nn.Parameter(torch.Tensor(ngroup, self.isize, self.osize).uniform_(- sqrt(1.0 / self.isize), sqrt(1.0 / self.isize)))
-		if bias:
-			self.bias = nn.Parameter(torch.zeros(ngroup, 1, self.osize))
-		else:
-			self.bias = None
+		self.bias = nn.Parameter(torch.zeros(ngroup, 1, self.osize)) if bias else None
+
+	# inputu: (ngroup, bsize, isize)
+	def forward(self, inputu, weight=None, bias=None, **kwargs):
+
+		_weight = self.weight if weight is None else weight
+		_bias = self.bias if bias is None else bias
+
+		# (ngroup, bsize, isize) * (ngroup, isize, osize) => (ngroup, bsize, osize)
+		return inputu.bmm(_weight) if _bias is None else _bias.baddbmm(inputu, _weight)
+
+	def extra_repr(self):
+		return "groups={}, in_features={}, out_features={}, bias={}".format(self.ngroup, self.ngroup * self.isize, self.ngroup * self.osize, self.bias is not None)
+
+	def fix_init(self):
+
+		with torch_no_grad():
+			self.weight.uniform_(- sqrt(1.0 / self.isize), sqrt(1.0 / self.isize))
+			if self.bias is not None:
+				self.bias.zero_()
+
+class GroupLinear(GroupLinearCore):
+
+	# trans_input: split input into groups before computing
+	# shuffle: shuffle across groups for output
+	# flatten_output: concatenate outputs of groups
+	def __init__(self, isize, osize, ngroup, bias=True, trans_input=True, shuffle=False, flatten_output=True, **kwargs):
+
+		super(GroupLinear, self).__init__(isize, osize, ngroup, bias=True, **kwargs)
+
+		self.shuffle, self.flatten_output, self.trans_input = shuffle, flatten_output, trans_input
+		self.del_gdim = self.flatten_output and (not self.trans_input)
+		self.i_gdim = self.trans_input and (not self.flatten_output)
 
 		if self.c_available():
 			self.c_init()
 
 	# inputu: (..., isize)
-
 	def forward(self, inputu, weight=None, bias=None, **kwargs):
 
 		_size = list(inputu.size())
@@ -60,16 +82,6 @@ class GroupLinear(nn.Module):
 			del _size[-2]
 
 		return out.contiguous().view(_size)
-
-	def extra_repr(self):
-		return "groups={}, in_features={}, out_features={}, bias={}".format(self.ngroup, self.ngroup * self.isize, self.ngroup * self.osize, self.bias is not None)
-
-	def fix_init(self):
-
-		with torch_no_grad():
-			self.weight.uniform_(- sqrt(1.0 / self.isize), sqrt(1.0 / self.isize))
-			if self.bias is not None:
-				self.bias.zero_()
 
 	def c_available(self):
 

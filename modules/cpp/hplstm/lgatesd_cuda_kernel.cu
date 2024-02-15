@@ -9,6 +9,8 @@
 
 #define MAX_ISIZE_Share_MEM (MAX_Share_MEM / 4 )
 
+// observe serious performance degradation compared to lgates, unknown reason
+
 // fgate, igh, cell: (bsize, seql, nhead, isize)
 // init_cell: (nhead, isize)
 template <typename scalar_t> __global__ void cuda_lgate_(scalar_t* __restrict__ fgate, scalar_t* __restrict__ igh, scalar_t* __restrict__ init_cell, scalar_t* __restrict__ cell, int bsize, int seqlen, int nhead, int isize, int eid, int seq_shift) {
