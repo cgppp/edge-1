@@ -3,7 +3,7 @@
 from torch import nn
 
 from modules.base import Dropout, PositionwiseFF
-from modules.hplstm.lm.hfn import HPLSTM
+from modules.hplstm.lm.hfn import ResHPLSTM
 from transformer.Decoder import Decoder as DecoderBase
 from utils.fmt.parser import parse_none
 
@@ -11,26 +11,19 @@ from cnfg.ihyp import *
 
 class DecoderLayer(nn.Module):
 
-	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, **kwargs):
+	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, norm_residual=norm_residual_default, **kwargs):
 
 		super(DecoderLayer, self).__init__()
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
-		self.net = HPLSTM(isize, num_head=num_head, osize=isize, fhsize=_fhsize, dropout=dropout, act_drop=act_drop)
-		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop)
-
-		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
+		self.net = ResHPLSTM(isize, num_head=num_head, fhsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
+		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
 
 	def forward(self, inputo, query_unit=None, **kwargs):
 
 		context, states_return = self.net(query_unit, states=inputo)
-
-		if self.drop is not None:
-			context = self.drop(context)
-
-		context = context + query_unit
 
 		context = self.ff(context)
 

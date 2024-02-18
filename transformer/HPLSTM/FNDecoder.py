@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 from modules.base import Dropout, PositionwiseFF, ResCrossAttn
-from modules.hplstm.hfn import HPLSTM
+from modules.hplstm.hfn import ResHPLSTM
 from transformer.Decoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
@@ -24,30 +24,16 @@ class DecoderLayer(nn.Module):
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
-		self.net = HPLSTM(isize, num_head=num_head, osize=isize, fhsize=_fhsize, dropout=dropout, act_drop=act_drop)
+		self.net = ResHPLSTM(isize, num_head=num_head, fhsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
 		self.cross_attn = ResCrossAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
-
-		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 
 	def forward(self, inpute, inputo, src_pad_mask=None, query_unit=None, **kwargs):
 
 		if query_unit is None:
-
 			context = self.net(inputo)
-
-			if self.drop is not None:
-				context = self.drop(context)
-
-			context = context + inputo
-
 		else:
 			context, states_return = self.net(query_unit, states=inputo)
-
-			if self.drop is not None:
-				context = self.drop(context)
-
-			context = context + query_unit
 
 		context = self.cross_attn(context, inpute, mask=src_pad_mask)
 

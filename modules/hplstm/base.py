@@ -80,7 +80,7 @@ class MHPLSTMCore(nn.Module):
 
 class HPLSTM(nn.Module):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, enable_proj_bias=enable_proj_bias_default, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, enable_proj_bias=enable_proj_bias_default, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
 		super(HPLSTM, self).__init__()
 
@@ -92,7 +92,7 @@ class HPLSTM(nn.Module):
 		self.num_head = num_head
 
 		self.trans_input = Linear(isize, i_hsize, bias=enable_proj_bias)
-		self.net = MHPLSTMCore(i_hsize, num_head=self.num_head, osize=o_hsize, dropout=dropout)
+		self.net = MHPLSTMCore(i_hsize, num_head=self.num_head, osize=o_hsize, dropout=dropout, **kwargs)
 		self.trans_output = Linear(o_hsize, _osize, bias=enable_proj_bias)
 
 	def forward(self, inpute, states=None, head_mask=None, **kwargs):
@@ -114,7 +114,7 @@ class HPLSTM(nn.Module):
 
 class BiHPLSTM(nn.Module):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, enable_proj_bias=enable_proj_bias_default, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, enable_proj_bias=enable_proj_bias_default, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
 		super(BiHPLSTM, self).__init__()
 
@@ -126,7 +126,7 @@ class BiHPLSTM(nn.Module):
 		self.num_head = num_head
 
 		self.trans_input = Linear(isize, i_hsize + i_hsize, bias=enable_proj_bias)
-		self.net = MHPLSTMCore(i_hsize + i_hsize, num_head=self.num_head + self.num_head, osize=o_hsize + o_hsize, dropout=dropout)
+		self.net = MHPLSTMCore(i_hsize + i_hsize, num_head=self.num_head + self.num_head, osize=o_hsize + o_hsize, dropout=dropout, **kwargs)
 		self.trans_output = Linear(o_hsize + o_hsize, _osize, bias=enable_proj_bias)
 
 	# inpute: (bsize, seql, isize)
@@ -144,3 +144,36 @@ class BiHPLSTM(nn.Module):
 		o_bwd = o_bwd_rvs.flip(1)
 
 		return self.trans_output(torch.cat((o_fwd.view(bsize, seql, -1), o_bwd.view(bsize, seql, -1),), dim=-1))
+
+class ResHPLSTM(nn.Module):
+
+	def __init__(self, isize, num_head=8, dropout=0.0, HPLSTM=HPLSTM, **kwargs):
+
+		super(ResHPLSTM, self).__init__()
+
+		self.net = HPLSTM(isize, num_head=num_head, osize=isize, dropout=dropout, **kwargs)
+		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
+
+	def forward(self, iQ, *inputs, **kwargs):
+
+		outs = self.net(iQ, *inputs, **kwargs)
+
+		if isinstance(outs, tuple):
+			_out = outs[0]
+
+			if self.drop is not None:
+				_out = self.drop(_out)
+
+			return _out + iQ, *outs[1:]
+
+		else:
+			if self.drop is not None:
+				outs = self.drop(outs)
+
+			return outs + iQ
+
+class ResBiHPLSTM(ResHPLSTM):
+
+	def __init__(self, isize, num_head=8, dropout=0.0, HPLSTM=BiHPLSTM, **kwargs):
+
+		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, **kwargs)

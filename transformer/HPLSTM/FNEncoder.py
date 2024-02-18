@@ -3,7 +3,7 @@
 from torch import nn
 
 from modules.base import Dropout, PositionwiseFF
-from modules.hplstm.hfn import BiHPLSTM
+from modules.hplstm.hfn import ResBiHPLSTM
 from transformer.Encoder import Encoder as EncoderBase
 from utils.fmt.parser import parse_none
 from utils.torch.comp import flip_mask
@@ -12,25 +12,18 @@ from cnfg.ihyp import *
 
 class EncoderLayer(nn.Module):
 
-	def __init__(self, isize, fhsize=None, dropout=0.0, act_drop=None, num_head=8, **kwargs):
+	def __init__(self, isize, fhsize=None, dropout=0.0, act_drop=None, num_head=8, norm_residual=norm_residual_default, **kwargs):
 
 		super(EncoderLayer, self).__init__()
 
 		_fhsize = isize * 4 if fhsize is None else fhsize
 
-		self.net = BiHPLSTM(isize, num_head=num_head, osize=isize, fhsize=_fhsize, dropout=dropout, act_drop=act_drop)
-		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop)
+		self.net = ResBiHPLSTM(isize, num_head=num_head, fhsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
+		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
 
-		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
+	def forward(self, inputs, pad_reversed_mask=None, **kwargs):
 
-	def forward(self, inputs, reversed_mask=None, **kwargs):
-
-		context = self.net(inputs, reversed_mask=reversed_mask)
-
-		if self.drop is not None:
-			context = self.drop(context)
-
-		return self.ff(context + inputs)
+		return self.ff(self.net(inputs, pad_reversed_mask=pad_reversed_mask))
 
 class Encoder(EncoderBase):
 

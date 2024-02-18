@@ -3,8 +3,7 @@
 import torch
 
 from modules.hplstm.LGate import LGateFunc
-from modules.hplstm.base import HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase
-from utils.fmt.parser import parse_none
+from modules.hplstm.base import HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
 
 class MHPLSTMCore(MHPLSTMCoreBase):
 
@@ -39,10 +38,12 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 class HPLSTM(HPLSTMBase):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
-		_osize = parse_none(osize, isize)
+		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, **kwargs)
 
-		super(HPLSTM, self).__init__(isize, num_head=isize, osize=_osize, dropout=dropout, **kwargs)
+class ResHPLSTM(ResHPLSTMBase):
 
-		self.net = MHPLSTMCore(isize, num_head=self.num_head, osize=_osize, dropout=dropout)
+	def __init__(self, isize, num_head=8, dropout=0.0, HPLSTM=HPLSTM, **kwargs):
+
+		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, **kwargs)

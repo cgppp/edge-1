@@ -3,11 +3,11 @@
 import torch
 from torch import nn
 
-from modules.act import Custom_Act
+from modules.act import Custom_Act, LGLU, get_act
 from modules.base import Dropout
 from modules.group.base import GroupLinear
 from modules.hplstm.LGate import LGateFunc
-from modules.hplstm.base import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase
+from modules.hplstm.base import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
 from utils.base import float2odd
 from utils.fmt.parser import parse_none
 
@@ -15,7 +15,7 @@ from cnfg.ihyp import *
 
 class MHPLSTMCore(MHPLSTMCoreBase):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, use_glu=use_glu_ffn, **kwargs):
 
 		_osize = parse_none(osize, isize)
 
@@ -81,17 +81,13 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 class HPLSTM(HPLSTMBase):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
 		_osize = parse_none(osize, isize)
+		o_hsize = float2odd(float(_osize) / num_head) * num_head
 		_fhsize = float2odd(float(_osize * 4 if fhsize is None else fhsize) / num_head) * num_head
 
-		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, **kwargs)
-
-		i_hsize = float2odd(float(isize) / num_head) * num_head
-		o_hsize = float2odd(float(_osize) / num_head) * num_head
-
-		self.net = MHPLSTMCore(i_hsize, num_head=self.num_head, osize=o_hsize, fhsize=_fhsize, dropout=dropout)
+		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize, **kwargs)
 
 class BiHPLSTM(BiHPLSTMBase):
 
@@ -100,9 +96,16 @@ class BiHPLSTM(BiHPLSTMBase):
 		_osize = parse_none(osize, isize)
 		_fhsize = float2odd(float(_osize * 4 if fhsize is None else fhsize) / num_head) * num_head
 
-		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, **kwargs)
+		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize + _fhsize, **kwargs)
 
-		i_hsize = float2odd(float(isize) / num_head) * num_head
-		o_hsize = float2odd(float(_osize) / num_head) * num_head
+class ResHPLSTM(ResHPLSTMBase):
 
-		self.net = MHPLSTMCore(i_hsize + i_hsize, num_head=self.num_head + self.num_head, osize=o_hsize + o_hsize, fhsize=_fhsize + _fhsize, dropout=dropout)
+	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, HPLSTM=HPLSTM, **kwargs):
+
+		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, fhsize=fhsize, **kwargs)
+
+class ResBiHPLSTM(ResHPLSTMBase):
+
+	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, HPLSTM=BiHPLSTM, **kwargs):
+
+		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, fhsize=fhsize, **kwargs)
