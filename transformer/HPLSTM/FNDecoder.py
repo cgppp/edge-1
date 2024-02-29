@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 from modules.base import Dropout, PositionwiseFF, ResCrossAttn
-from modules.hplstm.hfn import ResHPLSTM
+from modules.hplstm.snhfn import ResHPLSTM
 from transformer.Decoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam

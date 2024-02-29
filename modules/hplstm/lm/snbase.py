@@ -3,7 +3,7 @@
 import torch
 
 from modules.hplstm.LGate import LGateFunc
-from modules.hplstm.hfn import HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
+from modules.hplstm.snbase import HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
 
 class MHPLSTMCore(MHPLSTMCoreBase):
 
@@ -17,9 +17,13 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 			csum = torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim) if _init_state else states[0], heads_input,), dim=1).cumsum(dim=1)
 			csum_state_return = csum.narrow(1, seql, 1)
 			csum = self.normer_csum(csum.narrow(1, 0, seql))
-		gh_input = torch.cat((heads_input, csum,), dim=-1)
-		(igate, fgate,), hidden = self.normer_ifg(self.trans_ifg(gh_input).view(bsize, seql, nheads, 2, -1)).sigmoid().unbind(-2), self.trans_hid(gh_input)
-		igh = igate * hidden
+		igate, fgate, hidden = self.trans_hid(torch.cat((heads_input, csum,), dim=-1)).view(bsize, seql, nheads, 3, -1).unbind(-2)
+		fgate = fgate.sigmoid()
+		hidden = self.act(hidden)
+
+		if self.drop is not None:
+			hidden = self.drop(hidden)
+		igh = igate.sigmoid() * hidden
 		if head_mask is not None:
 			fgate = fgate.masked_fill(head_mask, 1.0)
 			igh.masked_fill_(head_mask, 0.0)
@@ -34,12 +38,12 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 class HPLSTM(HPLSTMBase):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, act_drop=None, MHPLSTMCore=MHPLSTMCore, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
-		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=osize, fhsize=fhsize, dropout=dropout, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, **kwargs)
+		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, **kwargs)
 
 class ResHPLSTM(ResHPLSTMBase):
 
-	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, act_drop=None, HPLSTM=HPLSTM, **kwargs):
+	def __init__(self, isize, num_head=8, dropout=0.0, HPLSTM=HPLSTM, **kwargs):
 
-		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, fhsize=fhsize, act_drop=act_drop, **kwargs)
+		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, **kwargs)

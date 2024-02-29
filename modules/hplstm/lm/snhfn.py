@@ -3,7 +3,7 @@
 import torch
 
 from modules.hplstm.LGate import LGateFunc
-from modules.hplstm.hfn import HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
+from modules.hplstm.snhfn import HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
 
 class MHPLSTMCore(MHPLSTMCoreBase):
 
@@ -18,7 +18,7 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 			csum_state_return = csum.narrow(1, seql, 1)
 			csum = self.normer_csum(csum.narrow(1, 0, seql))
 		gh_input = torch.cat((heads_input, csum,), dim=-1)
-		(igate, fgate,), hidden = self.normer_ifg(self.trans_ifg(gh_input).view(bsize, seql, nheads, 2, -1)).sigmoid().unbind(-2), self.trans_hid(gh_input)
+		(igate, fgate,), hidden = self.trans_ifg(gh_input).view(bsize, seql, nheads, 2, -1).sigmoid().unbind(-2), self.trans_hid(gh_input.view(bsize * seql, nheads, -1).transpose(0, 1)).transpose(0, 1).view(bsize, seql, nheads, -1)
 		igh = igate * hidden
 		if head_mask is not None:
 			fgate = fgate.masked_fill(head_mask, 1.0)

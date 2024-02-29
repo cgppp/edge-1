@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 from modules.base import Dropout
-from modules.hplstm.hfn import ResBiHPLSTM
+from modules.hplstm.snhfn import ResBiHPLSTM
 from transformer.Encoder import Encoder as EncoderBase
 from utils.fmt.parser import parse_none
 from utils.torch.comp import flip_mask
