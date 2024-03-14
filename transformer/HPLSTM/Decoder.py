@@ -6,7 +6,7 @@ from torch import nn
 #from math import sqrt
 
 from modules.base import Dropout, ResCrossAttn
-from modules.hplstm.snhfn import ResHPLSTM
+from modules.hplstm.snbase import ResHPLSTM
 from transformer.Decoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
