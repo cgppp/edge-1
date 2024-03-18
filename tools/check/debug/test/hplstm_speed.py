@@ -1,5 +1,6 @@
 #encoding: utf-8
 
+import sys
 import torch
 from math import floor
 from time import time
@@ -9,11 +10,11 @@ from modules.hplstm.snbase import ResHPLSTM
 from transformer.Encoder import EncoderLayer
 from utils.torch.comp import mask_tensor_type
 
-cuda_device = None#torch.device("cuda", 0)
+cuda_device = torch.device("cuda", 0)
 max_token = 4096
 slen_iter = 64
-niter = 10
-warm_iter = 4
+niter = 1024
+warm_iter = 8
 
 isize = 512
 fhsize = isize * 4
@@ -30,7 +31,7 @@ maskl = []
 _ = slen_iter
 _f_max_token = float(max_token)
 while _ <= max_token:
-	tdl.append(torch.randn(_, floor(_f_max_token / _), isize, requires_grad=True, device=cuda_device))
+	tdl.append(torch.randn(floor(_f_max_token / _), _, isize, requires_grad=True, device=cuda_device))
 	maskl.append(torch.ones(_, _, requires_grad=False, dtype=mask_tensor_type, device=cuda_device).triu(1).unsqueeze(0))
 	_ += slen_iter
 
@@ -123,3 +124,9 @@ for _td, _m in zip(tdl, maskl):
 		_td.grad = None
 		_t += (_et - _st)
 	tl.append(ntdata / _t)
+
+ens = "\n".encode("utf-8")
+with open(sys.argv[1], "wb") as f:
+	for _l in zip(t_af, t_lf, t_ef, t_ab, t_lb, t_eb):
+		f.write("\t".join(str(_) for _ in _l).encode("utf-8"))
+		f.write(ens)
