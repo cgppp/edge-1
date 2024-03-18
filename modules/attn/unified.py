@@ -9,9 +9,9 @@ from cnfg.ihyp import *
 
 class ResSelfAttn(ResSelfAttnBase):
 
-	def __init__(self, isize, hsize, *inputs, custom_act=use_adv_act_default, **kwargs):
+	def __init__(self, isize, hsize=None, custom_act=use_adv_act_default, **kwargs):
 
-		super(ResSelfAttn, self).__init__(isize, hsize, *inputs, **kwargs)
+		super(ResSelfAttn, self).__init__(isize, hsize=hsize, **kwargs)
 
 		self.trans_gf = Linear(isize + isize, isize + isize)
 		self.trans_gf_ln = nn.LayerNorm((2, isize,), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
@@ -48,9 +48,9 @@ class ResSelfAttn(ResSelfAttnBase):
 
 class ResCrossAttn(ResCrossAttnBase):
 
-	def __init__(self, isize, hsize, *inputs, custom_act=use_adv_act_default, **kwargs):
+	def __init__(self, isize, hsize=None, custom_act=use_adv_act_default, **kwargs):
 
-		super(ResCrossAttn, self).__init__(isize, hsize, *inputs, **kwargs)
+		super(ResCrossAttn, self).__init__(isize, hsize=hsize, **kwargs)
 
 		self.trans_gf = Linear(isize + isize, isize + isize)
 		self.trans_gf_ln = nn.LayerNorm((2, isize,), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)

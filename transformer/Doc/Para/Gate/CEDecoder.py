@@ -19,10 +19,10 @@ class DecoderLayer(DecoderLayerBase):
 		super(DecoderLayer, self).__init__(isize, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, **kwargs)
 
 		self.enc_gr = GateResidual(isize)
-		self.cattn = CrossAttn(isize, _ahsize, isize, num_head, dropout=attn_drop)
+		self.cattn = CrossAttn(isize, hsize=_ahsize, osize=isize, num_head=num_head, dropout=attn_drop)
 		self.cattn_ln = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.gr = GateResidual(isize)
-		self.dec_cattn = CrossAttn(isize, _ahsize, isize, num_head, dropout=attn_drop, k_isize=isize * 2)
+		self.dec_cattn = CrossAttn(isize, hsize=_ahsize, osize=isize, num_head=num_head, dropout=attn_drop, k_isize=isize * 2)
 		self.dec_cattn_ln = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.dec_gr = GateResidual(isize)
 		self.layer_normer2, self.drop, self.norm_residual = self.cross_attn.normer, self.cross_attn.drop, self.cross_attn.norm_residual

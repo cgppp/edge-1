@@ -32,7 +32,7 @@ class EncoderLayer(nn.Module):
 
 		num_edge = ((1 + num_nod) * num_nod // 2) if num_nod < (max_prev_nodes + 1) else ((1 + max_prev_nodes) * max_prev_nodes // 2 + max_prev_nodes * (num_nod - max_prev_nodes))
 
-		self.attn = ResSelfAttn(isize, _ahsize, num_head, dropout=attn_drop, norm_residual=norm_residual)
+		self.attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual)
 
 		self.nodes = nn.ModuleList([Node(isize, dropout, num_head) for i in range(num_nod)])
 		self.edges = nn.ModuleList([Edge(isize, dropout) for i in range(num_edge)])

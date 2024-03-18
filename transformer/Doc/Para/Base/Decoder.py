@@ -24,7 +24,7 @@ class DecoderLayer(DecoderLayerBase):
 
 		super(DecoderLayer, self).__init__(isize, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, **kwargs)
 
-		self.cattns = nn.ModuleList([CrossAttn(isize, _ahsize, isize, num_head, dropout=attn_drop) for i in range(ncross)])
+		self.cattns = nn.ModuleList([CrossAttn(isize, hsize=_ahsize, osize=isize, num_head=num_head, dropout=attn_drop) for i in range(ncross)])
 		self.cattn_ln = nn.ModuleList([nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) for i in range(ncross)])
 		self.grs = nn.ModuleList([GateResidual(isize) for i in range(ncross)])
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None

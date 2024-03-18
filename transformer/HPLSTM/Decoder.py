@@ -27,7 +27,7 @@ class DecoderLayer(nn.Module):
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
 		self.net = ResHPLSTM(isize, num_head=num_head, fhsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
-		self.cross_attn = ResCrossAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual)
+		self.cross_attn = ResCrossAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual)
 
 	def forward(self, inpute, inputo, src_pad_mask=None, query_unit=None, **kwargs):
 

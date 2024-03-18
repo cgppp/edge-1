@@ -4,6 +4,7 @@ import torch
 from math import sqrt
 
 from modules.base import Linear, ResSelfAttn as ResSelfAttnBase, SelfAttn as SelfAttnBase
+from utils.fmt.parser import parse_none
 from utils.relpos.rope import apply_rope
 from utils.torch.comp import mask_tensor_type
 
@@ -11,12 +12,12 @@ from cnfg.ihyp import *
 
 class SelfAttn(SelfAttnBase):
 
-	def __init__(self, isize, hsize, osize, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, xseql=cache_len_default, **kwargs):
 
-		super(SelfAttn, self).__init__(isize, hsize, osize, xseql=xseql, **kwargs)
+		super(SelfAttn, self).__init__(isize, hsize=hsize, osize=osize, xseql=xseql, **kwargs)
 
 		self.hsize *= 2
-		self.outer = Linear(self.hsize, osize, bias=(False if self.outer.bias is None else True))
+		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=(False if self.outer.bias is None else True))
 
 		self.register_buffer("l_mask", torch.ones(xseql, xseql, dtype=mask_tensor_type).tril(-1), persistent=False)
 		self.register_buffer("r_mask", torch.ones(xseql, xseql, dtype=mask_tensor_type).triu(1), persistent=False)
@@ -99,8 +100,8 @@ class SelfAttn(SelfAttnBase):
 
 class ResSelfAttn(ResSelfAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResSelfAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResSelfAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = SelfAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = SelfAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)

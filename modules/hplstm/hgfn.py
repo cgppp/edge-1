@@ -15,7 +15,7 @@ from cnfg.ihyp import *
 
 class MHPLSTMCore(MHPLSTMCoreBase):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, use_glu=use_glu_ffn, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, fhsize=None, act_drop=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, use_glu=use_glu_ffn, **kwargs):
 
 		_osize = parse_none(osize, isize)
 
@@ -25,7 +25,7 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 		_head_fhsize =float2odd(float(_fhsize) / num_head)
 		_fhsize = _head_fhsize * num_head
 
-		super(MHPLSTMCore, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, custom_act=custom_act, enable_bias=enable_bias)
+		super(MHPLSTMCore, self).__init__(isize, num_head=num_head, osize=_osize, act_drop=act_drop, custom_act=custom_act, enable_bias=enable_bias)
 
 		self.act = None
 		_ = [GroupLinear(i_hsize + i_hsize, _fhsize, num_head, bias=enable_bias, shuffle=False, trans_input=False, flatten_output=False), nn.LayerNorm((num_head, _head_fhsize), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)]
@@ -43,8 +43,8 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 					_drop_ind += 1
 				_.append(LGLU())
 			_.append(GroupLinear(_fhsize // 2, o_hsize * 3, num_head, bias=enable_proj_bias, shuffle=False, trans_input=False, flatten_output=False))
-		if dropout > 0.0:
-			_.insert(_drop_ind, Dropout(dropout, inplace=inplace_after_Custom_Act))
+		if act_drop > 0.0:
+			_.insert(_drop_ind, Dropout(act_drop, inplace=inplace_after_Custom_Act))
 		self.trans_hid = nn.Sequential(*_)
 
 	def forward(self, heads_input, states=None, head_mask=None, **kwargs):
@@ -81,31 +81,31 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 class HPLSTM(HPLSTMBase):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, fhsize=None, act_drop=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
 		_osize = parse_none(osize, isize)
 		o_hsize = float2odd(float(_osize) / num_head) * num_head
 		_fhsize = float2odd(float(_osize * 4 if fhsize is None else fhsize) / num_head) * num_head
 
-		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize, **kwargs)
+		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize, **kwargs)
 
 class BiHPLSTM(BiHPLSTMBase):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, fhsize=None, act_drop=0.0, **kwargs):
 
 		_osize = parse_none(osize, isize)
 		_fhsize = float2odd(float(_osize * 4 if fhsize is None else fhsize) / num_head) * num_head
 
-		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize + _fhsize, **kwargs)
+		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize + _fhsize, **kwargs)
 
 class ResHPLSTM(ResHPLSTMBase):
 
-	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, HPLSTM=HPLSTM, **kwargs):
+	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, act_drop=None, HPLSTM=HPLSTM, **kwargs):
 
-		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, fhsize=fhsize, **kwargs)
+		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, HPLSTM=HPLSTM, fhsize=fhsize, **kwargs)
 
 class ResBiHPLSTM(ResHPLSTMBase):
 
-	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, HPLSTM=BiHPLSTM, **kwargs):
+	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, act_drop=None, HPLSTM=BiHPLSTM, **kwargs):
 
-		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, fhsize=fhsize, **kwargs)
+		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, HPLSTM=HPLSTM, fhsize=fhsize, **kwargs)

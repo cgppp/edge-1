@@ -238,22 +238,22 @@ LTLinear = BNLinear
 
 class SelfAttn(SelfAttnBase):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, ngroup=4, p=None, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, ngroup=4, p=None, **kwargs):
 
-		super(SelfAttn, self).__init__(isize, hsize, osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, **kwargs)
+		super(SelfAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, **kwargs)
 
 		self.adaptor = LTLinear(isize, self.hsize * 3, bias=enable_proj_bias, ngroup=ngroup, p=p)
-		self.outer = LTLinear(self.hsize, osize, bias=enable_bias, ngroup=ngroup, p=p)
+		self.outer = LTLinear(self.hsize, parse_none(osize, isize), bias=enable_bias, ngroup=ngroup, p=p)
 
 class CrossAttn(CrossAttnBase):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, ngroup=4, p=None, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, k_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, ngroup=4, p=None, **kwargs):
 
-		super(CrossAttn, self).__init__(isize, hsize, osize, num_head=num_head, dropout=dropout, k_isize=k_isize, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, **kwargs)
+		super(CrossAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, k_isize=k_isize, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, **kwargs)
 
 		self.query_adaptor = LTLinear(isize, self.hsize, bias=enable_proj_bias, ngroup=ngroup, p=p)
 		self.kv_adaptor = LTLinear(isize if k_isize is None else k_isize, self.hsize * 2, bias=enable_proj_bias, ngroup=ngroup, p=p)
-		self.outer = LTLinear(self.hsize, osize, bias=enable_bias, ngroup=ngroup, p=p)
+		self.outer = LTLinear(self.hsize, parse_none(osize, isize), bias=enable_bias, ngroup=ngroup, p=p)
 
 class PositionwiseFF(PositionwiseFFBase):
 
@@ -289,16 +289,16 @@ class PositionwiseFF(PositionwiseFFBase):
 
 class ResSelfAttn(ResSelfAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, ngroup=4, p=None, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, ngroup=4, p=None, **kwargs):
 
-		super(ResSelfAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResSelfAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = SelfAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, ngroup=ngroup, p=p, **kwargs)
+		self.net = SelfAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, ngroup=ngroup, p=p, **kwargs)
 
 class ResCrossAttn(ResCrossAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, ngroup=4, p=None, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, ngroup=4, p=None, **kwargs):
 
-		super(ResCrossAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResCrossAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = CrossAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, ngroup=ngroup, p=p, **kwargs)
+		self.net = CrossAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, ngroup=ngroup, p=p, **kwargs)

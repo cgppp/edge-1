@@ -26,7 +26,7 @@ class DecoderLayer(DecoderLayerBase):
 		super(DecoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, **kwargs)
 
 		self.layer_normer1 = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
-		self.cattn = CrossAttn(isize, _ahsize, isize, num_head, dropout=attn_drop)
+		self.cattn = CrossAttn(isize, hsize=_ahsize, osize=isize, num_head=num_head, dropout=attn_drop)
 
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop)
 		self.scff = ResidueCombiner(isize, 2, _fhsize, dropout)

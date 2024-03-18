@@ -35,10 +35,10 @@ class DecoderLayer(DecoderLayerBase):
 		self.layer_normer2 = LayerNorm((ngroup, isize,), ntask=ntask, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 		SAttn = o2mSelfAttn if expand_layer else SelfAttn
-		self.self_attn = SAttn(isize, _ahsize, isize, ngroup, num_head=num_head, dropout=attn_drop, k_rel_pos=k_rel_pos, uni_direction_reduction=True)
-		self.cross_attn = CrossAttn(isize, _ahsize, isize, ngroup, num_head=num_head, dropout=attn_drop)
+		self.self_attn = SAttn(isize, hsize=_ahsize, osize=isize, ngroup=ngroup, num_head=num_head, dropout=attn_drop, k_rel_pos=k_rel_pos, uni_direction_reduction=True)
+		self.cross_attn = CrossAttn(isize, hsize=_ahsize, osize=isize, ngroup=ngroup, num_head=num_head, dropout=attn_drop)
 		FFN = m2oPositionwiseFF if merge_layer else PositionwiseFF
-		self.ff = FFN(isize, ngroup, hsize=_fhsize, dropout=dropout, ntask=ntask)
+		self.ff = FFN(isize, ngroup=ngroup, hsize=_fhsize, dropout=dropout, ntask=ntask)
 
 	def forward(self, inpute, inputo, sattn_w=None, cattn_w=None, ffn_w=None, taskid=None, src_pad_mask=None, tgt_pad_mask=None, query_unit=None, **kwargs):
 

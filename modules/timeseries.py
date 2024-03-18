@@ -31,9 +31,9 @@ class PositionwiseFF(nn.Module):
 
 class CrossAttn(CrossAttnBase):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, num_steps=None, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, k_isize=None, num_steps=None, **kwargs):
 
-		super(CrossAttn, self).__init__(isize, hsize, osize, num_head=num_head, dropout=dropout, k_isize=k_isize, **kwargs)
+		super(CrossAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, k_isize=k_isize, **kwargs)
 
 		self.num_steps = num_steps
 
@@ -80,8 +80,8 @@ class CrossAttn(CrossAttnBase):
 
 class ResCrossAttn(ResCrossAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, num_steps=None, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, num_steps=None, **kwargs):
 
-		super(ResCrossAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResCrossAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = CrossAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, num_steps=num_steps, **kwargs)
+		self.net = CrossAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, num_steps=num_steps, **kwargs)

@@ -16,9 +16,9 @@ from cnfg.plm.t5.ihyp import *
 
 class SelfAttn(SelfAttnBase):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
-		super(SelfAttn, self).__init__(isize, hsize, osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, use_alibi=use_alibi, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
+		super(SelfAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, use_alibi=use_alibi, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
 
 		self.ref_rel_emb = None
 		self.rel_emb_cache = None
@@ -91,9 +91,9 @@ class SelfAttn(SelfAttnBase):
 
 class CrossAttn(CrossAttnBase):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, sparsenorm=False, k_rel_pos=use_k_relative_position, max_bucket_distance=0, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, k_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, sparsenorm=False, k_rel_pos=use_k_relative_position, max_bucket_distance=0, xseql=cache_len_default, **kwargs):
 
-		super(CrossAttn, self).__init__(isize, hsize, osize, num_head=num_head, dropout=dropout, k_isize=k_isize, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, sparsenorm=sparsenorm, **kwargs)
+		super(CrossAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, k_isize=k_isize, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, sparsenorm=sparsenorm, **kwargs)
 
 		if (k_rel_pos > 0) and (max_bucket_distance > 0):
 			self.rel_shift = k_rel_pos
@@ -162,20 +162,20 @@ class CrossAttn(CrossAttnBase):
 
 class ResSelfAttn(ResSelfAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResSelfAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResSelfAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = SelfAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = SelfAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 		self.normer = Norm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 class ResCrossAttn(ResCrossAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResCrossAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResCrossAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = CrossAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = CrossAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 		self.normer = Norm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 class PositionwiseFF(PositionwiseFFBase):

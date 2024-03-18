@@ -140,9 +140,9 @@ Noiser = UniNoiserVec
 
 class ResSelfAttn(ResSelfAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, power=None, custom_noiser=None, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, power=None, custom_noiser=None, **kwargs):
 
-		super(ResSelfAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResSelfAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
 		_noiser = parse_none(custom_noiser, Noiser)
 		self.noiser = None if power is None else _noiser(power, inplace=True)
@@ -172,9 +172,9 @@ class ResSelfAttn(ResSelfAttnBase):
 
 class ResCrossAttn(ResCrossAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, power=None, custom_noiser=None, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, power=None, custom_noiser=None, **kwargs):
 
-		super(ResCrossAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResCrossAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
 		_noiser = parse_none(custom_noiser, Noiser)
 		self.noiser = None if power is None else _noiser(power, inplace=True)

@@ -26,7 +26,7 @@ class EncoderLayer(EncoderLayerBase):
 
 		super(EncoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, **kwargs)
 
-		self.attn = ResSelfAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop)
+		self.attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop)
 
 class Encoder(EncoderBase):

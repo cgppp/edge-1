@@ -5,17 +5,18 @@ from math import sqrt
 from torch import nn
 
 from modules.base import Dropout, Linear, ResSelfAttn as ResSelfAttnBase, SparseNormer
+from utils.fmt.parser import parse_none
 from utils.torch.comp import torch_no_grad
 
 from cnfg.ihyp import *
 
 class SelfAttn(nn.Module):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, num_anchor=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, sparsenorm=False, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, num_anchor=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, sparsenorm=False, **kwargs):
 
 		super(SelfAttn, self).__init__()
 
-		self.attn_dim = hsize // num_head
+		self.attn_dim = parse_none(hsize, isize) // num_head
 		self.hsize = self.attn_dim * num_head
 		self.num_head = num_head
 		self.num_anchor = self.attn_dim if num_anchor is None else num_anchor
@@ -23,7 +24,7 @@ class SelfAttn(nn.Module):
 		self.anchors = nn.Parameter(torch.Tensor(1, self.num_head, self.num_anchor, self.attn_dim).uniform_(- sqrt(1.0 / self.attn_dim), sqrt(1.0 / self.attn_dim)))
 		self.adaptor = Linear(isize, self.hsize * 4, bias=enable_proj_bias)# input: iQ, output: a_k, q, a_v1, a_v2
 
-		self.outer = Linear(self.hsize, osize, bias=enable_bias)
+		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=enable_bias)
 
 		#self.normer = MHSparseNormer(num_head, dim=-1) if sparsenorm else nn.Softmax(dim=-1)
 		self.normer = SparseNormer(dim=-1) if sparsenorm else nn.Softmax(dim=-1)
@@ -77,19 +78,19 @@ class SelfAttn(nn.Module):
 
 class ResSelfAttn(ResSelfAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResSelfAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResSelfAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = SelfAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = SelfAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 
 class Summer(nn.Module):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, num_anchor=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, sparsenorm=False, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, num_anchor=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, sparsenorm=False, **kwargs):
 
 		super(Summer, self).__init__()
 
-		self.attn_dim = hsize // num_head
+		self.attn_dim = parse_none(hsize, isize) // num_head
 		self.hsize = self.attn_dim * num_head
 		self.num_head = num_head
 		self.num_anchor = self.attn_dim if num_anchor is None else num_anchor
@@ -97,7 +98,7 @@ class Summer(nn.Module):
 		self.anchors = nn.Parameter(torch.Tensor(1, self.num_head, self.num_anchor, self.attn_dim).uniform_(- sqrt(1.0 / self.attn_dim), sqrt(1.0 / self.attn_dim)))
 		self.kv_adaptor = Linear(isize, self.hsize * 2, bias=enable_proj_bias)# input: iQ, output: a_k, q, a_v1, a_v2
 
-		self.outer = Linear(self.hsize, osize, bias=enable_bias)
+		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=enable_bias)
 
 		#self.normer = MHSparseNormer(num_head, dim=-1) if sparsenorm else nn.Softmax(dim=-1)
 		self.normer = SparseNormer(dim=-1) if sparsenorm else nn.Softmax(dim=-1)

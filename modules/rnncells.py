@@ -21,7 +21,7 @@ class LSTMCell4RNMT(nn.Module):
 	# isize: input size of Feed-forward NN
 	# dropout: dropout over hidden units, disabling it and applying dropout to outputs (_out) in most cases
 
-	def __init__(self, isize, osize=None, dropout=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
+	def __init__(self, isize, osize=None, act_drop=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
 
 		super(LSTMCell4RNMT, self).__init__()
 
@@ -32,7 +32,7 @@ class LSTMCell4RNMT(nn.Module):
 		self.normer = nn.LayerNorm((4, _osize), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 		self.act = Custom_Act() if custom_act else nn.Tanh()
-		self.drop = Dropout(dropout, inplace=inplace_after_Custom_Act) if dropout > 0.0 else None
+		self.drop = Dropout(act_drop, inplace=inplace_after_Custom_Act) if act_drop > 0.0 else None
 
 		self.osize = _osize
 
@@ -59,7 +59,7 @@ class GRUCell4RNMT(nn.Module):
 
 	# isize: input size of Feed-forward NN
 
-	def __init__(self, isize, osize=None, dropout=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
+	def __init__(self, isize, osize=None, act_drop=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
 
 		super(GRUCell4RNMT, self).__init__()
 
@@ -73,7 +73,7 @@ class GRUCell4RNMT(nn.Module):
 		self.normer2 = nn.LayerNorm(_osize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 		self.act = Custom_Act() if custom_act else nn.Tanh()
-		self.drop = Dropout(dropout, inplace=inplace_after_Custom_Act) if dropout > 0.0 else None
+		self.drop = Dropout(act_drop, inplace=inplace_after_Custom_Act) if act_drop > 0.0 else None
 
 		self.osize = _osize
 

@@ -19,7 +19,7 @@ class EncoderLayer(EncoderLayerBase):
 
 		if search_ffn:
 			self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
-		self.attn = ResTaughtSelfAttn(isize, _ahsize, num_head=num_head, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
+		self.attn = ResTaughtSelfAttn(isize, hsize=_ahsize, num_head=num_head, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
 
 	def forward(self, inputs, attn, **kwargs):
 
@@ -47,7 +47,7 @@ class StdEncoderLayer(EncoderLayerBase):
 
 		super(StdEncoderLayer, self).__init__(isize, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
 
-		self.attn = ResSelfAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
+		self.attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
 
 	def forward(self, inputs, mask=None, **kwargs):
 

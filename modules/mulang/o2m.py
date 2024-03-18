@@ -50,12 +50,12 @@ class PositionwiseFF(PositionwiseFFBase):
 
 class SelfAttn(SelfAttnBase):
 
-	def __init__(self, isize, hsize, osize, ngroup, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, ngroup=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, **kwargs):
 
-		super(SelfAttn, self).__init__(isize, hsize * ngroup, osize, num_head=num_head * ngroup, dropout=dropout, enable_bias=enable_bias, **kwargs)
+		self.ngroup, self.osize = ngroup, parse_none(osize, isize)
+		super(SelfAttn, self).__init__(isize, parse_none(hsize, isize) * ngroup, self.osize, num_head=num_head * ngroup, dropout=dropout, enable_bias=enable_bias, **kwargs)
 
-		self.ngroup, self.osize = ngroup, osize
-		self.outer = GroupLinear(self.hsize, osize * ngroup, ngroup, bias=enable_bias, shuffle=False, trans_input=False, flatten_output=False)
+		self.outer = GroupLinear(self.hsize, self.osize * ngroup, ngroup, bias=enable_bias, shuffle=False, trans_input=False, flatten_output=False)
 
 	def forward(self, iQ, mask=None, states=None, weight=None, **kwargs):
 
@@ -125,10 +125,10 @@ class CrossAttn(CrossAttnBase):
 
 	def __init__(self, isize, hsize, osize, ngroup, num_head=8, dropout=0.0, k_isize=None, enable_bias=enable_prev_ln_bias_default, **kwargs):
 
-		super(CrossAttn, self).__init__(isize, hsize * ngroup, osize, num_head=num_head * ngroup, dropout=dropout, k_isize=k_isize, enable_bias=enable_bias, **kwargs)
+		self.ngroup, self.osize = ngroup, parse_none(osize, isize)
+		super(CrossAttn, self).__init__(isize, parse_none(hsize, isize) * ngroup, self.osize, num_head=num_head * ngroup, dropout=dropout, k_isize=k_isize, enable_bias=enable_bias, **kwargs)
 
-		self.ngroup, self.osize = ngroup, osize
-		self.outer = GroupLinear(self.hsize, osize * ngroup, ngroup, bias=enable_bias, shuffle=False, trans_input=False, flatten_output=False)
+		self.outer = GroupLinear(self.hsize, self.osize * ngroup, ngroup, bias=enable_bias, shuffle=False, trans_input=False, flatten_output=False)
 
 	def forward(self, iQ, iK, mask=None, weight=None, **kwargs):
 

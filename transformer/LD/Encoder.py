@@ -19,7 +19,7 @@ class EncoderLayer(EncoderLayerBase):
 
 		super(EncoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, **kwargs)
 
-		self.cattn = CrossAttn(isize, _ahsize, isize, num_head, dropout=attn_drop)
+		self.cattn = CrossAttn(isize, hsize=_ahsize, osize=isize, num_head=num_head, dropout=attn_drop)
 		self.scff = ResidueCombiner(isize, 2, _fhsize, dropout)
 
 	def forward(self, inputs, sumr, mask=None, rmask=None, **kwargs):

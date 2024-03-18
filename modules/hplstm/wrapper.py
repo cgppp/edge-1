@@ -13,12 +13,12 @@ from cnfg.ihyp import *
 
 class LSTM4RNMT(nn.Module):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, fhsize=None, act_drop=0.0, **kwargs):
 
 		super(LSTM4RNMT, self).__init__()
 
 		_osize = parse_none(osize, isize)
-		self.net = LSTMCell4RNMT(isize, osize=_osize, dropout=dropout)
+		self.net = LSTMCell4RNMT(isize, osize=_osize, act_drop=act_drop)
 
 		self.init_cx = nn.Parameter(torch.zeros(1, _osize))
 		self.init_hx = nn.Parameter(torch.zeros(1, _osize))
@@ -55,7 +55,7 @@ class LSTM4RNMT(nn.Module):
 
 class ATR(nn.Module):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, fhsize=None, act_drop=0.0, **kwargs):
 
 		super(ATR, self).__init__()
 
@@ -95,16 +95,16 @@ class ATR(nn.Module):
 
 class RNN(ATR):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, fhsize=None, act_drop=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
 
 		_osize = parse_none(osize, isize)
 		_hsize = _osize * 4 if hsize is None else hsize
 
-		super(RNN, self).__init__(isize, num_head=num_head, osize=_osize, fhsize=_hsize, dropout=dropout)
+		super(RNN, self).__init__(isize, num_head=num_head, osize=_osize, fhsize=_hsize, act_drop=act_drop)
 
 		self.net = nn.Sequential(Linear(isize + _osize, _hsize, bias=enable_bias), nn.LayerNorm(_hsize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters), Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_hsize, isize, bias=enable_bias))
-		if dropout > 0.0:
-			self.net.insert(3, Dropout(dropout, inplace=inplace_after_Custom_Act))
+		if act_drop > 0.0:
+			self.net.insert(3, Dropout(act_drop, inplace=inplace_after_Custom_Act))
 
 	def forward(self, inpute, states=None, head_mask=None, **kwargs):
 

@@ -29,8 +29,8 @@ class EncoderLayer(EncoderLayerBase):
 		self.layer_normer = LayerNorm(isize if expand_layer else (ngroup, isize,), ntask=ntask, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 		Attn = o2mSelfAttn if expand_layer else SelfAttn
-		self.attn = Attn(isize, _ahsize, isize, ngroup, num_head=num_head, dropout=attn_drop, k_rel_pos=k_rel_pos)
-		self.ff = PositionwiseFF(isize, ngroup, hsize=_fhsize, dropout=dropout, act_drop=act_drop, ntask=ntask)
+		self.attn = Attn(isize, hsize=_ahsize, osize=isize, ngroup=ngroup, num_head=num_head, dropout=attn_drop, k_rel_pos=k_rel_pos)
+		self.ff = PositionwiseFF(isize, ngroup=ngroup, hsize=_fhsize, dropout=dropout, act_drop=act_drop, ntask=ntask)
 
 	def forward(self, inputs, attn_w=None, ffn_w=None, taskid=None, mask=None, **kwargs):
 

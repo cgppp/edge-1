@@ -18,7 +18,7 @@ class LNMHAttn(nn.Module):
 
 		self.normer = nn.LayerNorm((3, isize), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
-		self.net = MultiHeadAttn(isize, isize, isize, num_head, dropout)
+		self.net = MultiHeadAttn(isize, hsize=isize, osize=isize, num_head=num_head, dropout=dropout)
 
 	def forward(self, iQ, iK, iV, mask=None, **kwargs):
 
@@ -113,7 +113,7 @@ class GumbleNormDrop(nn.Module):
 
 class LSTMCtr(nn.Module):
 
-	def __init__(self, ntok, hsize, num_node_type, max_nodes=16, bindemb=True, **kwargs):
+	def __init__(self, ntok, hsize, num_node_type=None, max_nodes=16, bindemb=True, act_drop=0.0, **kwargs):
 
 		super(LSTMCtr, self).__init__()
 
@@ -122,7 +122,7 @@ class LSTMCtr(nn.Module):
 		self.sos = nn.Parameter(torch.zeros(1, hsize))
 		self.sos_node = nn.Parameter(torch.zeros(1, hsize))
 
-		self.net = LSTMCell4RNMT(hsize, hsize)
+		self.net = LSTMCell4RNMT(hsize, osize=hsize, act_drop=act_drop)
 		self.init_hx = nn.Parameter(torch.zeros(1, hsize))
 		self.init_cx = nn.Parameter(torch.zeros(1, hsize))
 

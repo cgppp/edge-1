@@ -102,7 +102,7 @@ class HPLSTM(HPLSTMBase):
 		o_hsize = float2odd(float(_osize) / num_head) * num_head
 		_fhsize = float2odd(float(o_hsize * 4 if fhsize is None else fhsize) / num_head) * num_head
 
-		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize, act_drop=act_drop, **kwargs)
+		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize, **kwargs)
 
 class BiHPLSTM(BiHPLSTMBase):
 
@@ -113,16 +113,16 @@ class BiHPLSTM(BiHPLSTMBase):
 		_fhsize = float2odd(float(o_hsize * 4 if fhsize is None else fhsize) / num_head) * num_head
 
 		# modules.hplstm.base.BiHPLSTM will double num_head and osize but not fhsize
-		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize + _fhsize, act_drop=act_drop, **kwargs)
+		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize + _fhsize, **kwargs)
 
 class ResHPLSTM(ResHPLSTMBase):
 
 	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, act_drop=None, HPLSTM=HPLSTM, **kwargs):
 
-		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, fhsize=fhsize, act_drop=act_drop, **kwargs)
+		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, HPLSTM=HPLSTM, fhsize=fhsize, **kwargs)
 
 class ResBiHPLSTM(ResHPLSTMBase):
 
 	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, act_drop=None, HPLSTM=BiHPLSTM, **kwargs):
 
-		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, fhsize=fhsize, act_drop=act_drop, **kwargs)
+		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, HPLSTM=HPLSTM, fhsize=fhsize, **kwargs)

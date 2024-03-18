@@ -22,7 +22,7 @@ class DecoderLayer(nn.Module):
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
-		self.cross_attn = CrossAttn(isize, _ahsize, isize, num_head=num_head, dropout=attn_drop)
+		self.cross_attn = CrossAttn(isize, hsize=_ahsize, osize=isize, num_head=num_head, dropout=attn_drop)
 		self.ff = ResRNN(isize, osize=isize, hsize=_fhsize, dropout=0.0)
 
 		self.layer_normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)

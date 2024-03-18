@@ -197,11 +197,11 @@ class MultiHeadAttn(nn.Module):
 	# sparsenorm: using sparse normer or standard softmax
 	# bind_qk: query and key can share a same linear transformation for the Reformer: The Efficient Transformer (https://arxiv.org/abs/2001.04451) paper.
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, v_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=0, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, bind_qk=False, xseql=cache_len_default, is_decoding=False, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, k_isize=None, v_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=0, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, bind_qk=False, xseql=cache_len_default, is_decoding=False, **kwargs):
 
 		super(MultiHeadAttn, self).__init__()
 
-		self.attn_dim = hsize // num_head
+		self.attn_dim = parse_none(hsize, isize) // num_head
 		self.hsize = self.attn_dim * num_head
 		self.num_head = num_head
 
@@ -210,7 +210,7 @@ class MultiHeadAttn(nn.Module):
 		self.key_adaptor = self.query_adaptor if bind_qk and isize == _k_isize else Linear(_k_isize, self.hsize, bias=enable_proj_bias)
 		self.value_adaptor = Linear(_k_isize if v_isize is None else v_isize, self.hsize, bias=enable_proj_bias)
 
-		self.outer = Linear(self.hsize, osize, bias=enable_bias)
+		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=enable_bias)
 
 		#self.normer = MHSparseNormer(num_head, dim=-1) if sparsenorm else nn.Softmax(dim=-1)
 		self.normer = SparseNormer(dim=-1) if sparsenorm else nn.Softmax(dim=-1)
@@ -530,17 +530,17 @@ class MultiHeadAttn(nn.Module):
 # Accelerated MultiHeadAttn for self attention, use when Q == K == V
 class SelfAttn(nn.Module):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
 		super(SelfAttn, self).__init__()
 
-		self.attn_dim = hsize // num_head
+		self.attn_dim = parse_none(hsize, isize) // num_head
 		self.hsize = self.attn_dim * num_head
 		self.num_head = num_head
 
 		self.adaptor = Linear(isize, self.hsize * 3, bias=enable_proj_bias)
 
-		self.outer = Linear(self.hsize, osize, bias=enable_bias)
+		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=enable_bias)
 
 		#self.normer = MHSparseNormer(num_head, dim=-1) if sparsenorm else nn.Softmax(dim=-1)
 		self.normer = SparseNormer(dim=-1) if sparsenorm else nn.Softmax(dim=-1)
@@ -779,11 +779,11 @@ class SelfAttn(nn.Module):
 # Accelerated MultiHeadAttn for cross attention, use when K == V
 class CrossAttn(nn.Module):
 
-	def __init__(self, isize, hsize, osize, num_head=8, dropout=0.0, k_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, sparsenorm=False, is_decoding=False, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, k_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, sparsenorm=False, is_decoding=False, **kwargs):
 
 		super(CrossAttn, self).__init__()
 
-		self.attn_dim = hsize // num_head
+		self.attn_dim = parse_none(hsize, isize) // num_head
 		self.hsize = self.attn_dim * num_head
 		self.num_head = num_head
 
@@ -791,7 +791,7 @@ class CrossAttn(nn.Module):
 
 		self.kv_adaptor = Linear(isize if k_isize is None else k_isize, self.hsize * 2, bias=enable_proj_bias)
 
-		self.outer = Linear(self.hsize, osize, bias=enable_bias)
+		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=enable_bias)
 
 		#self.normer = MHSparseNormer(num_head, dim=-1) if sparsenorm else nn.Softmax(dim=-1)
 		self.normer = SparseNormer(dim=-1) if sparsenorm else nn.Softmax(dim=-1)
@@ -906,11 +906,11 @@ class CrossAttn(nn.Module):
 
 class ResMHAttn(nn.Module):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
 		super(ResMHAttn, self).__init__()
 
-		self.net = MultiHeadAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = MultiHeadAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 		self.norm_residual = norm_residual
@@ -1009,11 +1009,11 @@ class ResMHAttn(nn.Module):
 
 class ResSelfAttn(nn.Module):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
 		super(ResSelfAttn, self).__init__()
 
-		self.net = SelfAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = SelfAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 		self.norm_residual = norm_residual
@@ -1103,11 +1103,11 @@ class ResSelfAttn(nn.Module):
 
 class ResCrossAttn(nn.Module):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
 		super(ResCrossAttn, self).__init__()
 
-		self.net = CrossAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = CrossAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 		self.norm_residual = norm_residual

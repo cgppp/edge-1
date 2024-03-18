@@ -19,7 +19,7 @@ class Encoder(EncoderBase):
 
 		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, share_layer=share_layer, num_layer_dec=num_layer_dec, **kwargs)
 
-		self.attns = nn.ModuleList([CrossAttn(isize, _ahsize, isize, num_head, dropout=attn_drop) for i in range(num_layer)])
+		self.attns = nn.ModuleList([CrossAttn(isize, hsize=_ahsize, osize=isize, num_head=num_head, dropout=attn_drop) for i in range(num_layer)])
 
 		self.sc_tattn_w = nn.Parameter(torch.Tensor(num_layer + 1, num_layer_dec).uniform_(- sqrt(1.0 / (num_layer + 1)), sqrt(1.0 / (num_layer + 1))))
 		self.sc_tattn_drop = Dropout(dropout) if dropout > 0.0 else None

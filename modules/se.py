@@ -70,11 +70,11 @@ class Expander(nn.Module):
 
 class ResSelfAttn(ResSelfAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, k_se=k_se, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, k_se=k_se, **kwargs):
 
 		_s_isize, _s_hsize = isize // k_se, hsize // k_se
 
-		super(ResSelfAttn, self).__init__(_s_isize, _s_hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResSelfAttn, self).__init__(_s_isize, hsize=_s_hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
 		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.s_net = Squeezer(isize, k_se, dropout=dropout)
@@ -102,12 +102,12 @@ class ResSelfAttn(ResSelfAttnBase):
 
 class ResCrossAttn(ResCrossAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, k_isize=None, k_se=k_se, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, k_isize=None, k_se=k_se, **kwargs):
 
 		_k_isize = parse_none(k_isize, isize)
 		_s_isize, _s_hsize, _s_ksize = isize // k_se, hsize // k_se, _k_isize // k_se
 
-		super(ResCrossAttn, self).__init__(_s_isize, _s_hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, k_isize=_s_ksize, **kwargs)
+		super(ResCrossAttn, self).__init__(_s_isize, hsize=_s_hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, k_isize=_s_ksize, **kwargs)
 
 		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.qs_net = Squeezer(isize, k_se, dropout=dropout)

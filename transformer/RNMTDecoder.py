@@ -19,13 +19,13 @@ class FirstLayer(nn.Module):
 
 	# isize: input size
 	# osize: output size
-	def __init__(self, isize, osize=None, dropout=0.0, **kwargs):
+	def __init__(self, isize, osize=None, dropout=0.0, act_drop=None, **kwargs):
 
 		super(FirstLayer, self).__init__()
 
 		_osize = parse_none(osize, isize)
 
-		self.net = LSTMCell4RNMT(isize, _osize)
+		self.net = LSTMCell4RNMT(isize, osize=_osize, act_drop=parse_none(act_drop, dropout))
 		self.init_hx = nn.Parameter(torch.zeros(1, _osize))
 		self.init_cx = nn.Parameter(torch.zeros(1, _osize))
 
@@ -61,13 +61,13 @@ class DecoderLayer(nn.Module):
 
 	# isize: input size
 	# osize: output size
-	def __init__(self, isize, osize=None, dropout=0.0, residual=True, **kwargs):
+	def __init__(self, isize, osize=None, dropout=0.0, act_drop=None, residual=True, **kwargs):
 
 		super(DecoderLayer, self).__init__()
 
 		_osize = parse_none(osize, isize)
 
-		self.net = LSTMCell4RNMT(isize + _osize, _osize)
+		self.net = LSTMCell4RNMT(isize + _osize, osize=_osize, act_drop=parse_none(act_drop, dropout))
 		self.init_hx = nn.Parameter(torch.zeros(1, _osize))
 		self.init_cx = nn.Parameter(torch.zeros(1, _osize))
 
@@ -122,11 +122,11 @@ class Decoder(DecoderBase):
 
 		super(Decoder, self).__init__(isize, nwd, num_layer, fhsize=isize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=forbidden_index, **kwargs)
 
-		self.flayer = FirstLayer(isize, osize=isize, dropout=dropout)
+		self.flayer = FirstLayer(isize, osize=isize, dropout=dropout, act_drop=act_drop)
 
-		self.attn = CrossAttn(isize, _ahsize, isize, num_head, dropout=attn_drop)
+		self.attn = CrossAttn(isize, hsize=_ahsize, osize=isize, num_head=num_head, dropout=attn_drop)
 
-		self.nets = nn.ModuleList([DecoderLayer(isize, isize, dropout, i > 0) for i in range(num_layer - 1)])
+		self.nets = nn.ModuleList([DecoderLayer(isize, osize=isize, dropout=dropout, act_drop=act_drop, residual=i > 0) for i in range(num_layer - 1)])
 
 		self.projector = Linear(isize, isize, bias=False) if projector else None
 

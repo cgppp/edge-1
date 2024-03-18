@@ -1,10 +1,10 @@
-sentencepiece>=0.1.99
+sentencepiece>=0.2.0
 subword-nmt>=0.3.8
 sacremoses>=0.0.53
-transformers>=4.31.0
-protobuf>=4.23.3
-Cython>=3.0.0
-Flask>=2.3.2
+transformers>=4.38.2
+protobuf>=4.25.3
+Cython>=3.0.9
+Flask>=3.0.2
 jieba>=0.42.1
 PyNLPIR>=0.6.0
-OpenCC>=1.1.6
+OpenCC>=1.1.7

@@ -15,7 +15,7 @@ from cnfg.ihyp import *
 
 class MHPLSTMCore(nn.Module):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
 
 		super(MHPLSTMCore, self).__init__()
 
@@ -33,7 +33,7 @@ class MHPLSTMCore(nn.Module):
 		self.normer_hid = nn.LayerNorm((num_head, 3, o_head_dim), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 		self.act = Custom_Act() if custom_act else nn.ReLU()#Tanh()
-		self.drop = Dropout(dropout, inplace=inplace_after_Custom_Act) if dropout > 0.0 else None
+		self.drop = Dropout(act_drop, inplace=inplace_after_Custom_Act) if act_drop > 0.0 else None
 		self.init_cx = nn.Parameter(torch.zeros(num_head, o_head_dim))
 
 	# heads_input: (bsize, seql, nheads, adim)
@@ -80,7 +80,7 @@ class MHPLSTMCore(nn.Module):
 
 class HPLSTM(nn.Module):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, enable_proj_bias=enable_proj_bias_default, MHPLSTMCore=MHPLSTMCore, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, enable_proj_bias=enable_proj_bias_default, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
 		super(HPLSTM, self).__init__()
 
@@ -92,7 +92,7 @@ class HPLSTM(nn.Module):
 		self.num_head = num_head
 
 		self.trans_input = Linear(isize, i_hsize, bias=enable_proj_bias)
-		self.net = MHPLSTMCore(i_hsize, num_head=self.num_head, osize=o_hsize, dropout=dropout, **kwargs)
+		self.net = MHPLSTMCore(i_hsize, num_head=self.num_head, osize=o_hsize, act_drop=act_drop, **kwargs)
 		self.trans_output = Linear(o_hsize, _osize, bias=enable_proj_bias)
 
 	def forward(self, inpute, states=None, head_mask=None, **kwargs):
@@ -114,7 +114,7 @@ class HPLSTM(nn.Module):
 
 class BiHPLSTM(nn.Module):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, enable_proj_bias=enable_proj_bias_default, MHPLSTMCore=MHPLSTMCore, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, enable_proj_bias=enable_proj_bias_default, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
 		super(BiHPLSTM, self).__init__()
 
@@ -126,7 +126,7 @@ class BiHPLSTM(nn.Module):
 		self.num_head = num_head
 
 		self.trans_input = Linear(isize, i_hsize + i_hsize, bias=enable_proj_bias)
-		self.net = MHPLSTMCore(i_hsize + i_hsize, num_head=self.num_head + self.num_head, osize=o_hsize + o_hsize, dropout=dropout, **kwargs)
+		self.net = MHPLSTMCore(i_hsize + i_hsize, num_head=self.num_head + self.num_head, osize=o_hsize + o_hsize, act_drop=act_drop, **kwargs)
 		self.trans_output = Linear(o_hsize + o_hsize, _osize, bias=enable_proj_bias)
 
 	# inpute: (bsize, seql, isize)
@@ -147,11 +147,11 @@ class BiHPLSTM(nn.Module):
 
 class ResHPLSTM(nn.Module):
 
-	def __init__(self, isize, num_head=8, dropout=0.0, HPLSTM=HPLSTM, **kwargs):
+	def __init__(self, isize, num_head=8, dropout=0.0, act_drop=None, HPLSTM=HPLSTM, **kwargs):
 
 		super(ResHPLSTM, self).__init__()
 
-		self.net = HPLSTM(isize, num_head=num_head, osize=isize, dropout=dropout, **kwargs)
+		self.net = HPLSTM(isize, num_head=num_head, osize=isize, dropout=dropout, act_drop=parse_none(act_drop, dropout), **kwargs)
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 
 	def forward(self, iQ, *inputs, **kwargs):
@@ -174,6 +174,6 @@ class ResHPLSTM(nn.Module):
 
 class ResBiHPLSTM(ResHPLSTM):
 
-	def __init__(self, isize, num_head=8, dropout=0.0, HPLSTM=BiHPLSTM, **kwargs):
+	def __init__(self, isize, num_head=8, dropout=0.0, act_drop=None, HPLSTM=BiHPLSTM, **kwargs):
 
-		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, **kwargs)
+		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, HPLSTM=HPLSTM, **kwargs)

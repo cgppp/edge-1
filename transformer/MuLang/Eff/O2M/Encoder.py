@@ -19,8 +19,8 @@ class EncoderLayer(EncoderLayerBase):
 
 		super(EncoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, ngroup=ngroup, ntask=ntask, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance, **kwargs)
 
-		self.attn = SelfAttn(isize, _ahsize, isize, ngroup, num_head=num_head, dropout=attn_drop, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
-		self.ff = PositionwiseFF(isize, ngroup, hsize=_fhsize, dropout=dropout, act_drop=act_drop, ntask=ntask)
+		self.attn = SelfAttn(isize, hsize=_ahsize, osize=isize, ngroup=ngroup, num_head=num_head, dropout=attn_drop, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
+		self.ff = PositionwiseFF(isize, ngroup=ngroup, hsize=_fhsize, dropout=dropout, act_drop=act_drop, ntask=ntask)
 		self.layer_normer = LayerNorm(isize, ntask=ntask, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 class Encoder(EncoderBase):

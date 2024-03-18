@@ -21,7 +21,7 @@ class EncoderLayer(EncoderLayerBase):
 		if not enable_ffn_res:
 			self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
 		self.layer_normer, self.drop = self.attn.normer, self.attn.drop
-		self.attn = SelfAttn(isize, _ahsize, isize, num_head=num_head, dropout=attn_drop, k_rel_pos=k_rel_pos, enable_outer=enable_sattn_outer)
+		self.attn = SelfAttn(isize, hsize=_ahsize, osize=isize, num_head=num_head, dropout=attn_drop, k_rel_pos=k_rel_pos, enable_outer=enable_sattn_outer)
 		self.lstm = LSTMCell4FFN(isize, dropout=dropout, act_drop=act_drop)#, osize=isize, hsize=_fhsize
 
 	def forward(self, inputs, cellin, mask=None, **kwargs):

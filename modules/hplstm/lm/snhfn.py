@@ -42,4 +42,4 @@ class ResHPLSTM(ResHPLSTMBase):
 
 	def __init__(self, isize, num_head=8, fhsize=None, dropout=0.0, act_drop=None, HPLSTM=HPLSTM, **kwargs):
 
-		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, fhsize=fhsize, act_drop=act_drop, **kwargs)
+		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, HPLSTM=HPLSTM, fhsize=fhsize, **kwargs)

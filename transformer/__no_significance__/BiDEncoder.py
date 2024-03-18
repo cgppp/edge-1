@@ -15,7 +15,7 @@ class EncoderLayer(EncoderLayerBase):
 		_ahsize = parse_none(ahsize, isize)
 		super(EncoderLayer, self).__init__(isize, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance, **kwargs)
 
-		self.attn = ResSelfAttn(isize, _ahsize, num_head=num_head, dropout=attn_drop, norm_residual=self.attn.norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
+		self.attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=self.attn.norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
 
 class Encoder(EncoderBase):
 

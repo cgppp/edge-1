@@ -16,7 +16,7 @@ from cnfg.ihyp import *
 
 class MHPLSTMCore(nn.Module):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, **kwargs):
 
 		super(MHPLSTMCore, self).__init__()
 
@@ -33,7 +33,7 @@ class MHPLSTMCore(nn.Module):
 		self.normer_csum = nn.LayerNorm((num_head, i_head_dim), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 		self.act = Custom_Act() if custom_act else nn.ReLU()
-		self.drop = Dropout(dropout, inplace=inplace_after_Custom_Act) if dropout > 0.0 else None
+		self.drop = Dropout(act_drop, inplace=inplace_after_Custom_Act) if act_drop > 0.0 else None
 		self.init_cx = nn.Parameter(torch.zeros(num_head, o_head_dim))
 
 	def forward(self, heads_input, states=None, head_mask=None, **kwargs):
@@ -76,21 +76,21 @@ class MHPLSTMCore(nn.Module):
 
 class HPLSTM(HPLSTMBase):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
-		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, **kwargs)
+		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=osize, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, **kwargs)
 
 class BiHPLSTM(BiHPLSTMBase):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
-		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, **kwargs)
+		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=osize, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, **kwargs)
 
 class ResHPLSTM(ResHPLSTMBase):
 
-	def __init__(self, isize, num_head=8, dropout=0.0, HPLSTM=HPLSTM, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, num_head=8, dropout=0.0, act_drop=None, HPLSTM=HPLSTM, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, **kwargs)
+		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=parse_none(act_drop, dropout), HPLSTM=HPLSTM, **kwargs)
 
 		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.norm_residual = norm_residual
@@ -117,6 +117,6 @@ class ResHPLSTM(ResHPLSTMBase):
 
 class ResBiHPLSTM(ResHPLSTM):
 
-	def __init__(self, isize, num_head=8, dropout=0.0, HPLSTM=BiHPLSTM, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, num_head=8, dropout=0.0, act_drop=None, HPLSTM=BiHPLSTM, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, norm_residual=norm_residual, **kwargs)
+		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, HPLSTM=HPLSTM, norm_residual=norm_residual, **kwargs)

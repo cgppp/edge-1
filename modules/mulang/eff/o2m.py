@@ -11,9 +11,9 @@ from cnfg.ihyp import *
 
 class PositionwiseFF(PositionwiseFFBase):
 
-	def __init__(self, isize, ngroup, *inputs, ntask=None, **kwargs):
+	def __init__(self, isize, ngroup=None, ntask=None, **kwargs):
 
-		super(PositionwiseFF, self).__init__(isize, ngroup, *inputs, ntask=ntask, **kwargs)
+		super(PositionwiseFF, self).__init__(isize, ngroup=ngroup, ntask=ntask, **kwargs)
 
 		self.normer = LayerNorm(isize, ntask=ntask, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 

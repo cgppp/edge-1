@@ -38,12 +38,12 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 class HPLSTM(HPLSTMBase):
 
-	def __init__(self, isize, num_head=8, osize=None, dropout=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
-		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=osize, dropout=dropout, MHPLSTMCore=MHPLSTMCore, **kwargs)
+		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=osize, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, **kwargs)
 
 class ResHPLSTM(ResHPLSTMBase):
 
-	def __init__(self, isize, num_head=8, dropout=0.0, HPLSTM=HPLSTM, **kwargs):
+	def __init__(self, isize, num_head=8, dropout=0.0, act_drop=None, HPLSTM=HPLSTM, **kwargs):
 
-		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, HPLSTM=HPLSTM, **kwargs)
+		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, HPLSTM=HPLSTM, **kwargs)

@@ -109,33 +109,33 @@ class CrossAttn(CrossAttnBase):
 
 class ResSelfAttn(ResSelfAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResSelfAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResSelfAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = SelfAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = SelfAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 
 class ResCrossAttn(ResCrossAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResCrossAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResCrossAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = CrossAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = CrossAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 
 class TaughtSelfAttn(nn.Module):
 
-	def __init__(self, isize, hsize, osize, num_head=8, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, **kwargs):
 
 		super(SelfAttn, self).__init__()
 
-		self.attn_dim = hsize // num_head
+		self.attn_dim = parse_none(hsize, isize) // num_head
 		self.hsize = self.attn_dim * num_head
 		self.num_head = num_head
 
 		self.adaptor = Linear(isize, self.hsize, bias=enable_proj_bias)
 
-		self.outer = Linear(self.hsize, osize, bias=enable_bias)
+		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=enable_bias)
 
 	def forward(self, iQ, scores, states=None, **kwargs):
 
@@ -172,17 +172,17 @@ class TaughtSelfAttn(nn.Module):
 
 class TaughtCrossAttn(nn.Module):
 
-	def __init__(self, isize, hsize, osize, num_head=8, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, **kwargs):
 
 		super(TaughtCrossAttn, self).__init__()
 
-		self.attn_dim = hsize // num_head
+		self.attn_dim = parse_none(hsize, isize) // num_head
 		self.hsize = self.attn_dim * num_head
 		self.num_head = num_head
 
 		self.v_adaptor = Linear(isize, self.hsize, bias=enable_proj_bias)
 
-		self.outer = Linear(self.hsize, osize, bias=enable_bias)
+		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=enable_bias)
 
 		self.register_buffer("real_iV", None, persistent=False)
 		self.register_buffer("iK", None, persistent=False)
@@ -241,19 +241,19 @@ class TaughtCrossAttn(nn.Module):
 
 class ResTaughtSelfAttn(ResSelfAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResTaughtSelfAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
+		super(ResTaughtSelfAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual, **kwargs)
 
-		self.net = TaughtSelfAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = TaughtSelfAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 
 class ResTaughtCrossAttn(ResCrossAttnBase):
 
-	def __init__(self, isize, hsize, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
+	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
 
-		super(ResTaughtCrossAttn, self).__init__(isize, hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual_default, **kwargs)
+		super(ResTaughtCrossAttn, self).__init__(isize, hsize=hsize, num_head=num_head, dropout=dropout, norm_residual=norm_residual_default, **kwargs)
 
-		self.net = TaughtCrossAttn(isize, hsize, isize, num_head=num_head, dropout=dropout, **kwargs)
+		self.net = TaughtCrossAttn(isize, hsize=hsize, osize=isize, num_head=num_head, dropout=dropout, **kwargs)
 
 class PositionwiseFF(PositionwiseFFBase):
 
