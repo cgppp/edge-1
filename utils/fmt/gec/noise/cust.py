@@ -75,11 +75,8 @@ def load_del(fname):
 
 	return tuple((_, "",) for _ in sorted(rs))
 
-yicuo_pairs = load_pairs(tihuan_file)
-yicuo_sub = SubPair(yicuo_pairs, allow_re=False).handle
-
-yicuo_p_pairs = tuple(sorted(load_p_pairs(huhuan_file) + load_del(shanchu_file)))
-yicuo_p_sub = SubPairP(yicuo_p_pairs, allow_re=False, p=0.1).handle
+yicuo_sub = SubPair(load_pairs(tihuan_file), allow_re=False).handle
+yicuo_p_sub = SubPairP(tuple(sorted(load_p_pairs(huhuan_file) + load_del(shanchu_file))), allow_re=False, p=0.1).handle
 
 def mdate_err(x, *args, sfunc=mdate_search, **kwargs):
 
