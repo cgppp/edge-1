@@ -4,7 +4,11 @@ from math import ceil, floor
 from random import choices, gauss, randint, random, sample, shuffle, uniform
 
 from utils.fmt.base import sys_open
-from utils.fmt.gec.noise.cust import cust_err_funcs
+try:
+	from utils.fmt.gec.noise.cust import cust_err_funcs
+except Exception as e:
+	print(e)
+	cust_err_funcs = None
 from utils.fmt.parser import parse_none
 from utils.fmt.vocab.char import ldvocab_list
 from utils.math import cumsum, pos_norm
