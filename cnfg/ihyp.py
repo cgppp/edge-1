@@ -80,3 +80,6 @@ tqdm_mininterval = 1.0
 
 # optimizer step zero_grad
 optm_step_zero_grad_set_none = not contiguous_parameters
+
+# math
+math_prefer_tail = False

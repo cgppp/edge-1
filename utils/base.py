@@ -1,10 +1,11 @@
 #encoding: utf-8
 
 import logging
+import os
 import torch
 from functools import wraps
 from math import ceil
-from os import makedirs
+from os import EX_OK, makedirs
 from os.path import exists as fs_check
 from random import seed as rpyseed
 from torch import Tensor
@@ -457,3 +458,7 @@ class holder(dict):
 	def __exit__(self, *inputs, **kwargs):
 
 		pass
+
+def exit_all(code=EX_OK, **kwargs):
+
+	os._exit(code)

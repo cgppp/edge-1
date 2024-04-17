@@ -15,6 +15,14 @@ iter_to_str = lambda lin: map(str, lin)
 iter_to_int = lambda lin: map(int, lin)
 iter_to_float = lambda lin: map(float, lin)
 
+all_in = lambda lin, setin: all(lu in setin for lu in lin)
+all_eq = lambda lin, value: all(lu == value for lu in lin)
+all_ne = lambda lin, value: all(lu != value for lu in lin)
+all_le = lambda lin, value: all(lu <= value for lu in lin)
+all_ge = lambda lin, value: all(lu >= value for lu in lin)
+all_lt = lambda lin, value: all(lu < value for lu in lin)
+all_gt = lambda lin, value: all(lu > value for lu in lin)
+
 def sys_open(fname, mode="r", compresslevel=raw_cache_compression_level, **kwargs):
 
 	if fname == "-":
@@ -341,18 +349,6 @@ def seperate_list_iter(lin, k):
 def seperate_list(lin, k):
 
 	return list(seperate_list_iter(lin, k))
-
-def all_in(lin, setin):
-
-	return all(lu in setin for lu in lin)
-
-def all_le(lin, value):
-
-	return all(lu <= value for lu in lin)
-
-def all_gt(lin, value):
-
-	return all(lu > value for lu in lin)
 
 def get_char_ratio(strin):
 

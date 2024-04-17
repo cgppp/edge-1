@@ -29,7 +29,7 @@ export stif=$tgtd/$srctf.ids$faext
 python tools/plm/map/custbert.py $srcd/$srctf $src_vcb $stif
 if $sort_decode; then
 	export srt_input_f=$tgtd/$srctf.ids.srt$faext
-	python tools/sort.py $tgtd/$srctf.ids $srt_input_f 1048576
+	python tools/sort.py $stif $srt_input_f 1048576
 else
 	export srt_input_f=$stif
 fi

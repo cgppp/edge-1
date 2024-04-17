@@ -22,7 +22,7 @@ def gec_noise_reader_core(files=None, noiser=None, tokenizer=None, min_len=2, ma
 						if _l < max_len:
 							yield tuple(_s), tuple(_e), tuple(_t)
 
-def gec_noise_reader(fname=None, noiser=None, tokenizer=None, min_len=2, max_len=cache_len_default, inf_loop=False, **kwargs):
+def gec_noise_reader(fname=None, noiser=None, tokenizer=None, min_len=2, max_len=cache_len_default, inf_loop=False, gec_noise_reader_core=gec_noise_reader_core, **kwargs):
 
 	with FileList([fname] if isinstance(fname, str) else fname, "rb") as files:
 		if inf_loop:
@@ -37,10 +37,10 @@ def gec_noise_reader(fname=None, noiser=None, tokenizer=None, min_len=2, max_len
 
 class GECNoiseReader:
 
-	def __init__(self, fname, noiser, tokenizer, min_len=2, max_len=cache_len_default, inf_loop=False, **kwargs):
+	def __init__(self, fname, noiser, tokenizer, min_len=2, max_len=cache_len_default, inf_loop=False, gec_noise_reader=gec_noise_reader, gec_noise_reader_core=gec_noise_reader_core, **kwargs):
 
-		self.fname, self.noiser, self.tokenizer, self.min_len, self.max_len, self.inf_loop = fname, noiser, tokenizer, min_len, max_len, inf_loop
+		self.fname, self.noiser, self.tokenizer, self.min_len, self.max_len, self.inf_loop, self.gec_noise_reader, self.gec_noise_reader_core = fname, noiser, tokenizer, min_len, max_len, inf_loop, gec_noise_reader, gec_noise_reader_core
 
-	def __call__(self, fname=None, noiser=None, tokenizer=None, min_len=None, max_len=None, inf_loop=None, **kwargs):
+	def __call__(self, fname=None, noiser=None, tokenizer=None, min_len=None, max_len=None, inf_loop=None, gec_noise_reader=None, gec_noise_reader_core=None, **kwargs):
 
-		return gec_noise_reader(fname=parse_none(fname, self.fname), noiser=parse_none(noiser, self.noiser), tokenizer=parse_none(tokenizer, self.tokenizer), min_len=parse_none(min_len, self.min_len), max_len=parse_none(max_len, self.max_len), inf_loop=parse_none(inf_loop, self.inf_loop), **kwargs)
+		return parse_none(gec_noise_reader, self.gec_noise_reader)(fname=parse_none(fname, self.fname), noiser=parse_none(noiser, self.noiser), tokenizer=parse_none(tokenizer, self.tokenizer), min_len=parse_none(min_len, self.min_len), max_len=parse_none(max_len, self.max_len), inf_loop=parse_none(inf_loop, self.inf_loop), gec_noise_reader_core=parse_none(gec_noise_reader_core, self.gec_noise_reader_core), **kwargs)
