@@ -1,7 +1,7 @@
 #encoding: utf-8
 
 from utils.fmt.gec.kb.base import generate_iter_data
-from utils.fmt.gec.noise.base import GECNoiseReader as GECNoiseReaderBase
+from utils.fmt.gec.noise.freader import GECNoiseReader as GECNoiseReaderBase
 
 from cnfg.hyp import cache_len_default
 
