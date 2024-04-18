@@ -3,7 +3,7 @@
 set -e -o pipefail -x
 
 export cachedir=cache
-export dataid=kbgec
+export dataid=gec/kb/noise
 
 export srcd=$cachedir/$dataid
 export srctf=src.train.txt
@@ -53,9 +53,11 @@ export kdcf=$wkd/kb.dev.ids$faext
 export edcf=$wkd/edit.dev.ids$faext
 export tdcf=$wkd/tgt.dev.ids$faext
 export rstcf=$wkd/raw.src.train.ids$faext
+export rktcf=$wkd/raw.kb.train.ids$faext
 export retcf=$wkd/raw.edit.train.ids$faext
 export rttcf=$wkd/raw.tgt.train.ids$faext
 export rsdcf=$wkd/raw.src.dev.ids$faext
+export rkdcf=$wkd/raw.kb.dev.ids$faext
 export redcf=$wkd/raw.edit.dev.ids$faext
 export rtdcf=$wkd/raw.tgt.dev.ids$faext
 if $do_map; then

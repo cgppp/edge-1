@@ -22,7 +22,7 @@ def handle(finput, fkb, fedit, ftarget, frs, minbsize=1, expand_for_mulgpu=True,
 		edt_grp = rsf.create_group("edt")
 		tgt_grp = rsf.create_group("tgt")
 		curd = 0
-		for i_d, kd, ed, td in batch_padder(finput, fedit, ftarget, _bsize, maxpad, maxpart, _maxtoken, minbsize):
+		for i_d, kd, ed, td in batch_padder(finput, fkb, fedit, ftarget, _bsize, maxpad, maxpart, _maxtoken, minbsize):
 			rid = np_array(i_d, dtype=np_int32)
 			rkd = np_array(kd, dtype=np_int8)
 			red = np_array(ed, dtype=np_int8)

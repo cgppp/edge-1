@@ -8,6 +8,7 @@ pre_trained_m = None
 plm_vcb = None
 
 use_smooth_op_loss = label_smoothing
+mlm_enhance = 0.15
 token_drop = 0.0
 
 op_keep_bias = 0.0

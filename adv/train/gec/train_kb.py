@@ -9,7 +9,7 @@ from lrsch import CustLR as LRScheduler
 from parallel.optm import MultiGPUGradScaler
 from parallel.parallelMT import DataParallelMT
 from transformer.GECToR.KBNMT import NMT
-from utils.base import free_cache, get_logger, mkdir, set_random_seed
+from utils.base import exit_all, free_cache, get_logger, mkdir, set_random_seed
 from utils.contpara import get_model_parameters
 from utils.fmt.base import iter_to_str
 from utils.fmt.base4torch import load_emb, parse_cuda
@@ -17,6 +17,7 @@ from utils.fmt.gec.kb.floader.mixer import Loader as DataLoader
 from utils.h5serial import h5File, h5load
 from utils.init.base import init_model_params
 from utils.io import load_model_cpu, save_model, save_states
+from utils.mask.gec.kb import get_batch
 from utils.state.holder import Holder
 from utils.state.pyrand import PyRandomState
 from utils.state.thrand import THRandomState
@@ -34,7 +35,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 	sum_loss = part_loss = 0.0
 	sum_wd = part_wd = 0
 	_done_tokens, _cur_checkid, _cur_rstep, _use_amp = done_tokens, cur_checkid, remain_steps, scaler is not None
-	global minerr, minloss, wkdir, save_auto_clean, namin
+	global minerr, minloss, wkdir, save_auto_clean, namin, mlm_enhance
 	model.train()
 	cur_b, _ls = 1, {} if save_loss else None
 	#src_grp, edt_grp, tgt_grp = td["src"], td["edt"], td["tgt"]
@@ -48,6 +49,8 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 			seq_edt = seq_edt.to(mv_device, non_blocking=True)
 			seq_o = seq_o.to(mv_device, non_blocking=True)
 		seq_batch, seq_kb, seq_edt, seq_o = seq_batch.long(), seq_kb.long(), seq_edt.long(), seq_o.long()
+		if mlm_enhance > 0.0:
+			seq_batch, seq_kb, seq_edt, seq_o = get_batch(seq_batch, seq_kb, seq_edt, seq_o, p=mlm_enhance)
 
 		with torch_autocast(enabled=_use_amp):
 			loss = model(seq_batch, kb=seq_kb, edit=seq_edt, tgt=seq_o, prediction=False)[0]
@@ -187,6 +190,7 @@ save_every = cnfg.save_every
 start_chkp_save = cnfg.epoch_start_checkpoint_save
 epoch_save = cnfg.epoch_save
 remain_steps = cnfg.training_steps
+mlm_enhance = cnfg.mlm_enhance
 
 wkdir = "".join((cnfg.exp_dir, cnfg.data_id, "/", cnfg.group_id, "/", rid, "/"))
 mkdir(wkdir)
@@ -379,3 +383,5 @@ logger.info("model saved")
 
 td.close()
 vd.close()
+
+exit_all()
