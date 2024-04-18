@@ -26,7 +26,7 @@ class Loader(LoaderBase):
 	def loader(self):
 
 		rpyseed(rand_seed)
-		dloader = self.file_loader(self.loader, self.sfile, self.noiser, self.tokenizer, max_len=self.max_len)
+		dloader = self.file_loader(self.kbloader, self.sfile, self.noiser, self.tokenizer, max_len=self.max_len)
 		file_reader = sort_lines_reader(line_read=self.raw_cache_size)
 		while self.running.value:
 			if self.todo:
