@@ -1,40 +1,26 @@
 #encoding: utf-8
 
 import torch
-from multiprocessing import Manager, Value
 from numpy import array as np_array, int32 as np_int32, int8 as np_int8
 from os.path import exists as fs_check
 from random import seed as rpyseed, shuffle
-from shutil import rmtree
 from time import sleep
 
 from utils.fmt.gec.det.dual import batch_padder
 from utils.fmt.gec.det.freader import gec_noise_reader
-from utils.fmt.gec.noise.base import Noiser
-from utils.fmt.plm.custbert.token import Tokenizer
-from utils.fmt.raw.cachepath import get_cache_fname, get_cache_path
+from utils.fmt.gec.noise.floader import Loader as LoaderBase
 from utils.fmt.raw.reader.sort.tag import sort_lines_reader
 from utils.h5serial import h5File
-from utils.process import start_process
 
 from cnfg.gec.gector import noise_char, noise_vcb, plm_vcb, seed as rand_seed, unbalance_det
 from cnfg.ihyp import cache_len_default, h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
 
-class Loader:
+class Loader(LoaderBase):
 
 	def __init__(self, sfile, vcbf=plm_vcb, noise_char=noise_char, noise_vcb=noise_vcb, max_len=cache_len_default, num_cache=2, raw_cache_size=4194304, minfreq=False, ngpu=1, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, sleep_secs=1.0, norm_u8=False, file_loader=gec_noise_reader, unbalance_det=unbalance_det, print_func=print, **kwargs):
 
-		self.sfile, self.max_len, self.num_cache, self.raw_cache_size, self.minbsize, self.maxpad, self.maxpart, self.sleep_secs, self.file_loader, self.unbalance_det, self.print_func = sfile, max_len, num_cache, raw_cache_size, ngpu, maxpad, maxpart, sleep_secs, file_loader, unbalance_det, print_func
-		self.bsize, self.maxtoken = (bsize, maxtoken,) if self.minbsize == 1 else (bsize * self.minbsize, maxtoken * self.minbsize,)
-		self.cache_path = get_cache_path(self.sfile) if isinstance(self.sfile, str) else get_cache_path(*self.sfile)
-		self.tokenizer = Tokenizer(vcbf, norm_u8=norm_u8)
-		self.noiser = Noiser(char=noise_char, vcb=noise_vcb)
-		self.manager = Manager()
-		self.out = self.manager.list()
-		self.todo = self.manager.list([get_cache_fname(self.cache_path, i=_) for _ in range(self.num_cache)])
-		self.running = Value("B", 1, lock=True)
-		self.p_loader = start_process(target=self.loader)
-		self.iter = None
+		self.unbalance_det = unbalance_det
+		super(Loader, self).__init__(sfile, vcbf=vcbf, noise_char=noise_char, noise_vcb=noise_vcb, max_len=max_len, num_cache=num_cache, raw_cache_size=raw_cache_size, minfreq=minfreq, ngpu=ngpu, bsize=bsize, maxpad=maxpad, maxpart=maxpart, maxtoken=maxtoken, sleep_secs=sleep_secs, norm_u8=norm_u8, file_loader=file_loader, print_func=print_func, **kwargs)
 
 	def loader(self):
 
@@ -84,22 +70,3 @@ class Loader:
 					if self.print_func is not None:
 						self.print_func("close %s" % _cache_file)
 			self.todo.append(_cache_file)
-
-	def __call__(self, *args, **kwargs):
-
-		if self.iter is None:
-			self.iter = self.iter_func(*args, **kwargs)
-		for _ in self.iter:
-			yield _
-		self.iter = None
-
-	def status(self, mode=True):
-
-		with self.running.get_lock():
-			self.running.value = 1 if mode else 0
-
-	def close(self):
-
-		self.running.value = 0
-		sleep(self.sleep_secs)
-		rmtree(self.cache_path, ignore_errors=True)

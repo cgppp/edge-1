@@ -105,4 +105,18 @@ class Loader:
 
 		self.running.value = 0
 		sleep(self.sleep_secs)
+		if self.p_loader.is_alive():
+			try:
+				self.p_loader.terminate()
+			except Exception as e:
+				if self.print_func is not None:
+					self.print_func(e)
+			if self.p_loader.is_alive():
+				try:
+					self.p_loader.kill()
+				except Exception as e:
+					if self.print_func is not None:
+						self.print_func(e)
+		if not self.p_loader.is_alive():
+			self.p_loader.join(self.sleep_secs)
 		rmtree(self.cache_path, ignore_errors=True)

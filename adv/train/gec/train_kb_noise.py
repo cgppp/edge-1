@@ -9,7 +9,7 @@ from lrsch import CustLR as LRScheduler
 from parallel.optm import MultiGPUGradScaler
 from parallel.parallelMT import DataParallelMT
 from transformer.GECToR.KBNMT import NMT
-from utils.base import exit_all, free_cache, get_logger, mkdir, set_random_seed
+from utils.base import free_cache, get_logger, mkdir, set_random_seed
 from utils.contpara import get_model_parameters
 from utils.fmt.base import iter_to_str
 from utils.fmt.base4torch import load_emb, parse_cuda
@@ -380,5 +380,3 @@ logger.info("model saved")
 
 td.close()
 vd.close()
-
-exit_all()
