@@ -90,11 +90,11 @@ if $do_map; then
 fi
 
 export stsf=$wkd/src.train.srt$faext
-export ktsf=$wkd/edit.train.srt$faext
+export ktsf=$wkd/kb.train.srt$faext
 export etsf=$wkd/edit.train.srt$faext
 export ttsf=$wkd/tgt.train.srt$faext
 export sdsf=$wkd/src.dev.srt$faext
-export kdsf=$wkd/src.dev.srt$faext
+export kdsf=$wkd/kb.dev.srt$faext
 export edsf=$wkd/edit.dev.srt$faext
 export tdsf=$wkd/tgt.dev.srt$faext
 if $do_sort; then
