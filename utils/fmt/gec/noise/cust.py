@@ -6,9 +6,9 @@ from re import compile
 from utils.fmt.base import sys_open
 from utils.fmt.rext import SubPair, SubPairP
 
-mdate_search = compile("\d+月\d+日").search
+mdate_search = compile("\\d{1,2}月\\d{1,2}日").search
 renminzhengfu_sub = compile("[省市县区]人民政府").sub
-jiezhi_search = compile("截至\d+").search
+jiezhi_search = compile("截至\\d+").search
 didei_sub = compile("地|得").sub
 
 tihuan_file = "custdata/随机替换.txt"
