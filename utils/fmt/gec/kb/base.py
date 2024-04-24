@@ -37,15 +37,19 @@ def apply_op_ids(i, k, e, t, mask_id=mask_id, append_id=append_id, keep_id=keep_
 
 	return rsi, rsk, rse
 
-def merge_src_kb(src, kb, edit_vcb_diff=edit_vcb_diff):
+def merge_src_kb(src, kb=None, edit_vcb_diff=edit_vcb_diff):
 
-	kbf, m = zip(*seq_diff(src, kb))
+	if kb:
+		kbf, m = zip(*seq_diff(src, kb))
+		kbf = tuple(edit_vcb_diff[_] for _ in kbf)
+	else:
+		kbf, m = tuple(blank_id for _ in range(len(src))), src
 
-	return m, tuple(edit_vcb_diff[_] for _ in kbf)
+	return m, kbf
 
 def generate_iter_data(src, kb, tgt, mask_id=mask_id, edit_mask_id=edit_mask_id, blank_id=blank_id, delete_id=delete_id, insert_id=insert_id, keep_id=keep_id, append_id=append_id, eos_id=eos_id, op_pad_id=op_pad_id):
 
-	m_src, _kbf = merge_src_kb(src, kb) if kb else (src, [blank_id for _ in range(len(src))])
+	m_src, _kbf = merge_src_kb(src, kb)
 	_src, _tgt, _il, _iu, _prev_op = [], [], [], [], None
 	for _op, _token in seq_diff(m_src, tgt):
 		if _op == "i":
