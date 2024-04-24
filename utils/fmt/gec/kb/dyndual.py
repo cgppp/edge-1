@@ -10,7 +10,7 @@ from cnfg.vocab.plm.custbert import pad_id as mlm_pad_id
 
 pad_id = (mlm_pad_id, edit_pad_id)
 
-def batch_loader(finput, bsize, maxpad, maxpart, maxtoken, minbsize, get_bsize=get_bsize, file_reader=None, iter_to_int=iter_to_int, **kwargs):
+def batch_loader(finput, bsize, maxpad, maxpart, maxtoken, minbsize, get_bsize=get_bsize, file_reader=None, **kwargs):
 
 	_f_maxpart = float(maxpart)
 	rsi = []
