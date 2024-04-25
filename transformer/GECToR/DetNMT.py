@@ -29,11 +29,11 @@ class NMT(NMTBase):
 		if rel_pos_enabled:
 			share_rel_pos_cache(self)
 
-	def forward(self, inpute, mask=None, mlm_mask=None, word_prediction=True, **kwargs):
+	def forward(self, inpute, mask=None, mlm_mask=None, word_prediction=True, op_keep_bias=0.0, **kwargs):
 
 		_mask = inpute.eq(pad_id).unsqueeze(1) if mask is None else mask
 
-		return self.dec(self.enc(inpute, mask=_mask), mlm_mask=mlm_mask, word_prediction=word_prediction)
+		return self.dec(self.enc(inpute, mask=_mask), mlm_mask=mlm_mask, word_prediction=word_prediction, op_keep_bias=op_keep_bias)
 
 	def build_task_model(self, *args, **kwargs):
 

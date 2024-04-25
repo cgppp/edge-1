@@ -18,3 +18,4 @@ noise_char = None
 noise_vcb = None
 
 unbalance_det = True
+det_keep_bias = 0.0

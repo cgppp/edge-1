@@ -6,15 +6,19 @@ from modules.base import Linear
 from transformer.PLM.BERT.Decoder import Decoder as DecoderBase
 from utils.torch.comp import torch_no_grad
 
-from cnfg.vocab.gec.det import vocab_size as num_class
+from cnfg.vocab.gec.det import correct_id as op_keep_id, vocab_size as num_class
 
 class Decoder(DecoderBase):
 
-	def forward(self, inpute, *args, mlm_mask=None, word_prediction=True, **kwargs):
+	def forward(self, inpute, *args, mlm_mask=None, word_prediction=True, op_keep_bias=0.0, **kwargs):
 
 		out = self.ff(inpute.select(1, 0) if mlm_mask is None else inpute[mlm_mask])
 		if word_prediction:
-			out = self.lsm(self.classifier(out))
+			if op_keep_bias == 0.0:
+				out = self.lsm(self.classifier(out))
+			else:
+				out = self.classifier(out).softmax(-1)
+				out.select(-1, op_keep_id).add_(op_keep_bias)
 
 		return out
 

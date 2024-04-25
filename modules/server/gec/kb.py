@@ -4,58 +4,28 @@ import torch
 from math import ceil
 
 from parallel.parallelMT import DataParallelMT
-from transformer.GECToR.DetNMT import NMT
+from transformer.GECToR.KBNMT import NMT
 from utils.fmt.base import dict_insert_set, get_bsize, iter_dict_sort
 from utils.fmt.base4torch import parse_cuda_decode
-from utils.fmt.plm.custbert.single import batch_padder
+from utils.fmt.gec.kb.base import merge_src_kb
+from utils.fmt.gec.kb.dyndual import batch_padder
 from utils.fmt.plm.custbert.token import Tokenizer
 from utils.fmt.vocab.base import reverse_dict
 from utils.io import load_model_cpu
 from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
 
 from cnfg.ihyp import *
-from cnfg.vocab.gec.det import incorrect_id
-from cnfg.vocab.plm.custbert import vocab_size
+from cnfg.vocab.plm.custbert import eos_id, sos_id, vocab_size
 
 def load_fixing(module):
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
-def batch_loader(finput, bsize, maxpad, maxpart, maxtoken, minbsize, get_bsize=get_bsize, **kwargs):
-
-	_f_maxpart = float(maxpart)
-	rsi = []
-	nd = maxlen = minlen = mlen_i = 0
-	for i_d in finput:
-		i_d = list(i_d)
-		lgth = len(i_d)
-		if maxlen == 0:
-			_maxpad = max(1, min(maxpad, ceil(lgth / _f_maxpart)) // 2)
-			maxlen = lgth + _maxpad
-			minlen = lgth - _maxpad
-			_bsize = get_bsize(maxlen, maxtoken, bsize)
-		if (nd < minbsize) or (lgth <= maxlen and lgth >= minlen and nd < _bsize):
-			rsi.append(i_d)
-			if lgth > mlen_i:
-				mlen_i = lgth
-			nd += 1
-		else:
-			yield rsi, mlen_i
-			rsi = [i_d]
-			mlen_i = lgth
-			_maxpad = max(1, min(maxpad, ceil(lgth / _f_maxpart)) // 2)
-			maxlen = lgth + _maxpad
-			minlen = lgth - _maxpad
-			_bsize = get_bsize(maxlen, maxtoken, bsize)
-			nd = 1
-	if rsi:
-		yield rsi, mlen_i
-
 def sorti(lin):
 
 	data = {}
 	for ls in lin:
-		data = dict_insert_set(data, ls, len(ls))
+		data = dict_insert_set(data, ls, len(ls[0]))
 	for _ in iter_dict_sort(data, free=True):
 		yield from _
 
@@ -90,25 +60,38 @@ class Handler:
 		self.use_amp = cnfg.use_amp and self.use_cuda
 		self.beam_size = cnfg.beam_size
 		self.length_penalty = cnfg.length_penalty
-		self.op_keep_bias = cnfg.det_keep_bias
+		self.op_keep_bias = cnfg.op_keep_bias
+		self.edit_thres = cnfg.edit_thres
 
 	def __call__(self, sentences_iter, **kwargs):
 
-		_tok_ids = [tuple(self.tokenizer(_)) for _ in sentences_iter]
+		_tok_ids = [merge_src_kb(tuple(self.tokenizer(_s)), tuple(self.tokenizer(_k))) for _s, _k in sentences_iter]
 		_sorted_token_ids = list(sorti(_tok_ids))
 		_vcbt, _cuda_device, _multi_gpu, _use_amp = self.vcbt, self.cuda_device, self.multi_gpu, self.use_amp
 		rs = []
 		with torch_inference_mode():
-			for seq_batch in batch_padder(_sorted_token_ids, self.bsize, self.maxpad, self.maxpart, self.maxtoken, self.minbsize, batch_loader=batch_loader):
+			for seq_batch, seq_kb in batch_padder(_sorted_token_ids, self.bsize, self.maxpad, self.maxpart, self.maxtoken, self.minbsize):
 				_seq_batch = torch.as_tensor(seq_batch, dtype=torch.long, device=_cuda_device)
+				_seq_kb = torch.as_tensor(seq_kb, dtype=torch.long, device=_cuda_device)
 				with torch_autocast(enabled=_use_amp):
-					output = self.net(_seq_batch, word_prediction=True, op_keep_bias=self.op_keep_bias)
+					output = self.net.decode(_seq_batch, kb=_seq_kb, beam_size=self.beam_size, max_len=None, length_penalty=self.length_penalty, op_keep_bias=self.op_keep_bias, edit_thres=self.edit_thres)
 				if _multi_gpu:
+					tmp = []
 					for ou in output:
-						rs.extend(ou.argmax(-1).tolist())
-				else:
-					rs.extend(output.argmax(-1).tolist())
-				_seq_batch = None
+						tmp.extend(ou)
+					output = tmp
+				for tran in output:
+					tmp = []
+					_ = tran.tolist()
+					if _[0] == sos_id:
+						_ = _[1:]
+					for tmpu in _:
+						if tmpu == eos_id:
+							break
+						else:
+							tmp.append(_vcbt[tmpu])
+					rs.append("".join(tmp))
+				_seq_batch = _seq_kb = None
 		_mapd = {_k: _v for _k, _v in zip(_sorted_token_ids, rs)}
 
-		return [_mapd.get(_, incorrect_id) for _ in _tok_ids]
+		return [_mapd.get(_, "") for _ in _tok_ids]
