@@ -40,8 +40,11 @@ def apply_op_ids(i, k, e, t, mask_id=mask_id, append_id=append_id, keep_id=keep_
 def merge_src_kb(src, kb=None, edit_vcb_diff=edit_vcb_diff):
 
 	if kb:
-		kbf, m = zip(*seq_diff(src, kb))
-		kbf = tuple(edit_vcb_diff[_] for _ in kbf)
+		if src == kb:
+			kbf, m = tuple(keep_id for _ in range(len(src))), src
+		else:
+			kbf, m = zip(*seq_diff(src, kb))
+			kbf = tuple(edit_vcb_diff[_] for _ in kbf)
 	else:
 		kbf, m = tuple(blank_id for _ in range(len(src))), src
 
