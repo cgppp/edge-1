@@ -120,3 +120,46 @@ class GradientAdapter(nn.Module):
 	def forward(self, x, **kwargs):
 
 		return GradientAdapterFunc(x, self.min_sim)
+
+class MGradientAdapterFunction(Function):
+
+	@staticmethod
+	def forward(ctx, inputs, min_sim=0.0, k=2):
+
+		ctx.min_sim = min_sim
+
+		return tuple(inputs for _ in range(k))
+
+	@staticmethod
+	def backward(ctx, grad_main, *grad_sub):
+
+		_grad_input = None
+		if (grad_main is not None) and ctx.needs_input_grad[0]:
+			_min_sim = ctx.min_sim
+			if _min_sim == 0.0:
+				for _grad_subu in grad_sub:
+					_grad_input = (grad_main if _grad_input is None else _grad_input).addcmul(sim_func(grad_main, _grad_subu, dim=-1, keepdim=True).clamp_(min=0.0), _grad_subu)
+				else:
+					_grad_input = grad_main
+			else:
+				for _grad_subu in grad_sub:
+					_ = sim_func(grad_main, _grad_subu, dim=-1, keepdim=True)
+					_grad_input = (grad_main if _grad_input is None else _grad_input).addcmul(_.masked_fill_(_.lt(_min_sim), 0.0), _grad_subu)
+				else:
+					_grad_input = grad_main
+
+		return _grad_input, None, None
+
+MGradientAdapterFunc = MGradientAdapterFunction.apply
+
+class MGradientAdapter(nn.Module):
+
+	def __init__(self, min_sim=0.0, k=2, **kwargs):
+
+		super(MGradientAdapter, self).__init__()
+
+		self.min_sim, self.k = min_sim, k
+
+	def forward(self, x, **kwargs):
+
+		return MGradientAdapterFunc(x, self.min_sim, self.k)

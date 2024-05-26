@@ -32,9 +32,11 @@ class Decoder(DecoderBase):
 
 		_mask = self._get_subsequent_mask(nquery)
 
-		kd_o = []
+		_use_kd = self.training and (gold is not None)
+		if _use_kd:
+			kd_o = []
 		for prev_layer_ind, net in enumerate(self.nets):
-			if prev_layer_ind in self.kd_layers:
+			if _use_kd and (prev_layer_ind in self.kd_layers):
 				out, _ = GradientAdapterFunc(out, self.min_sim)
 				kd_o.append(_)
 			out = net(inpute, out, src_pad_mask, _mask)
@@ -45,7 +47,7 @@ class Decoder(DecoderBase):
 		_last_layer_out = out
 		out = self.lsm(self.classifier(out))
 
-		if self.training and (gold is not None):
+		if _use_kd:
 			if (prev_layer_ind + 1) in self.kd_layers:
 				kd_o.append(_last_layer_out)
 			return out, get_kd_loss(torch.stack(kd_o, dim=0), mask=gold.eq(pad_id) if gold_pad_mask is None else gold_pad_mask) if len(kd_o) > 1 else out.new_zeros(1)
