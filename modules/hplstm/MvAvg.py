@@ -42,7 +42,7 @@ class MvAvgFunction(Function):
 	def backward(ctx, grad_out):
 
 		if ctx.needs_input_grad[0]:
-			if x.size(1) > 1:
+			if grad_out.size(1) > 1:
 				if grad_out.is_cuda:
 					_ = grad_out.size()
 					grad_x = grad_out.new_empty(_)
