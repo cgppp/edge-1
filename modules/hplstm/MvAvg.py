@@ -15,7 +15,7 @@ except Exception as e:
 	import torch
 	if torch.cuda.is_available():
 		from torch.utils.cpp_extension import load
-		ml2mvavgs_cuda = load(name="ml2mvavgs_cuda", sources=["utils/cpp/hardlimit.h", "modules/cpp/hplstm/ml2mvavgs_cuda.cpp", "modules/cpp/hplstm/ml2mvavgs_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
+		ml2mvavgs_cuda = load(name="ml2mvavgs_cuda", sources=["modules/cpp/hplstm/ml2mvavgs_cuda.cpp", "modules/cpp/hplstm/ml2mvavgs_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
 	else:
 		ml2mvavgs_cuda = None
 
