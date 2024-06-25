@@ -19,7 +19,7 @@ rsl = []
 mbeta = 1.0 - beta
 for i in range(x.size(1)):
 	if i == 0:
-		rsl.append(x * mbeta)
+		rsl.append(x.select(1, 0) * mbeta)
 	else:
 		rsl.append(rsl[-1] * beta + x.select(1, i) * mbeta)
 rsl = torch.stack(rsl, 1)
