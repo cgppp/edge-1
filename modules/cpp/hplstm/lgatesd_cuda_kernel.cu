@@ -1,13 +1,7 @@
 #include <torch/extension.h>
 #include <cuda_runtime.h>
 #include <vector>
-
-#define MAX_GRID_SIZE 2147483647
-#define MAX_BLOCK_SIZE 1024
-#define BLOCK_SIZE_BASE 32
-#define MAX_Share_MEM 49152
-
-#define MAX_ISIZE_Share_MEM (MAX_Share_MEM / 4 )
+#include "utils/cpp/hardlimit.h"
 
 // observe serious performance degradation compared to lgates, unknown reason
 

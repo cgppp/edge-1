@@ -21,9 +21,9 @@ rsl = []
 _ag = a.sigmoid()
 for i in range(b.size(1)):
 	if i == 0:
-		rsl.append(c * _ag.select(1, 0) + b.select(1,0))
+		rsl.append(c * _ag.select(1, 0) + b.select(1, 0))
 	else:
-		rsl.append(rsl[-1] * _ag.select(1, i) + b.select(1,i))
+		rsl.append(rsl[-1] * _ag.select(1, i) + b.select(1, i))
 rsl = torch.stack(rsl, 1)
 print(rs)
 print(rsl)

@@ -96,3 +96,5 @@ def comb_grow(start, end, k, alpha=0.5):
 	beta = 1.0 - alpha
 
 	return [a * alpha + b * beta for a, b in zip(exp_grow(start, end, k), linear_grow(start, end, k))]
+
+mvavg_dist2beta = lambda d: float(d) / float(d + 1)

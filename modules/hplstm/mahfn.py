@@ -3,10 +3,10 @@
 import torch
 
 from modules.hplstm.LGate import LGateFunc
+from modules.hplstm.MvAvg import MvAvgFunc
 from modules.hplstm.hfn import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
 from utils.base import float2odd
 from utils.fmt.parser import parse_none
-from utils.torch.c import MovAvgFunc
 
 class MHPLSTMCore(MHPLSTMCoreBase):
 
@@ -20,7 +20,7 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 		bsize, seql, nheads, adim = heads_input.size()
 		if states is None:
-			csum = self.normer_csum(MovAvgFunc(torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim), heads_input.narrow(1, 0, seql - 1),), dim=1), 1, self.ma_beta, True))
+			csum = self.normer_csum(torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim), MvAvgFunc(heads_input.narrow(1, 0, seql - 1), self.ma_beta, True),), dim=1))
 		else:
 			_init_state = (states == "init")
 			if _init_state:

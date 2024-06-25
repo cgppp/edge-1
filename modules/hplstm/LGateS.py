@@ -13,16 +13,16 @@ try:
 	import lgates_cuda
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgates_cuda = load(name="lgates_cuda", sources=["modules/cpp/hplstm/lgates_cuda.cpp", "modules/cpp/hplstm/lgates_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
+	lgates_cuda = load(name="lgates_cuda", sources=["utils/cpp/hardlimit.h", "modules/cpp/hplstm/lgates_cuda.cpp", "modules/cpp/hplstm/lgates_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
 
 class LGateFunction(Function):
 
 	@staticmethod
 	def forward(ctx, fgate, igh, init_cell, inplace=False):
 
-		cell = igh if inplace else igh.new_empty(igh.size())
-		bsize, seql, nhead, isize = igh.size()
-		cell = (lgates_cuda if igh.is_cuda else lgates_cpp).forward(fgate, igh, init_cell, cell, bsize, seql, nhead, isize)
+		_ = igh.size()
+		cell = igh if inplace else igh.new_empty(_)
+		cell = (lgates_cuda if igh.is_cuda else lgates_cpp).forward(fgate, igh, init_cell, cell, *_)
 		ctx.save_for_backward(cell, fgate, init_cell)
 
 		return cell

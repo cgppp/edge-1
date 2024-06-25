@@ -6,16 +6,16 @@ from torch.utils.cpp_extension import load
 from cnfg.ihyp import extra_compile_args
 
 try:
-	import movavg_cpp
+	import mvavg_cpp
 except Exception as e:
-	movavg_cpp = load(name="movavg_cpp", sources=["utils/cpp/movavg.cpp"], extra_cflags=extra_compile_args)
+	mvavg_cpp = load(name="mvavg_cpp", sources=["utils/cpp/mvavg.cpp"], extra_cflags=extra_compile_args)
 
-class MovAvgFunction(Function):
+class MvAvgFunction(Function):
 
 	@staticmethod
 	def forward(ctx, x, dim=None, beta=0.9, inplace=False):
 
-		out = movavg_cpp.forward(x, dim, beta, inplace)
+		out = mvavg_cpp.forward(x, dim, beta, inplace)
 		ctx.dim, ctx.beta = dim, beta
 
 		return out
@@ -23,6 +23,6 @@ class MovAvgFunction(Function):
 	@staticmethod
 	def backward(ctx, grad_out):
 
-		return movavg_cpp.backward(grad_out, ctx.dim, ctx.beta), None, None, None
+		return mvavg_cpp.backward(grad_out, ctx.dim, ctx.beta), None, None, None
 
-MovAvgFunc = MovAvgFunction.apply
+MvAvgFunc = MvAvgFunction.apply
