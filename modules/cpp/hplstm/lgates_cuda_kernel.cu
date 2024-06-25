@@ -1,7 +1,7 @@
 #include <torch/extension.h>
 #include <cuda_runtime.h>
 #include <vector>
-#include "utils/cpp/hardlimit.h"
+#include "../../../utils/cpp/hardlimit.h"
 
 // fgate, igh, cell: (bsize, seql, nhead, isize)
 // init_cell: (nhead, isize)

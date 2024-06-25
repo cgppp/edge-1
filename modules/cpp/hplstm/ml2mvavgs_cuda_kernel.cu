@@ -1,6 +1,6 @@
 #include <torch/extension.h>
 #include <cuda_runtime.h>
-#include "utils/cpp/hardlimit.h"
+#include "../../../utils/cpp/hardlimit.h"
 
 // x, o: (bsize, seql, nhead, isize)
 template <typename scalar_t> __global__ void cuda_mvavg_(torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> x, torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> o, scalar_t beta, scalar_t mbeta, int bsize, int seqlen, int nhead, int isize) {
@@ -106,7 +106,7 @@ at::Tensor mvavg_cuda_forward(torch::Tensor x, torch::Tensor o, float beta, int 
 			AT_DISPATCH_FLOATING_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, x.scalar_type(), "mvavg_forward_cuda", ([&] {cuda_mvavg_<scalar_t><<<grid_size, block_size>>>(x.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(), o.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(), (scalar_t)beta, (scalar_t)mbeta, bsize, seqlen, nhead, isize);}));
 	}
 
-	return cell;
+	return o;
 }
 
 torch::Tensor mvavg_cuda_backward(torch::Tensor grad_o, torch::Tensor grad_x, float beta, int bsize, int seqlen, int nhead, int isize) {
