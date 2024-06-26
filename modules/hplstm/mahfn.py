@@ -6,26 +6,27 @@ from modules.hplstm.LGate import LGateFunc
 from modules.hplstm.MvAvg import MvAvgFunc
 from modules.hplstm.hfn import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
 from utils.base import float2odd
+from utils.fmt.math import mvavg_dist2beta
 from utils.fmt.parser import parse_none
 
 class MHPLSTMCore(MHPLSTMCoreBase):
 
-	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, act_drop=None, ma_beta=0.9, **kwargs):
+	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, act_drop=None, ma_beta=0.9, ma_dist=None, **kwargs):
 
 		super(MHPLSTMCore, self).__init__(isize, num_head=num_head, osize=osize, fhsize=fhsize, dropout=dropout, act_drop=act_drop, **kwargs)
 
-		self.ma_beta = ma_beta
+		self.ma_beta = ma_beta if ma_dist is None else mvavg_dist2beta(ma_dist)
 
 	def forward(self, heads_input, states=None, head_mask=None, **kwargs):
 
 		bsize, seql, nheads, adim = heads_input.size()
 		if states is None:
-			csum = self.normer_csum(torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim), MvAvgFunc(heads_input.narrow(1, 0, seql - 1), self.ma_beta, True),), dim=1))
+			csum = self.normer_csum(torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim), MvAvgFunc(heads_input.narrow(1, 0, seql - 1), self.ma_beta, False),), dim=1))
 		else:
 			_init_state = (states == "init")
 			if _init_state:
 				csum = self.normer_csum(heads_input.new_zeros(1, 1, nheads, adim)).expand(bsize, 1, nheads, adim)
-				csum_state_return = heads_input.mul_(1.0 - self.ma_beta)
+				csum_state_return = heads_input * (1.0 - self.ma_beta)
 			else:
 				_csum_state = states[0]
 				csum = self.normer_csum(_csum_state)
