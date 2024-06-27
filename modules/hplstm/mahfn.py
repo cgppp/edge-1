@@ -6,8 +6,8 @@ from modules.hplstm.LGate import LGateFunc
 from modules.hplstm.MvAvg import MvAvgFunc
 from modules.hplstm.hfn import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
 from utils.base import float2odd
-from utils.fmt.math import mvavg_dist2beta
 from utils.fmt.parser import parse_none
+from utils.math import mvavg_dist2beta
 
 class MHPLSTMCore(MHPLSTMCoreBase):
 
