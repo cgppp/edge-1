@@ -46,8 +46,8 @@ disable_std_pemb_encoder, disable_std_pemb_decoder = parse_double_value_tuple(di
 relpos_reduction_with_zeros = True
 
 # c compiler args
-extra_compile_args = ["-Ofast", "-march=native", "-pipe"]
-extra_cuda_compile_args = ["-Xptxas", "-O3", "--use_fast_math", "-arch=native"]
+extra_compile_args = ["-Ofast", "-march=native", "-pipe", "-std=c++20"]
+extra_cuda_compile_args = ["-Xptxas", "-O3", "--use_fast_math", "-arch=native", "--extra-device-vectorization", "--allow-unsupported-compiler", "-std=c++20"]
 
 # torch_compile args
 torch_compile_args = []
