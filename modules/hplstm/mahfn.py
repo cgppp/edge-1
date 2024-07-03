@@ -21,7 +21,12 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 		bsize, seql, nheads, adim = heads_input.size()
 		if states is None:
-			csum = self.normer_csum(torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim), MvAvgFunc(heads_input.narrow(1, 0, seql - 1), self.ma_beta, False),), dim=1))
+			# following 4 lines are memory friendly implementation of: torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim), MvAvgFunc(heads_input.narrow(1, 0, seql - 1), self.ma_beta, False, None),), dim=1)
+			csum = heads_input.new_empty(bsize, seql, nheads, adim)
+			csum.select(1, 0).zero_()
+			_ = seql - 1
+			MvAvgFunc(heads_input.narrow(1, 0, _), self.ma_beta, False, csum.narrow(1, 1, _))
+			csum = self.normer_csum(csum)
 		else:
 			_init_state = (states == "init")
 			if _init_state:

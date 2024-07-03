@@ -5,6 +5,8 @@ import torch
 from modules.hplstm.LGate import LGateFunc
 
 cuda_device = None#torch.device("cuda", 0)
+if not torch.cuda.is_available():
+	cuda_device = None
 if cuda_device is not None:
 	torch.cuda.set_device(cuda_device.index)
 

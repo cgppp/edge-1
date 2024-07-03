@@ -1,14 +1,15 @@
 #encoding: utf-8
 
+import torch
 from torch.autograd import Function
 
 from cnfg.ihyp import extra_compile_args, extra_cuda_compile_args
 
 try:
-	import mvavg_cpp
+	import clmvavg_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	mvavg_cpp = load(name="mvavg_cpp", sources=["utils/cpp/mvavg.cpp"], extra_cflags=extra_compile_args)
+	clmvavg_cpp = load(name="clmvavg_cpp", sources=["modules/cpp/hplstm/clmvavg.cpp"], extra_cflags=extra_compile_args)
 try:
 	import ml2mvavgs_cuda
 except Exception as e:
@@ -22,21 +23,22 @@ except Exception as e:
 class MvAvgFunction(Function):
 
 	@staticmethod
-	def forward(ctx, x, beta, inplace=False):
+	def forward(ctx, x, beta, inplace=False, out=None):
 
 		if x.size(1) > 1:
 			if x.is_cuda:
 				_ = x.size()
-				out = x if inplace else x.new_empty(_)
-				out = ml2mvavgs_cuda.forward(x, out, beta, *_)
+				_out = (x if inplace else x.new_empty(_)) if out is None else out
+				_out = ml2mvavgs_cuda.forward(x, _out, beta, *_)
 			else:
-				out = mvavg_cpp.forward(x, 1, beta, inplace)
+				_out = (x if inplace else x.clone()) if out is None else (out if out.is_set_to(x) else out.copy_(x))
+				_out = clmvavg_cpp.forward(x, _out, 1, beta)
 		else:
 			mbeta = 1.0 - beta
-			out = x.mul_(mbeta) if inplace else x.mul(mbeta)
+			_out = x.mul_(mbeta) if inplace and (out is None) else torch.mul(x, mbeta, out=out)
 		ctx.beta = beta
 
-		return out
+		return _out
 
 	@staticmethod
 	def backward(ctx, grad_out):
@@ -48,11 +50,11 @@ class MvAvgFunction(Function):
 					grad_x = grad_out.new_empty(_)
 					grad_x = ml2mvavgs_cuda.backward(grad_out, grad_x, ctx.beta, *_)
 				else:
-					grad_x = mvavg_cpp.backward(grad_out, 1, ctx.beta)
+					grad_x = clmvavg_cpp.backward(grad_out, 1, ctx.beta)
 			else:
 				grad_x = grad_out.mul(1.0 - ctx.beta)
-			return grad_x, None, None
+			return grad_x, None, None, None
 		else:
-			return None, None, None
+			return None, None, None, None
 
 MvAvgFunc = MvAvgFunction.apply
