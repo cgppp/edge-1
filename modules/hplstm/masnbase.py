@@ -3,7 +3,7 @@
 import torch
 
 from modules.hplstm.LGate import LGateFunc
-from modules.hplstm.MvAvg import MvAvgFunc
+from modules.hplstm.MvAvg import RS1MvAvg
 from modules.hplstm.snbase import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
 from utils.fmt.parser import parse_none
 from utils.math import mvavg_dist2beta
@@ -20,12 +20,7 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 		bsize, seql, nheads, adim = heads_input.size()
 		if states is None:
-			# following 4 lines are memory friendly implementation of: torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim), MvAvgFunc(heads_input.narrow(1, 0, seql - 1), self.ma_beta, False, None),), dim=1)
-			csum = heads_input.new_empty(bsize, seql, nheads, adim)
-			csum.select(1, 0).zero_()
-			_ = seql - 1
-			MvAvgFunc(heads_input.narrow(1, 0, _), self.ma_beta, False, csum.narrow(1, 1, _))
-			csum = self.normer_csum(csum)
+			csum = self.normer_csum(RS1MvAvg(heads_input, self.ma_beta, bsize, seql, nheads, adim))
 		else:
 			_init_state = (states == "init")
 			if _init_state:

@@ -58,3 +58,13 @@ class MvAvgFunction(Function):
 			return None, None, None, None
 
 MvAvgFunc = MvAvgFunction.apply
+
+def RS1MvAvg(x, ma_beta, bsize, seql, nheads, adim):
+
+	# following lines are memory friendly implementation of: torch.cat((x.new_zeros(bsize, 1, nheads, adim), MvAvgFunc(x.narrow(1, 0, seql - 1), ma_beta, False, None),), dim=1)
+	out = x.new_empty(bsize, seql, nheads, adim)
+	out.select(1, 0).zero_()
+	_ = seql - 1
+	MvAvgFunc(x.narrow(1, 0, _), ma_beta, False, out.narrow(1, 1, _))
+
+	return out
