@@ -8,7 +8,7 @@ try:
 	import lgatev_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgatev_cpp = load(name="lgatev_cpp", sources=["modules/cpp/hplstm/lgatev.cpp"], extra_cflags=extra_compile_args)
+	lgatev_cpp = load(name="lgatev_cpp", sources=["utils/cpp/hplstm/lgatev.cpp"], extra_cflags=extra_compile_args)
 
 class LGateFunction(Function):
 

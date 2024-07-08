@@ -3,8 +3,8 @@
 import torch
 from tqdm import tqdm
 
-from modules.hplstm.LGateS import LGateFunc as LGateFuncS
-from modules.hplstm.LGateV import LGateFunc as LGateFuncV
+from utils.hplstm.LGateS import LGateFunc as LGateFuncS
+from utils.hplstm.LGateV import LGateFunc as LGateFuncV
 
 cuda_device = torch.device("cuda", 0)
 dtype = torch.bfloat16

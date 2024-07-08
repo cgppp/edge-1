@@ -8,14 +8,14 @@ try:
 	import lgatev_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgatev_cpp = load(name="lgatev_cpp", sources=["modules/cpp/hplstm/lgatev.cpp"], extra_cflags=extra_compile_args)
+	lgatev_cpp = load(name="lgatev_cpp", sources=["utils/cpp/hplstm/lgatev.cpp"], extra_cflags=extra_compile_args)
 try:
 	import lgates_cuda
 except Exception as e:
 	import torch
 	if torch.cuda.is_available():
 		from torch.utils.cpp_extension import load
-		lgates_cuda = load(name="lgates_cuda", sources=["modules/cpp/hplstm/lgates_cuda.cpp", "modules/cpp/hplstm/lgates_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
+		lgates_cuda = load(name="lgates_cuda", sources=["utils/cpp/hplstm/lgates_cuda.cpp", "utils/cpp/hplstm/lgates_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
 	else:
 		lgates_cuda = None
 

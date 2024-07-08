@@ -1,7 +1,7 @@
 #include <torch/extension.h>
 #include <cuda_runtime.h>
 #include <vector>
-#include "../../../utils/cpp/hardlimit.h"
+#include "../hardlimit.h"
 
 // observe serious performance degradation compared to lgates, unknown reason
 

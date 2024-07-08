@@ -1,6 +1,6 @@
 #include <torch/extension.h>
 #include <cuda_runtime.h>
-#include "../../../utils/cpp/hardlimit.h"
+#include "../hardlimit.h"
 
 // x, o: (bsize, seql, nhead, isize)
 template <typename scalar_t> __global__ void cuda_mvavg_(torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> x, torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> o, scalar_t beta, scalar_t mbeta, int bsize, int seqlen, int nhead, int isize) {

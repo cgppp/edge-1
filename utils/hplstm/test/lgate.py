@@ -2,7 +2,7 @@
 
 import torch
 
-from modules.hplstm.LGate import LGateFunc
+from utils.hplstm.LGate import LGateFunc
 
 cuda_device = None#torch.device("cuda", 0)
 if not torch.cuda.is_available():

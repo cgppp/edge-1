@@ -8,7 +8,7 @@ try:
 	import lgatev_nocx_cpp
 except Exception as e:
 	from torch.utils.cpp_extension import load
-	lgatev_nocx_cpp = load(name="lgatev_nocx_cpp", sources=["modules/cpp/hplstm/lgatev_nocx.cpp"], extra_cflags=extra_compile_args)
+	lgatev_nocx_cpp = load(name="lgatev_nocx_cpp", sources=["utils/cpp/hplstm/lgatev_nocx.cpp"], extra_cflags=extra_compile_args)
 
 class LGateNocxFunction(Function):
 

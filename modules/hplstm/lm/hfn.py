@@ -2,8 +2,9 @@
 
 import torch
 
-from modules.hplstm.LGate import LGateFunc
 from modules.hplstm.hfn import HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
+from utils.hplstm.LGate import LGateFunc
+from utils.hplstm.RS1cumsum import RS1cumsumFunc
 
 class MHPLSTMCore(MHPLSTMCoreBase):
 
@@ -11,7 +12,7 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 		bsize, seql, nheads, adim = heads_input.size()
 		if states is None:
-			csum = self.normer_csum(torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim), heads_input.narrow(1, 0, seql - 1),), dim=1).cumsum(dim=1))
+			csum = self.normer_csum(RS1cumsumFunc(heads_input))
 		else:
 			_init_state = (states == "init")
 			csum = torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim) if _init_state else states[0], heads_input,), dim=1).cumsum(dim=1)

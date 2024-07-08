@@ -2,7 +2,7 @@
 
 import torch
 
-from modules.hplstm.MvAvg import MvAvgFunc
+from utils.hplstm.MvAvg import MvAvgFunc
 
 cuda_device = None#torch.device("cuda", 0)
 if not torch.cuda.is_available():
@@ -13,7 +13,7 @@ if cuda_device is not None:
 beta = 0.9
 x = torch.randn(2, 3, 2, 5, requires_grad=True, device=cuda_device)
 _x = x.clone()
-rs = MvAvgFunc(_x, beta, True, None)
+rs = MvAvgFunc(_x, beta, True)
 rs.sum().backward()
 xg = x.grad.clone()
 x.grad = None

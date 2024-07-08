@@ -6,9 +6,10 @@ from torch import nn
 from modules.act import Custom_Act
 from modules.base import Dropout, Linear
 from modules.group.base import GroupLinear
-from modules.hplstm.LGate import LGateFunc
 from utils.base import float2odd
 from utils.fmt.parser import parse_none
+from utils.hplstm.LGate import LGateFunc
+from utils.hplstm.RS1cumsum import RS1cumsumFunc
 from utils.torch.comp import flip_mask, torch_no_grad
 
 from cnfg.ihyp import *
@@ -44,7 +45,7 @@ class MHPLSTMCore(nn.Module):
 
 		bsize, seql, nheads, adim = heads_input.size()
 		if states is None:
-			csum = self.normer_csum(torch.cat((heads_input.new_zeros(bsize, 1, nheads, adim), heads_input.narrow(1, 0, seql - 1),), dim=1).cumsum(dim=1))
+			csum = self.normer_csum(RS1cumsumFunc(heads_input))
 		else:
 			_init_state = (states == "init")
 			if _init_state:
