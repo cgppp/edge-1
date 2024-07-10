@@ -31,13 +31,7 @@ class RS1cumsumFunction(Function):
 			_out = x.new_empty(bsize, seqlen, nhead, isize)
 			_out.select(1, 0).zero_()
 			_ = seqlen - 1
-			if _ > 1:
-				if x.is_cuda:
-					ml2cumsums_cuda.forward(x.narrow(1, 0, _), _out.narrow(1, 1, _), bsize, _, nhead, isize)
-				else:
-					clcumsum_cpp.forward(_out.narrow(1, 1, _).copy_(x.narrow(1, 0, _)), 1)
-			else:
-				_out.narrow(1, 1, _).copy_(x.narrow(1, 0, _))
+			torch.cumsum(x.narrow(1, 0, _), dim=1, out=_out.narrow(1, 1, _))
 		else:
 			_out = x.new_zeros(1, 1, 1, 1).expand(bsize, seqlen, nhead, isize)
 

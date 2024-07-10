@@ -25,16 +25,7 @@ class cumsumFunction(Function):
 	@staticmethod
 	def forward(ctx, x, inplace=False):
 
-		if x.size(1) > 1:
-			if x.is_cuda:
-				_ = x.size()
-				_out = ml2cumsums_cuda.forward(x, x if inplace else x.new_empty(_), *_)
-			else:
-				_out = clcumsum_cpp.forward(x if inplace else x.clone(), 1)
-		else:
-			_out = x if inplace else x.clone()
-
-		return _out
+		return torch.cumsum(x, dim=1, out=(x if inplace else None))
 
 	@staticmethod
 	def backward(ctx, grad_out):
