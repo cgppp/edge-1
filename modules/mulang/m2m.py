@@ -115,10 +115,7 @@ class SelfAttn(SelfAttnBase):
 		#if weight is not None:
 		#	out = out.transpose(-1, -2).contiguous().view(bsize, -1, ngroup).bmm(weight).view(bsize, nquery, self.osize, ngroup).transpose(-1, -2).contiguous()
 
-		if states is None:
-			return out
-		else:
-			return out, (real_iK, real_iV,)
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 class CrossAttn(CrossAttnBase):
 

@@ -45,10 +45,7 @@ class DecoderLayer(DecoderLayerBase):
 
 		context = self.ff(context)
 
-		if query_unit is None:
-			return context
-		else:
-			return context, states_return
+		return context if query_unit is None else (context, states_return,)
 
 	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 

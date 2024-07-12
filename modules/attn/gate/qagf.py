@@ -79,10 +79,7 @@ class SelfAttn(SelfAttnBase):
 		gate, ffn = self.trans_gf_ln(self.trans_gf(torch.cat((out, _real_iQ,), dim=-1)).view(bsize, nquery, nheads, 2, adim)).unbind(-2)
 		out = self.outer(self.ffn_act(ffn).addcmul(out, gate.sigmoid()).view(bsize, nquery, self.hsize))
 
-		if states is None:
-			return out
-		else:
-			return out, (real_iK, real_iV,)
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 class CrossAttn(CrossAttnBase):
 

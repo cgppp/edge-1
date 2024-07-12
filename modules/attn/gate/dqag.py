@@ -78,10 +78,7 @@ class SelfAttn(SelfAttnBase):
 		out = scores.matmul(real_iV).transpose(1, 2).contiguous()
 		out = self.outer((self.gate_act(self.gate_transa(out) + real_iQG) * out).view(bsize, nquery, self.hsize))
 
-		if states is None:
-			return out
-		else:
-			return out, (real_iK, real_iV,)
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 class CrossAttn(CrossAttnBase):
 

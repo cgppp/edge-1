@@ -382,10 +382,7 @@ class MultiHeadAttn(nn.Module):
 
 		out = self.outer(scores.matmul(real_iV).transpose(1, 2).contiguous().view(bsize, nquery, self.hsize))
 
-		if states is None:
-			return out
-		else:
-			return out, (real_iK, real_iV,)
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 	def train(self, mode=True):
 
@@ -522,10 +519,7 @@ class MultiHeadAttn(nn.Module):
 			if evaluation:
 				self.iK, self.real_iK, self.iV, self.real_iV = iK, real_iK, iV, real_iV
 
-		if states is None:
-			return rs["out"]
-		else:
-			return rs["out"], (real_iK, real_iV,)
+		return rs["out"] if states is None else (rs["out"], (real_iK, real_iV,),)
 
 # Accelerated MultiHeadAttn for self attention, use when Q == K == V
 class SelfAttn(nn.Module):
@@ -665,10 +659,7 @@ class SelfAttn(nn.Module):
 
 		out = self.outer(scores.matmul(real_iV).transpose(1, 2).contiguous().view(bsize, nquery, self.hsize))
 
-		if states is None:
-			return out
-		else:
-			return out, (real_iK, real_iV,)
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 	def get_rel_pos(self, length, sid=0):
 
@@ -1002,10 +993,7 @@ class ResMHAttn(nn.Module):
 			if evaluation:
 				self.net.iK, self.net.real_iK, self.net.iV, self.net.real_iV = iK, real_iK, iV, real_iV
 
-		if states is None:
-			return rs["out"]
-		else:
-			return rs["out"], (real_iK, real_iV,)
+		return rs["out"] if states is None else (rs["out"], (real_iK, real_iV,),)
 
 class ResSelfAttn(nn.Module):
 

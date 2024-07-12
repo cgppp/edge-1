@@ -98,7 +98,4 @@ class UniCFFN(BiCFFN):
 
 		out = out + (_out if self.norm_residual else x)
 
-		if states is None:
-			return out
-		else:
-			return out, states_return
+		return out if states is None else (out, states_return,)

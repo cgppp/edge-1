@@ -86,10 +86,7 @@ class SelfAttn(SelfAttnBase):
 
 		out = self.outer(torch.cat((l_scores.matmul(real_iV), r_scores.matmul(real_iV),), -1).transpose(1, 2).contiguous().view(bsize, nquery, self.hsize))
 
-		if states is None:
-			return out
-		else:
-			return out, (real_iK, real_iV,)
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 	def _get_directional_mask(self, length):
 

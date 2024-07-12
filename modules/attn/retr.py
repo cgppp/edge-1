@@ -120,10 +120,7 @@ class SelfAttn(SelfAttnBase):
 
 		out = self.outer(oMA.view(bsize, nquery, self.hsize))
 
-		if states is None:
-			return out
-		else:
-			return out, (real_iK, real_iV,)
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 	def reset_parameters(self):
 

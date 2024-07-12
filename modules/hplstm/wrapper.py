@@ -42,10 +42,7 @@ class LSTM4RNMT(nn.Module):
 			states_return = self.net(inpute.select(1, -1), _state)
 			out = states_return[0].unsqueeze(1)
 
-		if states is None:
-			return out
-		else:
-			return out, states_return
+		return out if states is None else (out, states_return,)
 
 	def fix_init(self):
 
@@ -83,10 +80,7 @@ class ATR(nn.Module):
 			states_return = _out
 			out = _out.unsqueeze(1)
 
-		if states is None:
-			return out
-		else:
-			return out, states_return
+		return out if states is None else (out, states_return,)
 
 	def fix_init(self):
 
@@ -126,7 +120,4 @@ class RNN(ATR):
 			states_return = _out
 			out = _out.unsqueeze(1)
 
-		if states is None:
-			return out
-		else:
-			return out, states_return
+		return out if states is None else (out, states_return,)

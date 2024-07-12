@@ -58,10 +58,7 @@ class DecoderLayer(DecoderLayerBase):
 
 		context = self.ff(context)
 
-		if query_unit is None:
-			return context
-		else:
-			return context, states_return
+		return context if query_unit is None else (context, states_return,)
 
 class Decoder(DecoderBase):
 

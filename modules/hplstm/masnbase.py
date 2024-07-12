@@ -20,16 +20,16 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 
 		bsize, seql, nheads, adim = heads_input.size()
 		if states is None:
-			csum = self.normer_csum(RS1MvAvgFunc(heads_input, self.ma_beta))
+			csum = self.normer_csum(RS1MvAvgFunc(heads_input.detach(), self.ma_beta))
 		else:
 			_init_state = (states == "init")
 			if _init_state:
 				csum = self.normer_csum(heads_input.new_zeros(1, 1, nheads, adim)).expand(bsize, 1, nheads, adim)
-				csum_state_return = heads_input * (1.0 - self.ma_beta)
+				csum_state_return = heads_input.detach() * (1.0 - self.ma_beta)
 			else:
 				_csum_state = states[0]
 				csum = self.normer_csum(_csum_state)
-				csum_state_return = _csum_state.mul_(self.ma_beta).add_(heads_input, alpha=1.0 - self.ma_beta)
+				csum_state_return = _csum_state.mul_(self.ma_beta).add_(heads_input.detach(), alpha=1.0 - self.ma_beta)
 		igate, fgate, hidden = self.trans_hid(torch.cat((heads_input, csum,), dim=-1)).view(bsize, seql, nheads, 3, -1).unbind(-2)
 		fgate = fgate.sigmoid()
 		hidden = self.act(hidden)
@@ -44,10 +44,7 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 		cell = LGateFunc(fgate, igh, self.init_cx, True) if states is None else igh.addcmul_(fgate, self.init_cx if _init_state else states[-1])
 		out = self.trans_og(torch.cat((heads_input, cell), dim=-1)).sigmoid() * cell
 
-		if states is None:
-			return out
-		else:
-			return out, (csum_state_return, cell,)
+		return out if states is None else (out, (csum_state_return, cell,),)
 
 class HPLSTM(HPLSTMBase):
 

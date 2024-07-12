@@ -108,7 +108,4 @@ class InferEmb(PropEmb):
 
 		out = out.mm(self.weight) if len(_osize) == 2 else out.view(-1, _osize[-1]).mm(self.weight).view(*_osize[:-1], self.weight.size(-1))
 
-		if states is None:
-			return out
-		else:
-			return out, states_return
+		return out if states is None else (out, states_return,)

@@ -43,10 +43,7 @@ class DecoderLayer(DecoderLayerBase):
 
 		context = self.ff(self.gr(_context_new, (_context if self.norm_residual else context)))
 
-		if query_unit is None:
-			return context
-		else:
-			return context, states_return
+		return context if query_unit is None else (context, states_return,)
 
 class Decoder(DecoderBase):
 

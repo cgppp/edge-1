@@ -53,10 +53,7 @@ class DecoderLayer(nn.Module):
 
 		context = self.ff(context)
 
-		if query_unit is None:
-			return context
-		else:
-			return context, states_return
+		return context if query_unit is None else (context, states_return,)
 
 # Not used, keep this class to remind the DecoderLayer implementation before v0.3.5.
 class NAWDecoderLayer(DecoderLayer):
@@ -112,10 +109,7 @@ class NAWDecoderLayer(DecoderLayer):
 
 		context = self.ff(context)
 
-		if query_unit is None:
-			return context
-		else:
-			return context, states_return
+		return context if query_unit is None else (context, states_return,)
 
 class Decoder(nn.Module):
 

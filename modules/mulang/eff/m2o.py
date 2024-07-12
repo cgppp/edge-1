@@ -93,10 +93,7 @@ class SelfAttn(SelfAttnBase):
 			del _osize[-2]
 			out = out.transpose(-1, -2).contiguous().view(-1, ngroup).mv(weight).view(_osize)
 
-		if states is None:
-			return out
-		else:
-			return out, (real_iK, real_iV,)
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 class CrossAttn(CrossAttnBase):
 

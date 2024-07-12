@@ -271,10 +271,7 @@ class SelfAttn(SelfAttnBase):
 		if self.outer is not None:
 			out = self.outer(out)
 
-		if states is None:
-			return out
-		else:
-			return out, (real_iK, real_iV,)
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 class ResSelfAttn(ResSelfAttnBase):
 
