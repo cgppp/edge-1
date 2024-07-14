@@ -42,7 +42,7 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 		cell = LGateFunc(fgate, igh, self.init_cx, True) if states is None else igh.addcmul_(fgate, self.init_cx if _init_state else states[-1])
 		out = self.trans_og(torch.cat((heads_input, cell), dim=-1)).sigmoid() * cell
 
-		return out if if states is None else (out, cell,)
+		return out if states is None else (out, cell,)
 
 class HPLSTM(HPLSTMBase):
 
