@@ -283,7 +283,7 @@ else:
 optimizer.zero_grad(set_to_none=optm_step_zero_grad_set_none)
 src_tgt_m, tgt_src_m = DataParallelMT(src_tgt_m, device_ids=cuda_devices, output_device=cuda_device.index, host_replicate=True, gather_output=True), DataParallelMT(tgt_src_m, device_ids=cuda_devices, output_device=cuda_device.index, host_replicate=True, gather_output=True)
 
-lrsch = LRScheduler(optimizer, cnfg.isize, cnfg.warm_step, scale=cnfg.lr_scale)
+lrsch = LRScheduler(optimizer, cnfg.warm_step, dmodel=cnfg.isize, scale=cnfg.lr_scale)
 
 mymodel = torch_compile(mymodel, *torch_compile_args, **torch_compile_kwargs)
 lossf = torch_compile(lossf, *torch_compile_args, **torch_compile_kwargs)

@@ -263,7 +263,7 @@ else:
 optimizer.zero_grad(set_to_none=optm_step_zero_grad_set_none)
 
 # lrsch.step() will be automatically called with the constructor
-lrsch = LRScheduler(optimizer, cnfg.isize, cnfg.warm_step, scale=cnfg.lr_scale)
+lrsch = LRScheduler(optimizer, cnfg.warm_step, dmodel=cnfg.isize, scale=cnfg.lr_scale)
 
 mymodel = torch_compile(mymodel, *torch_compile_args, **torch_compile_kwargs)
 lossf = torch_compile(lossf, *torch_compile_args, **torch_compile_kwargs)

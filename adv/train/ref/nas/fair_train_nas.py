@@ -371,11 +371,11 @@ if multi_gpu:
 
 _warm_lr = int(cnfg.warm_step / (arch_steps + model_steps) * model_steps)
 _warm_arch = cnfg.warm_step - _warm_lr
-lrsch = LRScheduler(optimizer, cnfg.isize, _warm_lr)
+lrsch = LRScheduler(optimizer, _warm_lr, dmodel=cnfg.isize, scale=cnfg.lr_scale)
 
 mymodel = torch_compile(mymodel, *torch_compile_args, **torch_compile_kwargs)
 lossf = torch_compile(lossf, *torch_compile_args, **torch_compile_kwargs)
-lrsch_arch = LRScheduler(optimizer, cnfg.isize, _warm_arch)
+lrsch_arch = LRScheduler(optimizer, _warm_arch, dmodel=cnfg.isize, scale=cnfg.lr_scale)
 
 mymodel = torch_compile(mymodel, *torch_compile_args, **torch_compile_kwargs)
 lossf = torch_compile(lossf, *torch_compile_args, **torch_compile_kwargs)

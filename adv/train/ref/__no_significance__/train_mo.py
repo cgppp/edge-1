@@ -297,7 +297,7 @@ if multi_gpu:
 	lossf = DataParallelCriterion(lossf, device_ids=cuda_devices, output_device=cuda_device.index, replicate_once=True)
 
 # lr for rmsprop, pytorch default. https://pytorch.org/docs/stable/optim.html
-lrsch = [LRScheduler(optimizer[0], cnfg.isize, cnfg.warm_step, scale=cnfg.lr_scale), InverseSqrtLR(optimizer[1], lr=init_lr, min_lr=1e-7), InverseSqrtLR(optimizer[-1], lr=init_lr, min_lr=1e-7)]#[LRScheduler(optm, cnfg.isize, cnfg.warm_step, scale=cnfg.lr_scale) for optm in optimizer]
+lrsch = [LRScheduler(optimizer[0], cnfg.warm_step, dmodel=cnfg.isize, scale=cnfg.lr_scale), InverseSqrtLR(optimizer[1], lr=init_lr, min_lr=1e-7), InverseSqrtLR(optimizer[-1], lr=init_lr, min_lr=1e-7)]#[LRScheduler(optm, cnfg.warm_step, dmodel=cnfg.isize, scale=cnfg.lr_scale) for optm in optimizer]
 
 state_holder = None if statesf is None and cnt_states is None else Holder(**{"optm": optimizer[0], "lrsch": lrsch, "pyrand": PyRandomState(), "thrand": THRandomState(use_cuda=use_cuda)})
 

@@ -335,7 +335,7 @@ iter_remain_steps = (adv_steps + cnfg.adv_add_init_steps_ext) if train_adv else 
 mask_ratio, random_ratio, len_ratio = cnfg.mask_ratio, cnfg.random_ratio, cnfg.len_ratio
 mask_ratio, random_ratio = update_p(mask_ratio, random_ratio)
 
-lrsch = None#LRScheduler(optimizer[0], cnfg.isize, cnfg.warm_step)
+lrsch = None#LRScheduler(optimizer[0], cnfg.warm_step, dmodel=cnfg.isize, scale=cnfg.lr_scale)
 
 state_holder = None if statesf is None and cnt_states is None else Holder(**{"optm": optimizer[0], "lrsch": lrsch, "pyrand": PyRandomState(), "thrand": THRandomState(use_cuda=use_cuda)})
 
