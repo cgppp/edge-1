@@ -7,7 +7,7 @@ from cnfg.ihyp import init_lr
 
 class GoogleLR(_LRScheduler):
 
-	def __init__(self, optimizer, warm_steps, dmodel=None, last_epoch=-1, cur_step=0, **kwargs):
+	def __init__(self, optimizer, warm_steps, dmodel=None, scale=1.0, last_epoch=-1, cur_step=0, **kwargs):
 
 		self.cur_step, self.warm_steps, self.k = cur_step, warm_steps, scale / sqrt(dmodel)
 		self.wk = self.k / (warm_steps ** 1.5)
