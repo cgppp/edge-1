@@ -24,11 +24,11 @@ class MHPLSTMCore(nn.Module):
 		_osize = parse_none(osize, isize)
 
 		i_head_dim = float2odd(float(isize) / num_head)
-		i_hsize = i_head_dim * num_head
+		i_hsize = num_head * i_head_dim
 		o_head_dim = float2odd(float(_osize) / num_head)
-		o_hsize = o_head_dim * num_head
+		o_hsize = num_head * o_head_dim
 
-		self.trans_hid = GroupLinear(i_hsize + i_hsize, o_hsize * 3, num_head, bias=True, shuffle=False, trans_input=False, flatten_output=False)
+		self.trans_hid = GroupLinear(i_hsize + i_hsize, 3 * o_hsize, num_head, bias=True, shuffle=False, trans_input=False, flatten_output=False)
 		self.trans_og = GroupLinear(i_hsize + o_hsize, o_hsize, num_head, bias=True, shuffle=False, trans_input=False, flatten_output=False)
 
 		self.normer_csum = nn.LayerNorm((num_head, i_head_dim), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)

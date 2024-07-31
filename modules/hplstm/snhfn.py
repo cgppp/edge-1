@@ -26,13 +26,14 @@ class MHPLSTMCore(nn.Module):
 		_act_drop = parse_none(act_drop, dropout)
 
 		i_head_dim = float2odd(float(isize) / num_head)
-		i_hsize = i_head_dim * num_head
+		i_hsize = num_head * i_head_dim
 		o_head_dim = float2odd(float(_osize) / num_head)
-		o_hsize = o_head_dim * num_head
-		_head_fhsize = float2odd(float(o_hsize * 4 if fhsize is None else fhsize) / num_head)
+		o_hsize = num_head * o_head_dim
+
+		_head_fhsize = float2odd(float((4 * o_hsize) if fhsize is None else fhsize) / num_head)
 		if (use_glu is not None) and (_head_fhsize % 2 == 1):
 			_head_fhsize += 1
-		_fhsize = _head_fhsize * num_head
+		_fhsize = num_head * _head_fhsize
 
 		_ = [GroupLinearCore(i_hsize + i_hsize, _fhsize, num_head, bias=True)]
 		_drop_ind = 2

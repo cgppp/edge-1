@@ -1,0 +1,117 @@
+#encoding: utf-8
+
+import torch
+from torch import nn
+
+from modules.base import Dropout
+from modules.group.base import GroupLinear
+from modules.hplstm.snbase import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, MHPLSTMCore as MHPLSTMCoreBase, ResHPLSTM as ResHPLSTMBase
+from utils.base import float2odd
+from utils.fmt.parser import parse_none
+from utils.hplstm.MemLGate import LGateFunc
+from utils.hplstm.RS1cumsum import RS1cumsumFunc
+
+from cnfg.ihyp import *
+
+class MHPLSTMCore(MHPLSTMCoreBase):
+
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, nbank=None, **kwargs):
+
+		_osize = parse_none(osize, isize)
+		i_head_dim = float2odd(float(isize) / num_head)
+		i_hsize = num_head * i_head_dim
+		o_head_dim = float2odd(float(_osize) / num_head)
+		o_hsize = num_head * o_head_dim
+
+		super(MHPLSTMCore, self).__init__(isize, num_head=num_head, osize=_osize, act_drop=act_drop, **kwargs)
+
+		_nbank = parse_none(nbank, o_head_dim)
+
+		self.trans_hid = GroupLinear(i_hsize + i_hsize, 3 * (o_hsize + num_head * _nbank), num_head, bias=True, shuffle=False, trans_input=False, flatten_output=False)
+
+		self.m_drop = Dropout(act_drop, inplace=False) if act_drop > 0.0 else None
+		self.init_cx = nn.Parameter(torch.zeros(num_head, o_head_dim, _nbank))
+
+	def forward(self, heads_input, states=None, head_mask=None, **kwargs):
+
+		bsize, seql, nheads, adim = heads_input.size()
+		if states is None:
+			csum = self.normer_csum(RS1cumsumFunc(heads_input.detach()))
+		else:
+			_init_state = (states == "init")
+			if _init_state:
+				csum = self.normer_csum(heads_input.new_zeros(1, 1, nheads, adim)).expand(bsize, 1, nheads, adim)
+				csum_state_return = heads_input.detach()
+			else:
+				_csum_state = states[0]
+				csum = self.normer_csum(_csum_state)
+				csum_state_return = _csum_state + heads_input.detach()
+		o_head_dim, nbank = self.init_cx.size()[1:]
+		# (bsize, seql, nheads, 2 * i_head_dim) -> (bsize, seql, nheads, 3 * (o_head_dim + _nbank))
+		_ = self.trans_hid(torch.cat((heads_input, csum,), dim=-1))
+		_nh = nheads * 3 * o_head_dim
+		(igate, fgate, hidden,), (bigate, bfgate, bog,) = _.narrow(-1, 0, _nh).view(bsize, seql, nheads, 3, -1).unbind(-2), _.narrow(-1, _nh, nheads * 3 * nbank).view(bsize, seql, nheads, 3, nbank).unbind(-2)#.sigmoid() if bog uses sigmoid instead of softmax
+		fgate, bigate, bfgate, bog = fgate.sigmoid(), bigate.sigmoid(), bfgate.sigmoid(), bog.softmax(-1)
+		hidden = self.act(hidden)
+
+		if self.drop is not None:
+			hidden = self.drop(hidden)
+		igh = igate.sigmoid() * hidden
+		if head_mask is not None:
+			fgate = fgate.masked_fill(head_mask, 1.0)
+			igh.masked_fill_(head_mask, 0.0)
+			bfgate = bfgate.masked_fill(head_mask, 1.0)
+
+		cell = LGateFunc(fgate, igh, self.init_cx, bfgate, bigate) if states is None else igh.unsqueeze(-1).mul(bigate.unsqueeze(-2)).addcmul(fgate.unsqueeze(-1) * bfgate.unsqueeze(-2), self.init_cx if _init_state else states[-1])
+		if self.m_drop is not None:
+			bog = self.m_drop(bog)
+		out = self.trans_og(torch.cat((heads_input, cell), dim=-1)).sigmoid() * cell.matmul(bog.unsqueeze(-1)).squeeze(-1)
+
+		return out if states is None else (out, (csum_state_return, cell,),)
+
+class HPLSTM(HPLSTMBase):
+
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, nbank=None, MHPLSTMCore=MHPLSTMCore, **kwargs):
+
+		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=osize, act_drop=act_drop, nbank=nbank, MHPLSTMCore=MHPLSTMCore, **kwargs)
+
+class BiHPLSTM(BiHPLSTMBase):
+
+	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, nbank=None, MHPLSTMCore=MHPLSTMCore, **kwargs):
+
+		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=osize, act_drop=act_drop, nbank=nbank, MHPLSTMCore=MHPLSTMCore, **kwargs)
+
+class ResHPLSTM(ResHPLSTMBase):
+
+	def __init__(self, isize, num_head=8, dropout=0.0, act_drop=None, nbank=None, HPLSTM=HPLSTM, norm_residual=norm_residual_default, **kwargs):
+
+		super(ResHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=parse_none(act_drop, dropout), nbank=nbank, HPLSTM=HPLSTM, **kwargs)
+
+		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
+		self.norm_residual = norm_residual
+
+	def forward(self, iQ, *inputs, **kwargs):
+
+		_iQ = self.normer(iQ)
+
+		outs = self.net(_iQ, *inputs, **kwargs)
+
+		if isinstance(outs, tuple):
+			_out = outs[0]
+
+			if self.drop is not None:
+				_out = self.drop(_out)
+
+			return _out + (_iQ if self.norm_residual else iQ), *outs[1:]
+
+		else:
+			if self.drop is not None:
+				outs = self.drop(outs)
+
+			return outs + (_iQ if self.norm_residual else iQ)
+
+class ResBiHPLSTM(ResHPLSTM):
+
+	def __init__(self, isize, num_head=8, dropout=0.0, act_drop=None, nbank=None, HPLSTM=BiHPLSTM, norm_residual=norm_residual_default, **kwargs):
+
+		super(ResBiHPLSTM, self).__init__(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, nbank=nbank, HPLSTM=HPLSTM, norm_residual=norm_residual, **kwargs)

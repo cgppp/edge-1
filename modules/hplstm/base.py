@@ -23,11 +23,11 @@ class MHPLSTMCore(nn.Module):
 		_osize = parse_none(osize, isize)
 
 		i_head_dim = float2odd(float(isize) / num_head)
-		i_hsize = i_head_dim * num_head
+		i_hsize = num_head * i_head_dim
 		o_head_dim = float2odd(float(_osize) / num_head)
-		o_hsize = o_head_dim * num_head
+		o_hsize = num_head * o_head_dim
 
-		self.trans_hid = GroupLinear(i_hsize + i_hsize, o_hsize * 3, num_head, bias=enable_bias, shuffle=False, trans_input=False, flatten_output=False)
+		self.trans_hid = GroupLinear(i_hsize + i_hsize, 3 * o_hsize, num_head, bias=enable_bias, shuffle=False, trans_input=False, flatten_output=False)
 		self.trans_og = nn.Sequential(GroupLinear(i_hsize + o_hsize, o_hsize, num_head, bias=enable_bias, shuffle=False, trans_input=False, flatten_output=False), nn.LayerNorm((num_head, o_head_dim), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters))
 
 		self.normer_csum = nn.LayerNorm((num_head, i_head_dim), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
@@ -83,10 +83,10 @@ class HPLSTM(nn.Module):
 		super(HPLSTM, self).__init__()
 
 		_osize = parse_none(osize, isize)
-		o_hsize = float2odd(float(_osize) / num_head) * num_head
+		o_hsize = num_head * float2odd(float(_osize) / num_head)
 
 		self.head_dim = float2odd(float(isize) / num_head)
-		i_hsize = self.head_dim * num_head
+		i_hsize = num_head * self.head_dim
 		self.num_head = num_head
 
 		self.trans_input = Linear(isize, i_hsize, bias=enable_proj_bias)
@@ -114,10 +114,10 @@ class BiHPLSTM(nn.Module):
 		super(BiHPLSTM, self).__init__()
 
 		_osize = parse_none(osize, isize)
-		o_hsize = float2odd(float(_osize) / num_head) * num_head
+		o_hsize = num_head * float2odd(float(_osize) / num_head)
 
 		self.head_dim = float2odd(float(isize) / num_head)
-		i_hsize = self.head_dim * num_head
+		i_hsize = num_head * self.head_dim
 		self.num_head = num_head
 
 		self.trans_input = Linear(isize, i_hsize + i_hsize, bias=enable_proj_bias)

@@ -19,12 +19,11 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 	def __init__(self, isize, num_head=8, osize=None, fhsize=None, act_drop=0.0, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, use_glu=use_glu_ffn, **kwargs):
 
 		_osize = parse_none(osize, isize)
-
-		i_hsize = float2odd(float(isize) / num_head) * num_head
-		o_hsize = float2odd(float(_osize) / num_head) * num_head
-		_fhsize = o_hsize * 4 if fhsize is None else fhsize
-		_head_fhsize =float2odd(float(_fhsize) / num_head)
-		_fhsize = _head_fhsize * num_head
+		i_hsize = num_head * float2odd(float(isize) / num_head)
+		o_hsize = num_head * float2odd(float(_osize) / num_head)
+		_fhsize = (4 * o_hsize) if fhsize is None else fhsize
+		_head_fhsize = float2odd(float(_fhsize) / num_head)
+		_fhsize = num_head * _head_fhsize
 
 		super(MHPLSTMCore, self).__init__(isize, num_head=num_head, osize=_osize, act_drop=act_drop, custom_act=custom_act, enable_bias=enable_bias)
 
@@ -82,8 +81,8 @@ class HPLSTM(HPLSTMBase):
 	def __init__(self, isize, num_head=8, osize=None, fhsize=None, act_drop=0.0, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
 		_osize = parse_none(osize, isize)
-		o_hsize = float2odd(float(_osize) / num_head) * num_head
-		_fhsize = float2odd(float(_osize * 4 if fhsize is None else fhsize) / num_head) * num_head
+		o_hsize = num_head * float2odd(float(_osize) / num_head)
+		_fhsize = num_head * float2odd(float(_osize * 4 if fhsize is None else fhsize) / num_head)
 
 		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize, **kwargs)
 
@@ -92,7 +91,7 @@ class BiHPLSTM(BiHPLSTMBase):
 	def __init__(self, isize, num_head=8, osize=None, fhsize=None, act_drop=0.0, **kwargs):
 
 		_osize = parse_none(osize, isize)
-		_fhsize = float2odd(float(_osize * 4 if fhsize is None else fhsize) / num_head) * num_head
+		_fhsize = num_head * float2odd(float(_osize * 4 if fhsize is None else fhsize) / num_head)
 
 		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize + _fhsize, **kwargs)
 

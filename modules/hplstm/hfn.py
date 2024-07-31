@@ -25,13 +25,13 @@ class MHPLSTMCore(nn.Module):
 		_act_drop = parse_none(act_drop, dropout)
 
 		i_head_dim = float2odd(float(isize) / num_head)
-		i_hsize = i_head_dim * num_head
+		i_hsize = num_head * i_head_dim
 		o_head_dim = float2odd(float(_osize) / num_head)
-		o_hsize = o_head_dim * num_head
-		_head_fhsize = float2odd(float(o_hsize * 4 if fhsize is None else fhsize) / num_head)
+		o_hsize = num_head * o_head_dim
+		_head_fhsize = float2odd(float((4 * o_hsize) if fhsize is None else fhsize) / num_head)
 		if (use_glu is not None) and (_head_fhsize % 2 == 1):
 			_head_fhsize += 1
-		_fhsize = _head_fhsize * num_head
+		_fhsize = num_head * _head_fhsize
 
 		_ = [GroupLinear(i_hsize + i_hsize, _fhsize, num_head, bias=enable_bias, shuffle=False, trans_input=False, flatten_output=False), nn.LayerNorm((num_head, _head_fhsize), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)]
 		_drop_ind = 3
@@ -97,8 +97,8 @@ class HPLSTM(HPLSTMBase):
 	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, act_drop=None, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
 		_osize = parse_none(osize, isize)
-		o_hsize = float2odd(float(_osize) / num_head) * num_head
-		_fhsize = float2odd(float(o_hsize * 4 if fhsize is None else fhsize) / num_head) * num_head
+		o_hsize = num_head * float2odd(float(_osize) / num_head)
+		_fhsize = num_head * float2odd(float((4 * o_hsize) if fhsize is None else fhsize) / num_head)
 
 		super(HPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize, **kwargs)
 
@@ -107,8 +107,8 @@ class BiHPLSTM(BiHPLSTMBase):
 	def __init__(self, isize, num_head=8, osize=None, fhsize=None, dropout=0.0, act_drop=None, MHPLSTMCore=MHPLSTMCore, **kwargs):
 
 		_osize = parse_none(osize, isize)
-		o_hsize = float2odd(float(_osize) / num_head) * num_head
-		_fhsize = float2odd(float(o_hsize * 4 if fhsize is None else fhsize) / num_head) * num_head
+		o_hsize = num_head * float2odd(float(_osize) / num_head)
+		_fhsize = num_head * float2odd(float((4 * o_hsize) if fhsize is None else fhsize) / num_head)
 
 		# modules.hplstm.base.BiHPLSTM will double num_head and osize but not fhsize
 		super(BiHPLSTM, self).__init__(isize, num_head=num_head, osize=_osize, dropout=dropout, act_drop=act_drop, MHPLSTMCore=MHPLSTMCore, fhsize=_fhsize + _fhsize, **kwargs)

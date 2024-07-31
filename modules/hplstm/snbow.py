@@ -15,15 +15,14 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 	def __init__(self, isize, num_head=8, osize=None, act_drop=0.0, custom_act=use_adv_act_default, **kwargs):
 
 		_osize = parse_none(osize, isize)
-
 		i_head_dim = float2odd(float(isize) / num_head)
-		i_hsize = i_head_dim * num_head
+		i_hsize = num_head * i_head_dim
 		o_head_dim = float2odd(float(_osize) / num_head)
-		o_hsize = o_head_dim * num_head
+		o_hsize = num_head * o_head_dim
 
 		super(MHPLSTMCore, self).__init__(isize, num_head=num_head, osize=_osize, act_drop=act_drop, custom_act=custom_act, **kwargs)
 
-		self.trans_hid = GroupLinear(i_hsize, o_hsize * 3, num_head, bias=True, shuffle=False, trans_input=False, flatten_output=False)
+		self.trans_hid = GroupLinear(i_hsize, 3 * o_hsize, num_head, bias=True, shuffle=False, trans_input=False, flatten_output=False)
 
 	def forward(self, heads_input, states=None, head_mask=None, **kwargs):
 
