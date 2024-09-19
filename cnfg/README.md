@@ -207,6 +207,9 @@ use_inference_mode = True
 # enable torch checks, only support anomaly detection for the autograd engine currently.
 enable_torch_check = True
 
+# default device type for torch.amp.autocast
+torch_amp_autocast_device_type = "cuda"
+
 # accelerate optimizer by using contigous parameters and gradients. Disabling it leads to better performance.
 contiguous_parameters = False
 

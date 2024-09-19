@@ -4,7 +4,7 @@ import torch
 
 from utils.func import identity_func
 
-from cnfg.ihyp import allow_fp16_reduction, allow_tf32, enable_torch_check, use_deterministic, use_inference_mode, use_torch_compile
+from cnfg.ihyp import allow_fp16_reduction, allow_tf32, enable_torch_check, torch_amp_autocast_device_type, use_deterministic, use_inference_mode, use_torch_compile
 
 secure_type_map = {torch.float16: torch.float64, torch.float32: torch.float64, torch.uint8: torch.int64, torch.int8: torch.int64, torch.int16: torch.int64, torch.int32: torch.int64}
 
@@ -178,14 +178,34 @@ else:
 	torch_any_wodim = torch_any_byte_wodim
 	flip_mask = flip_mask_byte
 
-# handling torch.cuda.amp, fp16 will NOT be really enabled if torch.cuda.amp does not exist (for early versions)
+# handling torch.cuda.amp, fp16 will NOT be really enabled if torch.amp or torch.cuda.amp does not exist (for early versions)
+_use_torch_amp_autocast = hasattr(torch, "amp") and hasattr(torch.amp, "autocast") and hasattr(torch.amp, "GradScaler")
+_Autocast_Default_Device_Type_Base, _GradScaler_Default_Device_Type_Base = (torch.amp.autocast, torch.amp.GradScaler,) if _use_torch_amp_autocast else (EmptyAutocast, EmptyGradScaler,)
+
+class torch_autocast_default_device(_Autocast_Default_Device_Type_Base):
+
+	def __init__(self, device_type=torch_amp_autocast_device_type, dtype=None, enabled=True, cache_enabled=None, **kwargs):
+
+		super(torch_autocast_default_device, self).__init__(device_type, dtype=dtype, enabled=enabled, cache_enabled=cache_enabled, **kwargs)
+
+class GradScaler_default_device(_GradScaler_Default_Device_Type_Base):
+
+	def __init__(self, device_type=torch_amp_autocast_device_type, **kwargs):
+
+		super(GradScaler_default_device, self).__init__(device_type, **kwargs)
+
+def torch_is_autocast_enabled_default_device(device_type=torch_amp_autocast_device_type):
+
+	return torch.amp.autocast_mode.is_autocast_available(device_type)
+
 _config_torch_cuda_amp = True
-if hasattr(torch, "cuda") and hasattr(torch.cuda, "amp"):
+if _use_torch_amp_autocast:
+	GradScaler, torch_autocast, torch_is_autocast_enabled, is_fp16_supported, _config_torch_cuda_amp = GradScaler_default_device, torch_autocast_default_device, torch_is_autocast_enabled_default_device, True, False
+elif hasattr(torch, "cuda") and hasattr(torch.cuda, "amp"):
 	try:
 		from torch.cuda.amp import GradScaler, autocast as torch_autocast
 		torch_is_autocast_enabled = torch.is_autocast_enabled
-		is_fp16_supported = True
-		_config_torch_cuda_amp = False
+		is_fp16_supported, _config_torch_cuda_amp = True, False
 	except Exception as e:
 		print(e)
 if _config_torch_cuda_amp:
