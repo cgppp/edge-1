@@ -34,7 +34,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 	sum_loss = part_loss = 0.0
 	sum_wd = part_wd = 0
 	_done_tokens, _cur_checkid, _cur_rstep, _use_amp = done_tokens, cur_checkid, remain_steps, scaler is not None
-	global minerr, minloss, wkdir, save_auto_clean, namin
+	global minerr, minloss, wkdir, save_auto_clean, namin, slang_sid, tlang_sid
 	model.train()
 	cur_b, _ls = 1, {} if save_loss else None
 	src_grp, tgt_grp, task_grp = td["src"], td["tgt"], td["task"]
@@ -47,6 +47,10 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
 			seq_o = seq_o.to(mv_device, non_blocking=True)
 			seq_t = seq_t.to(mv_device, non_blocking=True)
+		if slang_sid > 0:
+			seq_batch.select(1, 0).copy_(seq_t + slang_sid)
+		if tlang_sid > 0:
+			seq_o.select(1, 0).copy_(seq_t + tlang_sid)
 		seq_batch, seq_o, seq_t = seq_batch.long(), seq_o.long(), seq_t.long()
 
 		oi = seq_o.narrow(1, 0, lo)
@@ -134,6 +138,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 	sum_loss = 0.0
 	model.eval()
 	src_grp, tgt_grp, task_grp = ed["src"], ed["tgt"], ed["task"]
+	global slang_sid, tlang_sid
 	with torch_inference_mode():
 		for i in tqdm(range(nd), mininterval=tqdm_mininterval):
 			bid = str(i)
@@ -145,6 +150,10 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
 				seq_t = seq_t.to(mv_device, non_blocking=True)
+			if slang_sid > 0:
+				seq_batch.select(1, 0).copy_(seq_t + slang_sid)
+			if tlang_sid > 0:
+				seq_o.select(1, 0).copy_(seq_t + tlang_sid)
 			seq_batch, seq_o, seq_t = seq_batch.long(), seq_o.long(), seq_t.long()
 			ot = seq_o.narrow(1, 1, lo).contiguous()
 			with torch_autocast(enabled=use_amp):
@@ -218,6 +227,12 @@ ntrain = td["ndata"][()].item()
 nvalid = vd["ndata"][()].item()
 nword = td["nword"][()].tolist()
 nwordi, ntask, nwordt = nword[0], nword[1], nword[-1]
+if cnfg.merge_lang_vcb:
+	slang_sid, tlang_sid = nwordi, nwordt
+	nwordi += ntask
+	nwordt += ntask
+else:
+	slang_sid = tlang_sid = 0
 
 tl = [str(i) for i in range(ntrain)]
 

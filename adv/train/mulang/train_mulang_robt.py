@@ -27,9 +27,9 @@ from utils.train.dss import dynamic_sample
 
 import cnfg.mulang as cnfg
 from cnfg.ihyp import *
-from cnfg.vocab.base import pad_id
+from cnfg.vocab.base import pad_id, sos_id
 
-def back_translate(model, seq_in, taskid, beam_size, multi_gpu, enable_torch_autocast=False, step_bsize=32, step_ntok=640, pivot_bt=True):
+def back_translate(model, seq_in, taskid, beam_size, multi_gpu, enable_torch_autocast=False, step_bsize=32, step_ntok=640, pivot_bt=True, sos_id=sos_id):
 
 	rs = []
 	bsize, seql = seq_in.size()
@@ -53,7 +53,7 @@ def back_translate(model, seq_in, taskid, beam_size, multi_gpu, enable_torch_aut
 	if multi_gpu:
 		model.gather_output = _g_out
 	rs = torch.cat(pad_tensors(rs), dim=0)
-	rs = torch.cat((torch.ones(bsize, 1, dtype=rs.dtype, device=rs.device), rs,), dim=1)
+	rs = torch.cat((torch.full((bsize, 1,), sos_id, dtype=rs.dtype, device=rs.device), rs,), dim=1)
 
 	return rs
 
@@ -62,10 +62,9 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 	sum_loss = part_loss = 0.0
 	sum_wd = part_wd = 0
 	_done_tokens, _cur_checkid, _cur_rstep, _use_amp = done_tokens, cur_checkid, remain_steps, scaler is not None
-	global minerr, minloss, wkdir, save_auto_clean, namin
+	global minerr, minloss, wkdir, save_auto_clean, namin, slang_sid, tlang_sid, ntask, ro_beam_size
 	model.train()
 	cur_b, _ls = 1, {} if save_loss else None
-	global ntask, ro_beam_size
 	t_sample_max_id = ntask - 1
 	src_grp, tgt_grp, task_grp = td["src"], td["tgt"], td["task"]
 	for i_d in tqdm(tl, mininterval=tqdm_mininterval):
@@ -79,7 +78,13 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 
 		_bt_taskid = torch.randint(t_sample_max_id, seq_t.size(), dtype=seq_t.dtype, device=seq_t.device)
 		_bt_taskid[_bt_taskid.ge(seq_t)] += 1
+		if slang_sid > 0:
+			seq_o.select(1, 0).copy_(_bt_taskid + slang_sid)
 		seq_batch = back_translate(model, seq_o, _bt_taskid, ro_beam_size, multi_gpu, enable_torch_autocast=_use_amp)
+		if slang_sid > 0:
+			seq_batch.select(1, 0).copy_(seq_t + slang_sid)
+		if tlang_sid > 0:
+			seq_o.select(1, 0).copy_(seq_t + tlang_sid)
 		oi = seq_o.narrow(1, 0, lo)
 		ot = seq_o.narrow(1, 1, lo).contiguous()
 		with torch_autocast(enabled=_use_amp):
@@ -165,6 +170,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 	sum_loss = 0.0
 	model.eval()
 	src_grp, tgt_grp, task_grp = ed["src"], ed["tgt"], ed["task"]
+	global slang_sid, tlang_sid
 	with torch_inference_mode():
 		for i in tqdm(range(nd), mininterval=tqdm_mininterval):
 			bid = str(i)
@@ -176,6 +182,10 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
 				seq_t = seq_t.to(mv_device, non_blocking=True)
+			if slang_sid > 0:
+				seq_batch.select(1, 0).copy_(seq_t + slang_sid)
+			if tlang_sid > 0:
+				seq_o.select(1, 0).copy_(seq_t + tlang_sid)
 			seq_batch, seq_o, seq_t = seq_batch.long(), seq_o.long(), seq_t.long()
 			ot = seq_o.narrow(1, 1, lo).contiguous()
 			with torch_autocast(enabled=use_amp):
@@ -250,6 +260,12 @@ ntrain = td["ndata"][()].item()
 nvalid = vd["ndata"][()].item()
 nword = td["nword"][()].tolist()
 nwordi, ntask, nwordt = nword[0], nword[1], nword[-1]
+if cnfg.merge_lang_vcb:
+	slang_sid, tlang_sid = nwordi, nwordt
+	nwordi += ntask
+	nwordt += ntask
+else:
+	slang_sid = tlang_sid = 0
 
 tl = [str(i) for i in range(ntrain)]
 

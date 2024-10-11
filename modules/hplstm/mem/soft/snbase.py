@@ -62,7 +62,8 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 			igh.masked_fill_(head_mask, 0.0)
 			bfgate = bfgate.masked_fill(head_mask, 1.0)
 
-		cell = LGateFunc(fgate, igh, self.init_cx, bfgate, bigate) if states is None else igh.unsqueeze(-1).mul(bigate.unsqueeze(-2)).addcmul(fgate.unsqueeze(-1) * bfgate.unsqueeze(-2), self.init_cx if _init_state else states[-1])
+		eigh = igh.unsqueeze(-1).mul(bigate.unsqueeze(-2))
+		cell = LGateFunc(fgate, eigh, self.init_cx, bfgate) if states is None else eigh.addcmul(fgate.unsqueeze(-1) * bfgate.unsqueeze(-2), self.init_cx if _init_state else states[-1])
 		if self.m_drop is not None:
 			bog = self.m_drop(bog)
 		out = self.trans_og(torch.cat((heads_input, cell), dim=-1)).sigmoid() * cell.matmul(bog.unsqueeze(-1)).squeeze(-1)
