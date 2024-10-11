@@ -69,20 +69,24 @@ class DecoderLayer(DecoderLayerBase):
 
 class Decoder(DecoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, ntask=None, ngroup=None, task_emb_w=None, share_layer=False, **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, ntask=None, merge_lang_vcb=True, use_task_emb=False, ngroup=None, task_emb_w=None, share_layer=False, **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
+		self.task_id_shift, _nwd = (nwd, (nwd + ntask)) if merge_lang_vcb else (0, nwd)
 
-		super(Decoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=None, share_layer=share_layer, **kwargs)
+		super(Decoder, self).__init__(isize, _nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=None, share_layer=share_layer, **kwargs)
 
-		self.task_emb = nn.Embedding(ntask, isize, padding_idx=None)
+		if use_task_emb:
+			self.task_emb = nn.Embedding(ntask, isize, padding_idx=None)
+			if task_emb_w is not None:
+				self.task_emb.weight = task_emb_w
+		else:
+			self.task_emb = None
 		self.group_weight = nn.Parameter(torch.zeros(ntask, num_layer, 3, ngroup))
-		if task_emb_w is not None:
-			self.task_emb.weight = task_emb_w
 		self.gw_drop = Dropout(dropout) if dropout > 0.0 else None
 
-		self.classifier = MBLinear(isize, nwd, ntask)
+		self.classifier = MBLinear(isize, _nwd, ntask)
 		if bindemb:
 			self.classifier.weight = self.wemb.weight
 
@@ -102,7 +106,9 @@ class Decoder(DecoderBase):
 
 		nquery = inputo.size(-1)
 
-		out = self.wemb(inputo) + self.task_emb(taskid).unsqueeze(1)
+		out = self.wemb(inputo)
+		if self.task_emb is not None:
+			out = out + self.task_emb(taskid).unsqueeze(1)
 		if self.pemb is not None:
 			out = self.pemb(inputo, expand=False).add(out, alpha=sqrt(out.size(-1)))
 
@@ -128,7 +134,7 @@ class Decoder(DecoderBase):
 
 		super(Decoder, self).load_base(base_decoder)
 
-		if hasattr(base_decoder, "task_emb"):
+		if hasattr(base_decoder, "task_emb") and (self.task_emb is not None):
 			self.task_emb = base_decoder.task_emb
 		if hasattr(base_decoder, "group_weight"):
 			self.group_weight = base_decoder.group_weight
@@ -142,9 +148,10 @@ class Decoder(DecoderBase):
 		bsize = inpute.size(0)
 
 		out = self.get_sos_emb(inpute)
-		_task_emb = self.task_emb(taskid).unsqueeze(1)
+		_task_emb = None if self.task_emb is None else self.task_emb(taskid).unsqueeze(1)
 
-		out = out + _task_emb
+		if _task_emb is not None:
+			out = out + _task_emb
 		if self.pemb is not None:
 			sqrt_isize = sqrt(out.size(-1))
 			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
@@ -172,7 +179,9 @@ class Decoder(DecoderBase):
 
 		for i in range(1, max_len):
 
-			out = self.wemb(wds) + _task_emb
+			out = self.wemb(wds)
+			if _task_emb is not None:
+				out = out + _task_emb
 			if self.pemb is not None:
 				out = self.pemb.get_pos(i).add(out, alpha=sqrt_isize)
 
@@ -206,13 +215,14 @@ class Decoder(DecoderBase):
 		real_bsize = bsize * beam_size
 
 		out = self.get_sos_emb(inpute)
-		_task_emb = self.task_emb(taskid).unsqueeze(1)
+		_task_emb = None if self.task_emb is None else self.task_emb(taskid).unsqueeze(1)
 
 		if length_penalty > 0.0:
 			lpv = out.new_ones(real_bsize, 1)
 			lpv_base = 6.0 ** length_penalty
 
-		out = out + _task_emb
+		if _task_emb is not None:
+			out = out + _task_emb
 		if self.pemb is not None:
 			sqrt_isize = sqrt(out.size(-1))
 			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
@@ -246,7 +256,8 @@ class Decoder(DecoderBase):
 		self.repeat_cross_attn_buffer(beam_size)
 
 		_src_pad_mask = None if src_pad_mask is None else src_pad_mask.repeat(1, beam_size, 1).view(real_bsize, 1, seql)
-		_task_emb = _task_emb.repeat(1, beam_size, 1).view(real_bsize, 1, isize)
+		if _task_emb is not None:
+			_task_emb = _task_emb.repeat(1, beam_size, 1).view(real_bsize, 1, isize)
 		_taskid = None if taskid is None else taskid.unsqueeze(-1).repeat(1, beam_size).view(real_bsize)
 		_w = [[_tmp.repeat(1, beam_size).view(real_bsize, -1) for _tmp in _wu] for _wu in _w]
 
@@ -254,7 +265,9 @@ class Decoder(DecoderBase):
 
 		for step in range(1, max_len):
 
-			out = self.wemb(wds) + _task_emb
+			out = self.wemb(wds)
+			if _task_emb is not None:
+				out = out + _task_emb
 			if self.pemb is not None:
 				out = self.pemb.get_pos(step).add(out, alpha=sqrt_isize)
 

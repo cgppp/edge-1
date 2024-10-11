@@ -3,6 +3,7 @@
 from cnfg.base import *
 
 merge_lang_vcb = True
+use_task_emb = False
 
 task_weight_T = None
 task_weight = None
