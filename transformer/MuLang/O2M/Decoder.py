@@ -73,7 +73,7 @@ class Decoder(DecoderBase):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
-		self.task_id_shift, _nwd = (nwd, (nwd + ntask)) if merge_lang_vcb else (0, nwd)
+		self.task_id_shift, _nwd = (nwd, (nwd + ntask),) if merge_lang_vcb else (0, nwd,)
 
 		super(Decoder, self).__init__(isize, _nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=None, share_layer=share_layer, **kwargs)
 
@@ -103,6 +103,9 @@ class Decoder(DecoderBase):
 			self.fbl = [tuple(set(fblu)) for fblu in forbidden_index]
 
 	def forward(self, inpute, inputo, taskid=None, src_pad_mask=None, **kwargs):
+
+		if self.task_id_shift > 0:
+			inputo.select(1, 0).copy_(taskid + self.task_id_shift)
 
 		nquery = inputo.size(-1)
 
@@ -147,9 +150,8 @@ class Decoder(DecoderBase):
 
 		bsize = inpute.size(0)
 
-		out = self.get_sos_emb(inpute)
+		out = self.wemb(taskid + self.task_id_shift).unsqueeze(1) if self.task_id_shift > 0 else self.get_sos_emb(inpute)
 		_task_emb = None if self.task_emb is None else self.task_emb(taskid).unsqueeze(1)
-
 		if _task_emb is not None:
 			out = out + _task_emb
 		if self.pemb is not None:
@@ -214,7 +216,7 @@ class Decoder(DecoderBase):
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
 
-		out = self.get_sos_emb(inpute)
+		out = self.wemb(taskid + self.task_id_shift).unsqueeze(1) if self.task_id_shift > 0 else self.get_sos_emb(inpute)
 		_task_emb = None if self.task_emb is None else self.task_emb(taskid).unsqueeze(1)
 
 		if length_penalty > 0.0:
