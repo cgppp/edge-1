@@ -17,7 +17,7 @@ def handle(cnfg, srcmtf, unfdecf, rsf):
 	with h5File(cnfg.dev_data, "r") as tdf:
 		nwordi, nwordt = tdf["nword"][()].tolist()
 
-	mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, cnfg.ff_hsize, cnfg.drop, cnfg.attn_drop, cnfg.act_drop, cnfg.share_emb, cnfg.nhead, cache_len_default, cnfg.attn_hsize, cnfg.norm_output, cnfg.bindDecoderEmb, cnfg.forbidden_indexes)
+	mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
 	init_model_params(mymodel)
 	mymodel = load_model_cpu(srcmtf, mymodel)
 	_, dec_layer = parse_double_value_tuple(cnfg.nlayer)

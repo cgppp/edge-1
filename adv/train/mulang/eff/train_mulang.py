@@ -35,7 +35,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 	sum_loss = part_loss = 0.0
 	sum_wd = part_wd = 0
 	_done_tokens, _cur_checkid, _cur_rstep, _use_amp = done_tokens, cur_checkid, remain_steps, scaler is not None
-	global minerr, minloss, wkdir, save_auto_clean, namin, slang_sid, tlang_sid
+	global minerr, minloss, wkdir, save_auto_clean, namin
 	model.train()
 	cur_b, _ls = 1, {} if save_loss else None
 	for i_d, taskid in tqdm(tl, mininterval=tqdm_mininterval):
@@ -46,10 +46,6 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		if mv_device:
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
 			seq_o = seq_o.to(mv_device, non_blocking=True)
-		if slang_sid > 0:
-			seq_batch.select(1, 0).fill_(taskid + slang_sid)
-		if tlang_sid > 0:
-			seq_o.select(1, 0).fill_(taskid + tlang_sid)
 		seq_batch, seq_o = seq_batch.long(), seq_o.long()
 
 		oi = seq_o.narrow(1, 0, lo)
@@ -136,7 +132,6 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 	r = w = 0
 	sum_loss = 0.0
 	model.eval()
-	global slang_sid, tlang_sid
 	with torch_inference_mode():
 		for i_d, taskid in tqdm(nd, mininterval=tqdm_mininterval):
 			task_grp = ed[str(taskid)]
@@ -146,10 +141,6 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 			if mv_device:
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
-			if slang_sid > 0:
-				seq_batch.select(1, 0).fill_(taskid + slang_sid)
-			if tlang_sid > 0:
-				seq_o.select(1, 0).fill_(taskid + tlang_sid)
 			seq_batch, seq_o = seq_batch.long(), seq_o.long()
 			ot = seq_o.narrow(1, 1, lo).contiguous()
 			with torch_autocast(enabled=use_amp):
@@ -223,12 +214,6 @@ ntrain = td["ndata"][()].tolist()
 nvalid = vd["ndata"][()].tolist()
 nword = td["nword"][()].tolist()
 nwordi, ntask, nwordt = nword[0], nword[1], nword[-1]
-if cnfg.merge_lang_vcb:
-	slang_sid, tlang_sid = nwordi, nwordt
-	nwordi += ntask
-	nwordt += ntask
-else:
-	slang_sid = tlang_sid = 0
 
 task_weight, task_weight_T = cnfg.task_weight, cnfg.task_weight_T
 if task_weight_T is None or task_weight_T == 1.0:
@@ -246,7 +231,7 @@ else:
 nvalid = [(str(i), _task,) for _nd, _task in zip(nvalid, vd["taskorder"][()].tolist()) for i in range(_nd)]
 
 logger.info("Design models with seed: %d" % torch.initial_seed())
-mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, cnfg.ff_hsize, cnfg.drop, cnfg.attn_drop, cnfg.act_drop, cnfg.share_emb, cnfg.nhead, cache_len_default, cnfg.attn_hsize, cnfg.norm_output, cnfg.bindDecoderEmb, cnfg.forbidden_indexes, ntask=ntask, ngroup=cnfg.ngroup)
+mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, ntask=ntask, merge_lang_vcb=cnfg.merge_lang_vcb, use_task_emb=cnfg.use_task_emb, ngroup=cnfg.ngroup)
 
 fine_tune_m = cnfg.fine_tune_m
 

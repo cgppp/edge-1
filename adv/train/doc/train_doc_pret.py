@@ -243,7 +243,7 @@ ntrain = len(tl)
 vl = [(str(nsent), str(_curd),) for nsent, ndata in zip(vd["nsent"][()].tolist(), vd["ndata"][()].tolist()) for _curd in range(ndata)]
 
 logger.info("Design models with seed: %d" % torch.initial_seed())
-mymodel = NMT(cnfg.isize, nwordi, nwordp, nwordt, cnfg.nlayer, cnfg.ff_hsize, cnfg.drop, cnfg.attn_drop, cnfg.act_drop, cnfg.share_emb, cnfg.nhead, cache_len_default, cnfg.attn_hsize, cnfg.norm_output, cnfg.bindDecoderEmb, cnfg.forbidden_indexes, cnfg.num_layer_pret)
+mymodel = NMT(cnfg.isize, nwordi, nwordp, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, num_layer_pret=cnfg.num_layer_pret)
 mymodel.enc.context_enc = patch_pret_model_ffn(mymodel.enc.context_enc)
 
 fine_tune_m = cnfg.fine_tune_m

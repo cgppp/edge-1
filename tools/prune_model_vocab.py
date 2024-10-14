@@ -34,7 +34,7 @@ def handle(vsrc, vtgt, src, tgt, srcm, rsm, minfreq=False, vsize=False):
 		vcbw = reverse_dict(vcbw)
 		tgt_indices = torch.as_tensor([vcbt.get(vcbw[i], pad_id) for i in range(nword)], dtype=torch.long)
 
-	mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, cnfg.ff_hsize, cnfg.drop, cnfg.attn_drop, cnfg.act_drop, cnfg.share_emb, cnfg.nhead, cache_len_default, cnfg.attn_hsize, cnfg.norm_output, cnfg.bindDecoderEmb, cnfg.forbidden_indexes)
+	mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
 	mymodel = load_model_cpu(srcm, mymodel)
 	mymodel.update_vocab(src_indices=src_indices, tgt_indices=tgt_indices)
 	save_model(mymodel, rsm, sub_module=False, h5args=h5zipargs)

@@ -17,10 +17,10 @@ def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, ge
 	for i_d, td in zip(file_reader(finput, keep_empty_line=True), file_reader(ftarget, keep_empty_line=True)):
 		lid = len(i_d) - 1
 		ltd = len(td)
-		lgth = lid + ltd
 		# uncomment the following 2 lines to filter out empty data (e.g. in OPUS-100).
 		if (lid <= 0) or (ltd <= 0):
 			continue
+		lgth = lid + ltd
 		if maxlen == 0:
 			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
 			maxlen = lgth + _maxpad
