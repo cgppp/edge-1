@@ -4,15 +4,11 @@ import torch
 from math import sqrt
 from torch import nn
 
-from modules.base import Dropout
-from modules.mulang.base import MBLinear, NWMBLinear
-from modules.mulang.lalnt import LayerNorm
-from modules.mulang.m2m import CrossAttn, PositionwiseFF, SelfAttn
-from modules.mulang.m2o import PositionwiseFF as m2oPositionwiseFF
-from modules.mulang.o2m import SelfAttn as o2mSelfAttn
+from modules.mulang.eff.base import MBLinear, NWMBLinear
+from modules.mulang.eff.lalnt import LayerNorm, PositionwiseFF, ResCrossAttn, ResSelfAttn
 from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
 from utils.base import index_tensors, select_zero_
-from utils.decode.beam import expand_bsize_for_beam, repeat_bsize_for_beam_tensor
+from utils.decode.beam import expand_bsize_for_beam
 from utils.fmt.parser import parse_none
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_no_grad
@@ -22,73 +18,33 @@ from cnfg.vocab.base import eos_id, pad_id
 
 class DecoderLayer(DecoderLayerBase):
 
-	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, ngroup=None, ntask=None, expand_layer=False, merge_layer=False, k_rel_pos=use_k_relative_position_decoder, **kwargs):
+	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, ntask=None, k_rel_pos=use_k_relative_position_decoder, **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
 
 		super(DecoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, k_rel_pos=k_rel_pos, **kwargs)
 
-		self.ngroup, self.expand_layer = ngroup, expand_layer
+		self.self_attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=self.self_attn.norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, ntask=ntask)
+		self.cross_attn = ResCrossAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=self.cross_attn.norm_residual, ntask=ntask)
+		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=self.ff.norm_residual, ntask=ntask)
 
-		self.layer_normer1 = LayerNorm(isize if expand_layer else (ngroup, isize,), ntask=ntask, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
-		self.layer_normer2 = LayerNorm((ngroup, isize,), ntask=ntask, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
-
-		SAttn = o2mSelfAttn if expand_layer else SelfAttn
-		self.self_attn = SAttn(isize, hsize=_ahsize, osize=isize, ngroup=ngroup, num_head=num_head, dropout=attn_drop, k_rel_pos=k_rel_pos, uni_direction_reduction=True)
-		self.cross_attn = CrossAttn(isize, hsize=_ahsize, osize=isize, ngroup=ngroup, num_head=num_head, dropout=attn_drop)
-		FFN = m2oPositionwiseFF if merge_layer else PositionwiseFF
-		self.ff = FFN(isize, ngroup=ngroup, hsize=_fhsize, dropout=dropout, ntask=ntask)
-
-	def forward(self, inpute, inputo, sattn_w=None, cattn_w=None, ffn_w=None, taskid=None, src_pad_mask=None, tgt_pad_mask=None, query_unit=None, **kwargs):
+	def forward(self, inpute, inputo, taskid=None, src_pad_mask=None, tgt_pad_mask=None, query_unit=None, **kwargs):
 
 		if query_unit is None:
-			_inputo = self.layer_normer1(inputo, taskid=taskid)
-
-			context = self.self_attn(_inputo, mask=tgt_pad_mask)
-
-			if self.drop is not None:
-				context = self.drop(context)
-			_res_add = _inputo if self.norm_residual else inputo
-
+			context = self.self_attn(inputo, taskid=taskid, mask=tgt_pad_mask)
 		else:
-			_query_unit = self.layer_normer1(query_unit, taskid=taskid)
+			context, states_return = self.self_attn(query_unit, taskid=taskid, states=inputo)
 
-			context, states_return = self.self_attn(_query_unit, states=inputo)
+		context = self.cross_attn(context, inpute, taskid=taskid, mask=src_pad_mask)
 
-			if self.drop is not None:
-				context = self.drop(context)
-			_res_add = _query_unit if self.norm_residual else query_unit
-
-		if self.expand_layer:
-			_res_add = _res_add.unsqueeze(-2)
-		context = context + _res_add
-
-		if sattn_w is not None:
-			_osize = list(context.size())
-			_osize[-2], _osize[-1] = _osize[-1], _osize[-2]
-			context = context.transpose(-1, -2).contiguous().view(context.size(0), -1, self.ngroup).bmm(sattn_w).view(_osize).transpose(-1, -2).contiguous()
-
-		_context = self.layer_normer2(context, taskid=taskid)
-		_context_new = self.cross_attn(_context, inpute, mask=src_pad_mask)
-
-		if self.drop is not None:
-			_context_new = self.drop(_context_new)
-
-		context = _context_new + (_context if self.norm_residual else context)
-
-		if cattn_w is not None:
-			_osize = list(context.size())
-			_osize[-2], _osize[-1] = _osize[-1], _osize[-2]
-			context = context.transpose(-1, -2).contiguous().view(context.size(0), -1, self.ngroup).bmm(cattn_w).view(_osize).transpose(-1, -2).contiguous()
-
-		context = self.ff(context, weight=ffn_w, taskid=taskid)
+		context = self.ff(context, taskid=taskid)
 
 		return context if query_unit is None else (context, states_return,)
 
 class Decoder(DecoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, ntask=None, merge_lang_vcb=True, use_task_emb=False, ngroup=None, task_emb_w=None, share_layer=False, **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, ntask=None, merge_lang_vcb=True, use_task_emb=False, task_emb_w=None, share_layer=False, **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
@@ -102,23 +58,16 @@ class Decoder(DecoderBase):
 				self.task_emb.weight = task_emb_w
 		else:
 			self.task_emb = None
-		self.group_weight = nn.Parameter(torch.zeros(ntask, num_layer - 2, 3, ngroup, ngroup))
-		self.group_weight_fl_common = nn.Parameter(torch.zeros(ntask, 2, 2, ngroup, ngroup))
-		self.group_weight_layer = nn.Parameter(torch.zeros(ntask, ngroup))
-		self.gw_drop = Dropout(dropout) if dropout > 0.0 else None
-
 		self.classifier = (NWMBLinear if merge_lang_vcb else MBLinear)(isize, nwd, ntask)
 		if bindemb:
 			self.classifier.weight = self.wemb.weight
-
 		if share_layer:
-			_shared_layer = DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize, ngroup=ngroup, ntask=ntask, expand_layer=False, merge_layer=False)
-			self.nets = nn.ModuleList([DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize, ngroup=ngroup, ntask=ntask, expand_layer=True, merge_layer=False)] + [_shared_layer for i in range(num_layer - 2)] + [DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize, ngroup=ngroup, expand_layer=False, merge_layer=True)])
+			_shared_layer = DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize, ntask=ntask)
+			self.nets = nn.ModuleList([_shared_layer for i in range(num_layer)])
 		else:
-			self.nets = nn.ModuleList([DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize, ngroup=ngroup, ntask=ntask, expand_layer=(i == 0), merge_layer=(i == num_layer - 1)) for i in range(num_layer)])
+			self.nets = nn.ModuleList([DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize, ntask=ntask) for i in range(num_layer)])
 
-		if norm_output:
-			self.out_normer = LayerNorm(isize, ntask=ntask, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
+		self.out_normer = LayerNorm(isize, ntask=ntask, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
 
 		if forbidden_index is not None:
 			self.fbl = [tuple(set(fblu)) for fblu in forbidden_index]
@@ -126,30 +75,22 @@ class Decoder(DecoderBase):
 	def forward(self, inpute, inputo, taskid=None, src_pad_mask=None, **kwargs):
 
 		if self.task_id_shift > 0:
-			inputo.select(1, 0).copy_(taskid + self.task_id_shift)
+			inputo.select(1, 0).fill_(taskid + self.task_id_shift)
 
 		nquery = inputo.size(-1)
 
 		out = self.wemb(inputo)
 		if self.task_emb is not None:
-			out = out + self.task_emb(taskid).unsqueeze(1)
+			out = out + self.task_emb.weight[taskid]
 		if self.pemb is not None:
 			out = self.pemb(inputo, expand=False).add(out, alpha=sqrt(out.size(-1)))
-
-		_gwf, _gw, _gwl = self.group_weight_fl_common.index_select(0, taskid).softmax(-2), self.group_weight.index_select(0, taskid).softmax(-2), self.group_weight_layer.index_select(0, taskid).softmax(-1)
-
 		if self.drop is not None:
 			out = self.drop(out)
-			_gwf = self.gw_drop(_gwf)
-			_gw = self.gw_drop(_gw)
-			_gwl = self.gw_drop(_gwl)
 
 		_mask = self._get_subsequent_mask(nquery)
 
-		_flayer_w, _layer_w = _gwf.unbind(1)
-		_w = [[None] + list(_flayer_w.unbind(1))] + [_wu.unbind(1) for _wu in _gw.unbind(1)] + [list(_layer_w.unbind(1)) + [_gwl]]
-		for net, (_w_sattn, _w_cattn, _w_ffn,) in zip(self.nets, _w):
-			out = net(inpute, out, sattn_w=_w_sattn, cattn_w=_w_cattn, ffn_w=_w_ffn, taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=_mask)
+		for net in self.nets:
+			out = net(inpute, out, taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=_mask)
 
 		if self.out_normer is not None:
 			out = self.out_normer(out, taskid=taskid)
@@ -157,19 +98,6 @@ class Decoder(DecoderBase):
 		out = self.lsm(self.classifier(out, taskid))
 
 		return out
-
-	def load_base(self, base_decoder):
-
-		super(Decoder, self).load_base(base_decoder)
-
-		if hasattr(base_decoder, "task_emb") and (self.task_emb is not None):
-			self.task_emb = base_decoder.task_emb
-		if hasattr(base_decoder, "group_weight"):
-			self.group_weight = base_decoder.group_weight
-		if hasattr(base_decoder, "group_weight_fl_common"):
-			self.group_weight_fl_common = base_decoder.group_weight_fl_common
-		if hasattr(base_decoder, "group_weight_layer"):
-			self.group_weight_layer = base_decoder.group_weight_layer
 
 	def decode(self, inpute, taskid=None, src_pad_mask=None, beam_size=1, max_len=512, length_penalty=0.0, fill_pad=False, **kwargs):
 
@@ -179,27 +107,21 @@ class Decoder(DecoderBase):
 
 		bsize = inpute.size(0)
 
-		out = self.wemb(taskid + self.task_id_shift).unsqueeze(1) if self.task_id_shift > 0 else self.get_sos_emb(inpute)
-		_task_emb = None if self.task_emb is None else self.task_emb(taskid).unsqueeze(1)
+		out = self.wemb.weight[taskid + self.task_id_shift].view(1, 1, -1).expand(bsize, 1, -1) if self.task_id_shift > 0 else self.get_sos_emb(inpute)
+		_task_emb = None if self.task_emb is None else self.task_emb.weight[taskid]
+
 		if _task_emb is not None:
 			out = out + _task_emb
 		if self.pemb is not None:
 			sqrt_isize = sqrt(out.size(-1))
 			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
-
-		_gwf, _gw, _gwl = self.group_weight_fl_common.index_select(0, taskid).softmax(-2), self.group_weight.index_select(0, taskid).softmax(-2), self.group_weight_layer.index_select(0, taskid).softmax(-1)
-
 		if self.drop is not None:
 			out = self.drop(out)
-			_gwf = self.gw_drop(_gwf)
-			_gw = self.gw_drop(_gw)
-			_gwl = self.gw_drop(_gwl)
 
 		states = {}
-		_flayer_w, _layer_w = _gwf.unbind(1)
-		_w = [[None] + list(_flayer_w.unbind(1))] + [_wu.unbind(1) for _wu in _gw.unbind(1)] + [list(_layer_w.unbind(1)) + [_gwl]]
-		for _tmp, (net, (_w_sattn, _w_cattn, _w_ffn,),) in enumerate(zip(self.nets, _w)):
-			out, _state = net(inpute, (None, None,), sattn_w=_w_sattn, cattn_w=_w_cattn, ffn_w=_w_ffn, taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
+
+		for _tmp, net in enumerate(self.nets):
+			out, _state = net(inpute, (None, None,), taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
 			states[_tmp] = _state
 
 		if self.out_normer is not None:
@@ -209,7 +131,6 @@ class Decoder(DecoderBase):
 		wds = SampleMax(out.softmax(-1), dim=-1, keepdim=False) if sample else out.argmax(dim=-1)
 
 		trans = [wds]
-
 		done_trans = wds.eq(eos_id)
 
 		for i in range(1, max_len):
@@ -222,8 +143,8 @@ class Decoder(DecoderBase):
 			if self.drop is not None:
 				out = self.drop(out)
 
-			for _tmp, (net, (_w_sattn, _w_cattn, _w_ffn,),) in enumerate(zip(self.nets, _w)):
-				out, _state = net(inpute, states[_tmp], sattn_w=_w_sattn, cattn_w=_w_cattn, ffn_w=_w_ffn, taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
+			for _tmp, net in enumerate(self.nets):
+				out, _state = net(inpute, states[_tmp], taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
 				states[_tmp] = _state
 
 			if self.out_normer is not None:
@@ -248,8 +169,8 @@ class Decoder(DecoderBase):
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
 
-		out = self.wemb(taskid + self.task_id_shift).unsqueeze(1) if self.task_id_shift > 0 else self.get_sos_emb(inpute)
-		_task_emb = None if self.task_emb is None else self.task_emb(taskid).unsqueeze(1)
+		out = self.wemb.weight[taskid + self.task_id_shift].view(1, 1, -1).expand(bsize, 1, -1) if self.task_id_shift > 0 else self.get_sos_emb(inpute)
+		_task_emb = None if self.task_emb is None else self.task_emb.weight[taskid]
 
 		if length_penalty > 0.0:
 			lpv = out.new_ones(real_bsize, 1)
@@ -260,20 +181,13 @@ class Decoder(DecoderBase):
 		if self.pemb is not None:
 			sqrt_isize = sqrt(out.size(-1))
 			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
-
-		_gwf, _gw, _gwl = self.group_weight_fl_common.index_select(0, taskid).softmax(-2), self.group_weight.index_select(0, taskid).softmax(-2), self.group_weight_layer.index_select(0, taskid).softmax(-1)
-
 		if self.drop is not None:
 			out = self.drop(out)
-			_gwf = self.gw_drop(_gwf)
-			_gw = self.gw_drop(_gw)
-			_gwl = self.gw_drop(_gwl)
 
 		states = {}
-		_flayer_w, _layer_w = _gwf.unbind(1)
-		_w = [[None] + list(_flayer_w.unbind(1))] + [_wu.unbind(1) for _wu in _gw.unbind(1)] + [list(_layer_w.unbind(1)) + [_gwl]]
-		for _tmp, (net, (_w_sattn, _w_cattn, _w_ffn,),) in enumerate(zip(self.nets, _w)):
-			out, _state = net(inpute, (None, None,), sattn_w=_w_sattn, cattn_w=_w_cattn, ffn_w=_w_ffn, taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
+
+		for _tmp, net in enumerate(self.nets):
+			out, _state = net(inpute, (None, None,), taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
 			states[_tmp] = _state
 
 		if self.out_normer is not None:
@@ -294,10 +208,6 @@ class Decoder(DecoderBase):
 		self.repeat_cross_attn_buffer(beam_size)
 
 		_src_pad_mask = None if src_pad_mask is None else src_pad_mask.repeat(1, beam_size, 1).view(real_bsize, 1, seql)
-		if _task_emb is not None:
-			_task_emb = _task_emb.repeat(1, beam_size, 1).view(real_bsize, 1, isize)
-		_taskid = None if taskid is None else taskid.unsqueeze(-1).repeat(1, beam_size).view(real_bsize)
-		_w = [[None if _tmp is None else repeat_bsize_for_beam_tensor(_tmp, beam_size) for _tmp in _wu] for _wu in _w]
 
 		states = expand_bsize_for_beam(states, beam_size=beam_size)
 
@@ -308,18 +218,17 @@ class Decoder(DecoderBase):
 				out = out + _task_emb
 			if self.pemb is not None:
 				out = self.pemb.get_pos(step).add(out, alpha=sqrt_isize)
-
 			if self.drop is not None:
 				out = self.drop(out)
 
-			for _tmp, (net, (_w_sattn, _w_cattn, _w_ffn,),) in enumerate(zip(self.nets, _w)):
-				out, _state = net(inpute, states[_tmp], sattn_w=_w_sattn, cattn_w=_w_cattn, ffn_w=_w_ffn, taskid=taskid, src_pad_mask=_src_pad_mask, tgt_pad_mask=None, query_unit=out)
+			for _tmp, net in enumerate(self.nets):
+				out, _state = net(inpute, states[_tmp], taskid=taskid, src_pad_mask=_src_pad_mask, tgt_pad_mask=None, query_unit=out)
 				states[_tmp] = _state
 
 			if self.out_normer is not None:
 				out = self.out_normer(out, taskid=taskid)
 
-			out = self.lsm(self.classifier(out, _taskid)).view(bsize, beam_size, -1)
+			out = self.lsm(self.classifier(out, taskid)).view(bsize, beam_size, -1)
 
 			_scores, _wds = out.topk(beam_size, dim=-1)
 			_done_trans_unsqueeze = done_trans.unsqueeze(2)
@@ -375,15 +284,6 @@ class Decoder(DecoderBase):
 			with torch_no_grad():
 				for ind, fblu in enumerate(self.fbl):
 					self.classifier.bias[ind].index_fill_(0, torch.as_tensor(fblu, dtype=torch.long, device=self.classifier.bias.device), -inf_default)
-
-	def fix_init(self):
-
-		super(Decoder, self).fix_init()
-
-		with torch_no_grad():
-			self.group_weight.zero_()
-			self.group_weight_fl_common.zero_()
-			self.group_weight_layer.zero_()
 
 	def update_vocab(self, indices, wemb_weight=None):
 

@@ -5,8 +5,8 @@ from math import sqrt
 from torch import nn
 
 from modules.base import Dropout
-from modules.elinear import MBLinear
-from modules.mulang.base import LayerNorm
+from modules.mulang.base import MBLinear, NWMBLinear
+from modules.mulang.lalnt import LayerNorm
 from modules.mulang.o2m import CrossAttn, PositionwiseFF, SelfAttn
 from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
 from utils.base import index_tensors, select_zero_
@@ -86,7 +86,7 @@ class Decoder(DecoderBase):
 		self.group_weight = nn.Parameter(torch.zeros(ntask, num_layer, 3, ngroup))
 		self.gw_drop = Dropout(dropout) if dropout > 0.0 else None
 
-		self.classifier = MBLinear(isize, _nwd, ntask)
+		self.classifier = (NWMBLinear if merge_lang_vcb else MBLinear)(isize, nwd, ntask)
 		if bindemb:
 			self.classifier.weight = self.wemb.weight
 

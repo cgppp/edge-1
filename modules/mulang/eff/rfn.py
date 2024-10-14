@@ -2,7 +2,7 @@
 
 import torch
 
-from modules.mulang.eff.base import LayerNorm
+from modules.mulang.eff.lalnt import LayerNorm
 from modules.rfn import LSTMCell4FFN as LSTMCell4FFNBase
 from utils.fmt.parser import parse_none
 

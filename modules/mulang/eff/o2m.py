@@ -3,7 +3,7 @@
 import torch
 from math import sqrt
 
-from modules.mulang.eff.base import LayerNorm
+from modules.mulang.eff.lalnt import LayerNorm
 from modules.mulang.o2m import CrossAttn as CrossAttnBase, PositionwiseFF as PositionwiseFFBase, SelfAttn as SelfAttnBase
 from utils.relpos.rope import apply_rope
 

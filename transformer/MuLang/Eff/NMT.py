@@ -1,7 +1,7 @@
 #encoding: utf-8
 
-from transformer.MuLang.Eff.Base.Decoder import Decoder
-from transformer.MuLang.Eff.Base.Encoder import Encoder
+from transformer.MuLang.Eff.LALNT.Decoder import Decoder
+from transformer.MuLang.Eff.LALNT.Encoder import Encoder
 from transformer.NMT import NMT as NMTBase
 from utils.fmt.parser import parse_double_value_tuple
 from utils.relpos.base import share_rel_pos_cache

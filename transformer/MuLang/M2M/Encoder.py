@@ -5,8 +5,7 @@ from math import sqrt
 from torch import nn
 
 from modules.base import Dropout
-from modules.elinear import MWLinear
-from modules.mulang.base import LayerNorm
+from modules.mulang.lalnt import LayerNorm, MWLinear
 from modules.mulang.m2m import PositionwiseFF, SelfAttn
 from modules.mulang.o2m import SelfAttn as o2mSelfAttn
 from transformer.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase

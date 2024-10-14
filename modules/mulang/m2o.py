@@ -6,7 +6,7 @@ from torch import nn
 
 from modules.base import CrossAttn as CrossAttnBase, Custom_Act, Dropout, PositionwiseFF as PositionwiseFFBase, SelfAttn as SelfAttnBase
 from modules.group.base import GroupLinear
-from modules.mulang.base import LayerNorm
+from modules.mulang.lalnt import LayerNorm
 from utils.fmt.parser import parse_none
 from utils.relpos.rope import apply_rope
 from utils.torch.ext import bmv

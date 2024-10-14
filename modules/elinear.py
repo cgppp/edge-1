@@ -57,63 +57,6 @@ class MALinear(nn.Linear):
 			else:
 				return out, _add_out
 
-# multi-bias linear for mulang (multi-lingual MT)
-class MBLinear(nn.Linear):
-
-	def __init__(self, in_features, out_features, nbias, bias=True, **kwargs):
-
-		super(MBLinear, self).__init__(in_features, out_features, bias=False)
-
-		if bias:
-			self.bias = nn.Parameter(torch.zeros(nbias, out_features))
-
-	def forward(self, x, taskid, **kwargs):
-
-		out = nnFunc.linear(x, self.weight, None)
-		if self.bias is not None:
-			_bsize = [1 for i in range(x.dim())]
-			_bsize[0] = x.size(0)
-			_bsize[-1] = self.out_features
-			out.add_(self.bias.index_select(0, taskid).view(_bsize))
-
-		return out
-
-	def fix_init(self):
-
-		if self.bias is not None:
-			with torch_no_grad():
-				self.bias.zero_()
-
-class MWLinear(MBLinear):
-
-	def __init__(self, in_features, out_features, nbias, bias=True, **kwargs):
-
-		super(MWLinear, self).__init__(in_features, out_features, nbias, bias=False)
-
-		self.weight = nn.Parameter(torch.Tensor(nbias, in_features, out_features).uniform_(- sqrt(1.0 / in_features), sqrt(1.0 / in_features)))
-		if bias:
-			self.bias = nn.Parameter(torch.zeros(nbias, 1, out_features))
-
-	def forward(self, x, taskid, **kwargs):
-
-		_isize = list(x.size())
-		_w = self.weight.index_select(0, taskid)
-		_input = x.view(_isize[0], -1, _isize[-1])
-		if self.bias is None:
-			out = _input.bmm(_w)
-		else:
-			out = self.bias.index_select(0, taskid).baddbmm(_input, _w)
-		_isize[-1] = self.weight.size(-1)
-
-		return out.view(_isize)
-
-	def fix_init(self):
-
-		_isize = self.weight.size(1)
-		with torch_no_grad():
-			self.weight.data.uniform_(- sqrt(1.0 / _isize), sqrt(1.0 / _isize))
-		super(MWLinear, self).fix_init()
-
 class Linear(nn.Module):
 
 	def __init__(self, in_features, out_features, bias=True, hidden_features=None, nbias=1, **kwargs):

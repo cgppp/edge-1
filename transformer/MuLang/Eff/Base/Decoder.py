@@ -4,8 +4,8 @@ import torch
 from math import sqrt
 from torch import nn
 
-from modules.mulang.eff.base import LayerNorm, MBLinear, PositionwiseFF, ResCrossAttn, ResSelfAttn
-from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
+from modules.mulang.eff.base import MBLinear, NWMBLinear
+from transformer.Decoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
 from utils.fmt.parser import parse_none
@@ -15,64 +15,38 @@ from utils.torch.comp import all_done, torch_no_grad
 from cnfg.ihyp import *
 from cnfg.vocab.base import eos_id, pad_id
 
-class DecoderLayer(DecoderLayerBase):
-
-	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, ntask=None, k_rel_pos=use_k_relative_position_decoder, **kwargs):
-
-		_ahsize = parse_none(ahsize, isize)
-		_fhsize = _ahsize * 4 if fhsize is None else fhsize
-
-		super(DecoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, k_rel_pos=k_rel_pos, **kwargs)
-
-		self.self_attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=self.self_attn.norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, ntask=ntask)
-		self.cross_attn = ResCrossAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=self.cross_attn.norm_residual, ntask=ntask)
-		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=self.ff.norm_residual, ntask=ntask)
-
-	def forward(self, inpute, inputo, taskid=None, src_pad_mask=None, tgt_pad_mask=None, query_unit=None, **kwargs):
-
-		if query_unit is None:
-			context = self.self_attn(inputo, taskid=taskid, mask=tgt_pad_mask)
-		else:
-			context, states_return = self.self_attn(query_unit, taskid=taskid, states=inputo)
-
-		context = self.cross_attn(context, inpute, taskid=taskid, mask=src_pad_mask)
-
-		context = self.ff(context, taskid=taskid)
-
-		return context if query_unit is None else (context, states_return,)
-
 class Decoder(DecoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, ntask=None, task_emb_w=None, share_layer=False, **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, ntask=None, merge_lang_vcb=True, use_task_emb=False, task_emb_w=None, share_layer=False, **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
+		self.task_id_shift, _nwd = (nwd, (nwd + ntask),) if merge_lang_vcb else (0, nwd,)
 
-		super(Decoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=None, share_layer=share_layer, **kwargs)
+		super(Decoder, self).__init__(isize, _nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=None, share_layer=share_layer, **kwargs)
 
-		self.task_emb = nn.Embedding(ntask, isize, padding_idx=None)
-		if task_emb_w is not None:
-			self.task_emb.weight = task_emb_w
-		self.classifier = MBLinear(isize, nwd, ntask)
+		if use_task_emb:
+			self.task_emb = nn.Embedding(ntask, isize, padding_idx=None)
+			if task_emb_w is not None:
+				self.task_emb.weight = task_emb_w
+		else:
+			self.task_emb = None
+		self.classifier = (NWMBLinear if merge_lang_vcb else MBLinear)(isize, nwd, ntask)
 		if bindemb:
 			self.classifier.weight = self.wemb.weight
-		if share_layer:
-			_shared_layer = DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize, ntask=ntask)
-			self.nets = nn.ModuleList([_shared_layer for i in range(num_layer)])
-		else:
-			self.nets = nn.ModuleList([DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize, ntask=ntask) for i in range(num_layer)])
-
-		self.out_normer = LayerNorm(isize, ntask=ntask, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
-
 		if forbidden_index is not None:
 			self.fbl = [tuple(set(fblu)) for fblu in forbidden_index]
 
 	def forward(self, inpute, inputo, taskid=None, src_pad_mask=None, **kwargs):
 
+		if self.task_id_shift > 0:
+			inputo.select(1, 0).fill_(taskid + self.task_id_shift)
+
 		nquery = inputo.size(-1)
 
-		out = self.wemb(inputo) + self.task_emb.weight[taskid]
-
+		out = self.wemb(inputo)
+		if self.task_emb is not None:
+			out = out + self.task_emb.weight[taskid]
 		if self.pemb is not None:
 			out = self.pemb(inputo, expand=False).add(out, alpha=sqrt(out.size(-1)))
 		if self.drop is not None:
@@ -81,10 +55,10 @@ class Decoder(DecoderBase):
 		_mask = self._get_subsequent_mask(nquery)
 
 		for net in self.nets:
-			out = net(inpute, out, taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=_mask)
+			out = net(inpute, out, src_pad_mask=src_pad_mask, tgt_pad_mask=_mask)
 
 		if self.out_normer is not None:
-			out = self.out_normer(out, taskid=taskid)
+			out = self.out_normer(out)
 
 		out = self.lsm(self.classifier(out, taskid))
 
@@ -98,10 +72,11 @@ class Decoder(DecoderBase):
 
 		bsize = inpute.size(0)
 
-		out = self.get_sos_emb(inpute)
-		_task_emb = self.task_emb.weight[taskid]
+		out = self.wemb.weight[taskid + self.task_id_shift].view(1, 1, -1).expand(bsize, 1, -1) if self.task_id_shift > 0 else self.get_sos_emb(inpute)
+		_task_emb = None if self.task_emb is None else self.task_emb.weight[taskid]
 
-		out = out + _task_emb
+		if _task_emb is not None:
+			out = out + _task_emb
 		if self.pemb is not None:
 			sqrt_isize = sqrt(out.size(-1))
 			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
@@ -111,11 +86,11 @@ class Decoder(DecoderBase):
 		states = {}
 
 		for _tmp, net in enumerate(self.nets):
-			out, _state = net(inpute, (None, None,), taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
+			out, _state = net(inpute, (None, None,), src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
 			states[_tmp] = _state
 
 		if self.out_normer is not None:
-			out = self.out_normer(out, taskid=taskid)
+			out = self.out_normer(out)
 
 		out = self.classifier(out, taskid)
 		wds = SampleMax(out.softmax(-1), dim=-1, keepdim=False) if sample else out.argmax(dim=-1)
@@ -125,18 +100,20 @@ class Decoder(DecoderBase):
 
 		for i in range(1, max_len):
 
-			out = self.wemb(wds) + _task_emb
+			out = self.wemb(wds)
+			if _task_emb is not None:
+				out = out + _task_emb
 			if self.pemb is not None:
 				out = self.pemb.get_pos(i).add(out, alpha=sqrt_isize)
 			if self.drop is not None:
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(inpute, states[_tmp], taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
+				out, _state = net(inpute, states[_tmp], src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
 				states[_tmp] = _state
 
 			if self.out_normer is not None:
-				out = self.out_normer(out, taskid=taskid)
+				out = self.out_normer(out)
 
 			out = self.classifier(out, taskid)
 			wds = SampleMax(out.softmax(-1), dim=-1, keepdim=False) if sample else out.argmax(dim=-1)
@@ -157,14 +134,15 @@ class Decoder(DecoderBase):
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
 
-		out = self.get_sos_emb(inpute)
-		_task_emb = self.task_emb.weight[taskid]
+		out = self.wemb.weight[taskid + self.task_id_shift].view(1, 1, -1).expand(bsize, 1, -1) if self.task_id_shift > 0 else self.get_sos_emb(inpute)
+		_task_emb = None if self.task_emb is None else self.task_emb.weight[taskid]
 
 		if length_penalty > 0.0:
 			lpv = out.new_ones(real_bsize, 1)
 			lpv_base = 6.0 ** length_penalty
 
-		out = out + _task_emb
+		if _task_emb is not None:
+			out = out + _task_emb
 		if self.pemb is not None:
 			sqrt_isize = sqrt(out.size(-1))
 			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
@@ -174,11 +152,11 @@ class Decoder(DecoderBase):
 		states = {}
 
 		for _tmp, net in enumerate(self.nets):
-			out, _state = net(inpute, (None, None,), taskid=taskid, src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
+			out, _state = net(inpute, (None, None,), src_pad_mask=src_pad_mask, tgt_pad_mask=None, query_unit=out)
 			states[_tmp] = _state
 
 		if self.out_normer is not None:
-			out = self.out_normer(out, taskid=taskid)
+			out = self.out_normer(out)
 
 		out = self.lsm(self.classifier(out, taskid))
 
@@ -200,18 +178,20 @@ class Decoder(DecoderBase):
 
 		for step in range(1, max_len):
 
-			out = self.wemb(wds) + _task_emb
+			out = self.wemb(wds)
+			if _task_emb is not None:
+				out = out + _task_emb
 			if self.pemb is not None:
 				out = self.pemb.get_pos(step).add(out, alpha=sqrt_isize)
 			if self.drop is not None:
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(inpute, states[_tmp], taskid=taskid, src_pad_mask=_src_pad_mask, tgt_pad_mask=None, query_unit=out)
+				out, _state = net(inpute, states[_tmp], src_pad_mask=_src_pad_mask, tgt_pad_mask=None, query_unit=out)
 				states[_tmp] = _state
 
 			if self.out_normer is not None:
-				out = self.out_normer(out, taskid=taskid)
+				out = self.out_normer(out)
 
 			out = self.lsm(self.classifier(out, taskid)).view(bsize, beam_size, -1)
 

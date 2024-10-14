@@ -1,35 +1,46 @@
 #encoding: utf-8
 
 import torch
-from numbers import Integral
 from torch import nn
 from torch.nn import functional as nnFunc
 
-class LayerNorm(nn.LayerNorm):
+from utils.torch.comp import torch_no_grad
 
-	def __init__(self, normalized_shape, ntask=None, eps=1e-5, elementwise_affine=True, **kwargs):
+class MBLinear(nn.Linear):
 
-		if isinstance(normalized_shape, Integral):
-			normalized_shape = (ntask, normalized_shape,)
-		else:
-			normalized_shape = tuple([ntask, *normalized_shape])
+	def __init__(self, in_features, out_features, nbias, bias=True, **kwargs):
 
-		super(LayerNorm, self).__init__(normalized_shape, eps=eps, elementwise_affine=elementwise_affine, **kwargs)
+		super(MBLinear, self).__init__(in_features, out_features, bias=False)
 
-		self.normalized_shape = self.normalized_shape[1:]
+		if bias:
+			self.bias = nn.Parameter(torch.zeros(nbias, out_features))
 
-	def forward(self, x, taskid=None, **kwargs):
+	def forward(self, x, taskid, **kwargs):
 
-		if (self.weight is None) and (self.bias is None):
-			_xn = nnFunc.layer_norm(x, self.normalized_shape, None, None, self.eps)
-		else:
-			_std, _mean = torch.std_mean(x, dim=-1, unbiased=False, keepdim=True)# x.std(dim=-1, unbiased=False, keepdim=True), x.mean(dim=-1, keepdim=True)
-			_xn = (x - _mean) / (_std + self.eps)
-			_bsize = [1 for i in range(x.dim() - len(self.normalized_shape))] + list(self.normalized_shape)
+		out = nnFunc.linear(x, self.weight, None)
+		if self.bias is not None:
+			_bsize = [1 for i in range(x.dim())]
 			_bsize[0] = x.size(0)
-			if self.weight is not None:
-				_xn = _xn * self.weight.index_select(0, taskid).view(_bsize)
-			if self.bias is not None:
-				_xn = _xn.add_(self.bias.index_select(0, taskid).view(_bsize))
+			_bsize[-1] = self.out_features
+			out.add_(self.bias.index_select(0, taskid).view(_bsize))
 
-		return _xn
+		return out
+
+	def fix_init(self):
+
+		if self.bias is not None:
+			with torch_no_grad():
+				self.bias.zero_()
+
+class NWMBLinear(MBLinear):
+
+	def forward(self, x, taskid, **kwargs):
+
+		out = nnFunc.linear(x, self.weight.narrow(0, 0, self.out_features), None)
+		if self.bias is not None:
+			_bsize = [1 for i in range(x.dim())]
+			_bsize[0] = x.size(0)
+			_bsize[-1] = self.out_features
+			out.add_(self.bias.index_select(0, taskid).view(_bsize))
+
+		return out
