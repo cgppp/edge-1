@@ -13,15 +13,15 @@ def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, ge
 	rsi = []
 	rst = []
 	rstask = None
-	nd = maxlen = mlen_i = mlen_t = 0
+	nd = maxlen = mlen_i = mlen_t = npred = 0
 	for i_d, td in zip(file_reader(finput, keep_empty_line=True), file_reader(ftarget, keep_empty_line=True)):
 		lid = len(i_d) - 1
 		ltd = len(td)
-		lgth = lid + ltd
-		_task = i_d[0]
 		# uncomment the following 2 lines to filter out empty data (e.g. in OPUS-100).
 		if (lid <= 0) or (ltd <= 0):
 			continue
+		lgth = lid + ltd
+		_task = i_d[0]
 		if maxlen == 0:
 			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
 			maxlen = lgth + _maxpad
@@ -34,29 +34,31 @@ def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, ge
 				mlen_i = lid
 			if ltd > mlen_t:
 				mlen_t = ltd
+			npred += ltd + 1
 			nd += 1
 		else:
-			yield rsi, rst, rstask, mlen_i, mlen_t
+			yield rsi, rst, rstask, mlen_i, mlen_t, npred
 			rsi = [i_d[1:]]
 			rstask = _task
 			rst = [td]
 			mlen_i = lid
 			mlen_t = ltd
+			npred = ltd + 1
 			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
 			maxlen = lgth + _maxpad
 			_bsize = get_bsize(maxlen + _maxpad, maxtoken, bsize)
 			nd = 1
 	if rsi:
-		yield rsi, rst, rstask, mlen_i, mlen_t
+		yield rsi, rst, rstask, mlen_i, mlen_t, npred
 
 def batch_mapper(finput, ftarget, vocabi, vocabt, vocabtask, bsize, maxpad, maxpart, maxtoken, minbsize, map_batch=map_batch, batch_loader=batch_loader, **kwargs):
 
-	for i_d, td, taskd, mlen_i, mlen_t in batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, **kwargs):
+	for i_d, td, taskd, mlen_i, mlen_t, npred in batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, **kwargs):
 		rsi, extok_i = map_batch(i_d, vocabi)
 		rst, extok_t = map_batch(td, vocabt)
-		yield rsi, rst, vocabtask[taskd], mlen_i + extok_i, mlen_t + extok_t
+		yield rsi, rst, vocabtask[taskd], mlen_i + extok_i, mlen_t + extok_t, npred
 
 def batch_padder(finput, ftarget, vocabi, vocabt, vocabtask, bsize, maxpad, maxpart, maxtoken, minbsize, pad_batch=pad_batch, batch_mapper=batch_mapper, pad_id=pad_id, **kwargs):
 
-	for i_d, td, taskd, mlen_i, mlen_t in batch_mapper(finput, ftarget, vocabi, vocabt, vocabtask, bsize, maxpad, maxpart, maxtoken, minbsize, **kwargs):
-		yield pad_batch(i_d, mlen_i, pad_id=pad_id), pad_batch(td, mlen_t, pad_id=pad_id), taskd
+	for i_d, td, taskd, mlen_i, mlen_t, npred in batch_mapper(finput, ftarget, vocabi, vocabt, vocabtask, bsize, maxpad, maxpart, maxtoken, minbsize, **kwargs):
+		yield pad_batch(i_d, mlen_i, pad_id=pad_id), pad_batch(td, mlen_t, pad_id=pad_id), taskd, npred

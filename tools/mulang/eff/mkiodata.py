@@ -22,9 +22,10 @@ def handle(finput, ftarget, fvocab_i, fvocab_t, fvocab_task, frs, minbsize=1, ex
 	with h5File(frs, "w", libver=h5_libver) as rsf:
 		curd = {}
 		torder = []
-		for i_d, td, taskd in batch_padder(finput, ftarget, vcbi, vcbt, vcbtask, _bsize, maxpad, maxpart, _maxtoken, minbsize):
+		npred = []
+		for i_d, td, taskd, npredb in batch_padder(finput, ftarget, vcbi, vcbt, vcbtask, _bsize, maxpad, maxpart, _maxtoken, minbsize):
 			_str_taskd = str(taskd)
-			if _str_taskd in rsf:
+			if taskd in curd:
 				task_grp = rsf[_str_taskd]
 				src_grp = task_grp["src"]
 				tgt_grp = task_grp["tgt"]
@@ -32,6 +33,9 @@ def handle(finput, ftarget, fvocab_i, fvocab_t, fvocab_task, frs, minbsize=1, ex
 				task_grp = rsf.create_group(_str_taskd)
 				src_grp = task_grp.create_group("src")
 				tgt_grp = task_grp.create_group("tgt")
+				if npred and torder:
+					rsf[str(torder[-1])].create_dataset("npred", data=np_array(npred, dtype=np_int32), **h5datawargs)
+					npred.clear()
 				torder.append(taskd)
 			rid = np_array(i_d, dtype=np_int32)
 			rtd = np_array(td, dtype=np_int32)
@@ -39,9 +43,10 @@ def handle(finput, ftarget, fvocab_i, fvocab_t, fvocab_task, frs, minbsize=1, ex
 			wid = str(_id)
 			src_grp.create_dataset(wid, data=rid, **h5datawargs)
 			tgt_grp.create_dataset(wid, data=rtd, **h5datawargs)
+			npred.append(npredb)
 			curd[taskd] = _id + 1
 		rsf["taskorder"] = np_array(torder, dtype=np_int32)
-		curd = [curd[tmp] for tmp in torder]
+		curd = [curd[_] for _ in torder]
 		rsf["ndata"] = np_array(curd, dtype=np_int32)
 		rsf["nword"] = np_array([nwordi, nwordtask, nwordt], dtype=np_int32)
 	print("Number of Batches: %d\nSource Vocabulary Size: %d\nTarget Vocabulary Size: %d\nNumber of Tasks: %d" % (sum(curd), nwordi, nwordt, nwordtask,))
