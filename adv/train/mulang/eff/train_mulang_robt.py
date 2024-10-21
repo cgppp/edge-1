@@ -17,7 +17,7 @@ from utils.fmt.base4torch import load_emb, parse_cuda
 from utils.h5serial import h5File
 from utils.init.base import init_model_params
 from utils.io import load_model_cpu, save_model, save_states
-from utils.mulang import data_sampler
+from utils.mulang import data_sampler_token as data_sampler
 from utils.state.holder import Holder
 from utils.state.pyrand import PyRandomState
 from utils.state.thrand import THRandomState
@@ -256,8 +256,7 @@ else:
 	train_taskorder.sort()
 	ntrain = [_tnd[i] for i in train_taskorder]
 	_tnd = None
-	train_sampler = data_sampler(ntrain if task_weight is None else task_weight, task_weight_T, ntrain, train_taskorder, nsample=sum(ntrain))
-	ntrain = train_sampler.nsample
+	train_sampler = data_sampler({i: td[str(i)]["npred"][()].tolist() for i in train_taskorder}, task_weight_T, ntrain, train_taskorder)
 nvalid = [(str(i), _task,) for _nd, _task in zip(nvalid, vd["taskorder"][()].tolist()) for i in range(_nd)]
 
 logger.info("Design models with seed: %d" % torch.initial_seed())

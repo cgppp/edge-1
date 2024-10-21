@@ -1,12 +1,16 @@
 #encoding: utf-8
 
+from math import ceil
+from random import shuffle
+
 from utils.data import inf_data_generator
 from utils.random import multinomial
 
 def T_normalize(wl, T):
 
 	_t = 1.0 / T
-	_tmp = [_wu ** _t for _wu in wl]
+	_mv = min(wl)
+	_tmp = [(_wu / _mv) ** _t for _wu in wl]
 	_s = sum(_tmp)
 
 	return [_tu / _s for _tu in _tmp]
@@ -62,3 +66,30 @@ class balance_loader:
 		if (i < self.imax) and (i > self.imin) and (v > 0):
 			_ = self.c[i] + v
 			self.c = [0 if _i == i else (_v - _) for _i, _v in enumerate(self.c)]
+
+def sample_iter_token(tgen, taskl, tnt, tnpred, tdebit):
+
+	for _t, _nt in zip(taskl, tnt):
+		_npred, _g, _debit = tnpred[_t], tgen[_t], tdebit.get(_t, 0) + _nt
+		while _debit > 0:
+			i = next(_g)
+			_debit -= _npred[i]
+			yield i, _t
+		tdebit[_t] = _debit
+
+class data_sampler_token:
+
+	def __init__(self, tnpredl, task_weight_T, ntrain, train_taskl, **kwargs):
+
+		self.task_generators = {_t: inf_data_generator(str(_) for _ in range(_tntrain)) for _t, _tntrain in zip(train_taskl, ntrain)}
+		self.train_taskl, self.tnpred, self.tdebit = train_taskl, {_k: {_i: _ for _i, _ in enumerate(_v)} for _k, _v in tnpredl.items()}, {}
+		_ = [sum(tnpredl[_t]) for _t in train_taskl]
+		_st = float(sum(_))
+		self.tnt = [ceil(_w * _st) for _w in T_normalize([float(_nt) for _nt in _], task_weight_T)]
+
+	def generate(self):
+
+		_ = list(sample_iter_token(self.task_generators, self.train_taskl, self.tnt, self.tnpred, self.tdebit))
+		shuffle(_)
+
+		return _
