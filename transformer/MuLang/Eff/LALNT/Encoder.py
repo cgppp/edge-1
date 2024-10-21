@@ -15,7 +15,6 @@ class EncoderLayer(EncoderLayerBase):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
-		self.task_id_shift, _nwd = (nwd, (nwd + ntask),) if merge_lang_vcb else (0, nwd,)
 
 		super(EncoderLayer, self).__init__(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, **kwargs)
 
