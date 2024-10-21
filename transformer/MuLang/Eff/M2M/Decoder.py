@@ -144,7 +144,7 @@ class Decoder(DecoderBase):
 
 		bsize = inpute.size(0)
 
-		out = self.wemb.weight[taskid + self.task_id_shift].view(1, 1, -1).expand(bsize, 1, -1) if self.task_id_shift > 0 self.get_sos_emb(inpute)
+		out = self.wemb.weight[taskid + self.task_id_shift].view(1, 1, -1).expand(bsize, 1, -1) if self.task_id_shift > 0 else self.get_sos_emb(inpute)
 		_task_emb = None if self.task_emb is None else self.task_emb.weight[taskid]
 
 		if _task_emb is not None:
