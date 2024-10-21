@@ -9,7 +9,7 @@ from lrsch import GoogleLR as LRScheduler
 from parallel.base import DataParallelCriterion
 from parallel.optm import MultiGPUGradScaler
 from parallel.parallelMT import DataParallelMT
-from transformer.MuLang.Eff.Base.NMT import NMT
+from transformer.MuLang.Eff.NMT import NMT
 from utils.base import free_cache, get_logger, mkdir, pad_tensors, set_random_seed
 from utils.contpara import get_model_parameters
 from utils.fmt.base import iter_to_str
