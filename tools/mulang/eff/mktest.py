@@ -25,7 +25,7 @@ def handle(finput, fvocab_i, fvocab_task, frs, minbsize=1, expand_for_mulgpu=Tru
 		torder = []
 		for i_d, taskd in batch_padder(finput, vcbi, vcbtask, _bsize, maxpad, maxpart, _maxtoken, minbsize):
 			_str_taskd = str(taskd)
-			if _str_taskd in rsf:
+			if taskd in curd:
 				src_grp = rsf[_str_taskd]["src"]
 			else:
 				src_grp = rsf.create_group(_str_taskd).create_group("src")

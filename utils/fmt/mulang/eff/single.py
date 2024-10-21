@@ -15,9 +15,9 @@ def batch_loader(finput, bsize, maxpad, maxpart, maxtoken, minbsize, get_bsize=g
 	nd = maxlen = minlen = mlen_i = 0
 	for i_d in file_reader(finput, keep_empty_line=True):
 		lgth = len(i_d) - 1
-		_task = i_d[0]
 		#if lgth <= 0:
 			#continue
+		_task = i_d[0]
 		if maxlen == 0:
 			_maxpad = max(1, min(maxpad, ceil(lgth / _f_maxpart)) // 2)
 			maxlen = lgth + _maxpad
