@@ -5,7 +5,7 @@ import torch
 
 from parallel.parallelMT import DataParallelMT
 from transformer.EnsembleNMT import NMT as Ensemble
-from transformer.MuLang.NMT import NMT
+from transformer.MuLang.Eff.NMT import NMT
 from utils.base import set_random_seed
 from utils.fmt.base import sys_open
 from utils.fmt.base4torch import parse_cuda_decode
@@ -33,7 +33,7 @@ vcbt, nwordt = ldvocab(sys.argv[2])
 vcbt = reverse_dict(vcbt)
 
 if len(sys.argv) == 4:
-	mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, ntask=ntask, merge_lang_vcb=cnfg.merge_lang_vcb, use_task_emb=cnfg.use_task_emb, ngroup=cnfg.ngroup)
+	mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, ntask=ntask, merge_lang_vcb=cnfg.merge_lang_vcb, use_task_emb=cnfg.use_task_emb)
 
 	mymodel = load_model_cpu(sys.argv[3], mymodel)
 	mymodel.apply(load_fixing)
@@ -41,7 +41,7 @@ if len(sys.argv) == 4:
 else:
 	models = []
 	for modelf in sys.argv[3:]:
-		tmp = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, ntask=ntask, merge_lang_vcb=cnfg.merge_lang_vcb, use_task_emb=cnfg.use_task_emb, ngroup=cnfg.ngroup)
+		tmp = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, ntask=ntask, merge_lang_vcb=cnfg.merge_lang_vcb, use_task_emb=cnfg.use_task_emb)
 
 		tmp = load_model_cpu(modelf, tmp)
 		tmp.apply(load_fixing)

@@ -215,8 +215,8 @@ nvalid = vd["ndata"][()].tolist()
 nword = td["nword"][()].tolist()
 nwordi, ntask, nwordt = nword[0], nword[1], nword[-1]
 
-task_weight, task_weight_T = cnfg.task_weight, cnfg.task_weight_T
-if task_weight_T is None or task_weight_T == 1.0:
+task_weight_T = cnfg.task_weight_T
+if (task_weight_T is None) or (task_weight_T == 1.0):
 	tl = [(str(i), _task,) for _nd, _task in zip(ntrain, td["taskorder"][()].tolist()) for i in range(_nd)]
 	train_sampler = None
 	ntrain = len(tl)
@@ -230,7 +230,7 @@ else:
 nvalid = [(str(i), _task,) for _nd, _task in zip(nvalid, vd["taskorder"][()].tolist()) for i in range(_nd)]
 
 logger.info("Design models with seed: %d" % torch.initial_seed())
-mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, ntask=ntask, merge_lang_vcb=cnfg.merge_lang_vcb, use_task_emb=cnfg.use_task_emb, ngroup=cnfg.ngroup)
+mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, ntask=ntask, merge_lang_vcb=cnfg.merge_lang_vcb, use_task_emb=cnfg.use_task_emb)
 
 fine_tune_m = cnfg.fine_tune_m
 
