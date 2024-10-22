@@ -5,7 +5,6 @@ from math import sqrt
 
 from modules.kd.base import GradientAdapterFunc
 from transformer.Encoder import Encoder as EncoderBase
-from utils.fmt.parser import parse_none
 from utils.kd.self.feat import get_kd_loss
 
 from cnfg.ihyp import *
@@ -14,10 +13,7 @@ class Encoder(EncoderBase):
 
 	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, kd_layers=None, min_sim=0.0, **kwargs):
 
-		_ahsize = parse_none(ahsize, isize)
-		_fhsize = _ahsize * 4 if fhsize is None else fhsize
-
-		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, **kwargs)
+		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=ahsize, norm_output=norm_output, **kwargs)
 
 		self.kd_layers = set() if kd_layers is None else (kd_layers if isinstance(kd_layers, set) else set(kd_layers))
 		self.min_sim = min_sim
