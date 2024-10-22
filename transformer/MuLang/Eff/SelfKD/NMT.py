@@ -15,7 +15,7 @@ class NMT(NMTBase):
 
 		enc_layer, dec_layer = parse_double_value_tuple(num_layer)
 
-		super(NMT, self).__init__(isize, snwd, tnwd, (enc_layer, dec_layer,), fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, global_emb=global_emb, num_head=num_head, xseql=xseql, ahsize=ahsize, norm_output=norm_output, bindDecoderEmb=bindDecoderEmb, forbidden_index=None, **kwargs)
+		super(NMT, self).__init__(isize, snwd, tnwd, (enc_layer, dec_layer,), fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, global_emb=global_emb, num_head=num_head, xseql=xseql, ahsize=ahsize, norm_output=norm_output, bindDecoderEmb=bindDecoderEmb, forbidden_index=forbidden_index, ntask=ntask, merge_lang_vcb=merge_lang_vcb, use_task_emb=use_task_emb, **kwargs)
 
 		_kd_layers = [] if kd_layers is None else kd_layers
 		if _kd_layers and isinstance(_kd_layers[0], (list, tuple)):
