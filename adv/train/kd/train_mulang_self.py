@@ -4,12 +4,12 @@ import torch
 from random import shuffle
 from torch.optim import Adam as Optimizer
 
-from loss.base import LabelSmoothingLoss
+from loss.base import MultiLabelSmoothingLoss as LabelSmoothingLoss
 from lrsch import GoogleLR as LRScheduler
 from parallel.base import DataParallelCriterion
 from parallel.optm import MultiGPUGradScaler
 from parallel.parallelMT import DataParallelMT
-from transformer.SelfKD.FeatNMT import NMT
+from transformer.MuLang.Eff.SelfKD.NMT import NMT
 from utils.base import free_cache, get_logger, mkdir, set_random_seed
 from utils.contpara import get_model_parameters
 from utils.fmt.base import iter_to_str
@@ -17,6 +17,7 @@ from utils.fmt.base4torch import load_emb, parse_cuda
 from utils.h5serial import h5File
 from utils.init.base import init_model_params
 from utils.io import load_model_cpu, save_model, save_states
+from utils.mulang import data_sampler_token as data_sampler
 from utils.state.holder import Holder
 from utils.state.pyrand import PyRandomState
 from utils.state.thrand import THRandomState
@@ -25,6 +26,7 @@ from utils.tqdm import tqdm
 from utils.train.base import getlr, optm_step, optm_step_zero_grad_set_none, reset_Adam
 from utils.train.dss import dynamic_sample
 
+# cnfg.selfkd: from cnfg.mulang import *
 import cnfg.selfkd as cnfg
 from cnfg.ihyp import *
 from cnfg.vocab.base import pad_id
@@ -37,10 +39,10 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 	global minerr, minloss, wkdir, save_auto_clean, namin, use_kd, kd_step, kd_loss_w
 	model.train()
 	cur_b, _ls = 1, {} if save_loss else None
-	src_grp, tgt_grp = td["src"], td["tgt"]
-	for i_d in tqdm(tl, mininterval=tqdm_mininterval):
-		seq_batch = torch.from_numpy(src_grp[i_d][()])
-		seq_o = torch.from_numpy(tgt_grp[i_d][()])
+	for i_d, taskid in tqdm(tl, mininterval=tqdm_mininterval):
+		task_grp = td[str(taskid)]
+		seq_batch = torch.from_numpy(task_grp["src"][i_d][()])
+		seq_o = torch.from_numpy(task_grp["tgt"][i_d][()])
 		lo = seq_o.size(1) - 1
 		if mv_device:
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
@@ -52,10 +54,10 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		gold_pad_mask = ot.eq(pad_id)
 		with torch_autocast(enabled=_use_amp):
 			if use_kd:
-				output, kd_loss = model(seq_batch, oi, gold=ot, gold_pad_mask=gold_pad_mask)
+				output, kd_loss = model(seq_batch, oi, taskid=taskid, gold=ot, gold_pad_mask=gold_pad_mask)
 			else:
-				output = model(seq_batch, oi)
-			loss = lossf(output, ot, mask=gold_pad_mask)
+				output = model(seq_batch, oi, taskid=taskid)
+			loss = lossf(output, ot, lang_id=taskid, mask=gold_pad_mask)
 			if multi_gpu:
 				loss = loss.sum()
 				if use_kd:
@@ -76,7 +78,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		loss = output = oi = ot = seq_batch = seq_o = gold_pad_mask = None
 		sum_loss += loss_add
 		if save_loss:
-			_ls[i_d] = loss_add / wd_add
+			_ls[(i_d, taskid,)] = loss_add / wd_add
 		sum_wd += wd_add
 		_done_tokens += wd_add
 
@@ -145,12 +147,11 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 	r = w = 0
 	sum_loss = 0.0
 	model.eval()
-	src_grp, tgt_grp = ed["src"], ed["tgt"]
 	with torch_inference_mode():
-		for i in tqdm(range(nd), mininterval=tqdm_mininterval):
-			bid = str(i)
-			seq_batch = torch.from_numpy(src_grp[bid][()])
-			seq_o = torch.from_numpy(tgt_grp[bid][()])
+		for i_d, taskid in tqdm(nd, mininterval=tqdm_mininterval):
+			task_grp = ed[str(taskid)]
+			seq_batch = torch.from_numpy(task_grp["src"][i_d][()])
+			seq_o = torch.from_numpy(task_grp["tgt"][i_d][()])
 			lo = seq_o.size(1) - 1
 			if mv_device:
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
@@ -158,8 +159,8 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 			seq_batch, seq_o = seq_batch.long(), seq_o.long()
 			ot = seq_o.narrow(1, 1, lo).contiguous()
 			with torch_autocast(enabled=use_amp):
-				output = model(seq_batch, seq_o.narrow(1, 0, lo))
-				loss = lossf(output, ot)
+				output = model(seq_batch, seq_o.narrow(1, 0, lo), taskid=taskid)
+				loss = lossf(output, ot, lang_id=taskid)
 				if multi_gpu:
 					loss = loss.sum()
 					trans = torch.cat([outu.argmax(-1).to(mv_device, non_blocking=True) for outu in output], 0)
@@ -224,12 +225,24 @@ set_random_seed(cnfg.seed, use_cuda)
 td = h5File(cnfg.train_data, "r")
 vd = h5File(cnfg.dev_data, "r")
 
-ntrain = td["ndata"][()].item()
-nvalid = vd["ndata"][()].item()
+ntrain = td["ndata"][()].tolist()
+nvalid = vd["ndata"][()].tolist()
 nword = td["nword"][()].tolist()
-nwordi, nwordt = nword[0], nword[-1]
+nwordi, ntask, nwordt = nword[0], nword[1], nword[-1]
 
-tl = [str(i) for i in range(ntrain)]
+task_weight_T = cnfg.task_weight_T
+if (task_weight_T is None) or (task_weight_T == 1.0):
+	tl = [(str(i), _task,) for _nd, _task in zip(ntrain, td["taskorder"][()].tolist()) for i in range(_nd)]
+	train_sampler = None
+	ntrain = len(tl)
+else:
+	train_taskorder = td["taskorder"][()].tolist()
+	_tnd = dict(zip(train_taskorder, ntrain))
+	train_taskorder.sort()
+	ntrain = [_tnd[i] for i in train_taskorder]
+	_tnd = None
+	train_sampler = data_sampler({i: td[str(i)]["npred"][()].tolist() for i in train_taskorder}, task_weight_T, ntrain, train_taskorder)
+nvalid = [(str(i), _task,) for _nd, _task in zip(nvalid, vd["taskorder"][()].tolist()) for i in range(_nd)]
 
 kd_T = cnfg.T
 kd_step = remain_steps - cnfg.kd_step
@@ -237,7 +250,7 @@ use_kd = remain_steps <= kd_step
 kd_loss_w = kd_T * kd_T * cnfg.kd_weight
 
 logger.info("Design models with seed: %d" % torch.initial_seed())
-mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, kd_layers=cnfg.kd_layers, min_sim=cnfg.gradapt_min_sim, enable_proj=cnfg.enable_proj, num_topk=cnfg.num_topk, T=kd_T, min_T=cnfg.min_T, min_gold_p=cnfg.min_gold_p, mix_kd=cnfg.mix_kd, iter_kd=cnfg.iter_kd, remove_gold=cnfg.remove_gold)
+mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, ntask=ntask, merge_lang_vcb=cnfg.merge_lang_vcb, use_task_emb=cnfg.use_task_emb, kd_layers=cnfg.kd_layers, min_sim=cnfg.gradapt_min_sim)
 
 fine_tune_m = cnfg.fine_tune_m
 
@@ -312,12 +325,12 @@ else:
 		logger.info("New best model saved")
 
 if cnfg.dss_ws is not None and cnfg.dss_ws > 0.0 and cnfg.dss_ws < 1.0:
-	dss_ws = int(cnfg.dss_ws * ntrain)
+	dss_ws = int(cnfg.dss_ws * sum(ntrain))
 	_Dws = {}
 	_prev_Dws = {}
 	_crit_inc = {}
 	if cnfg.dss_rm is not None and cnfg.dss_rm > 0.0 and cnfg.dss_rm < 1.0:
-		dss_rm = int(cnfg.dss_rm * ntrain * (1.0 - cnfg.dss_ws))
+		dss_rm = int(cnfg.dss_rm * sum(ntrain) * (1.0 - cnfg.dss_ws))
 	else:
 		dss_rm = 0
 else:
@@ -328,7 +341,10 @@ else:
 namin = 0
 
 for i in range(1, maxrun + 1):
-	shuffle(tl)
+	if train_sampler is None:
+		shuffle(tl)
+	else:
+		tl = train_sampler.generate()
 	free_cache(use_cuda)
 	terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
 	vloss, vprec = eva(vd, nvalid, mymodel, lossf, cuda_device, multi_gpu, use_amp)
@@ -372,7 +388,7 @@ for i in range(1, maxrun + 1):
 		break
 
 	if dss_ws > 0:
-		if _prev_Dws:
+		if _prev_Dws and (train_sampler is None):
 			for _key, _value in _Dws.items():
 				if _key in _prev_Dws:
 					_ploss = _prev_Dws[_key]

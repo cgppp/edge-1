@@ -43,11 +43,12 @@ class Encoder(EncoderBase):
 
 		if self.out_normer is not None:
 			out = self.out_normer(out, taskid=taskid)
-		enc_out = self.transo(out, taskid)
+		_last_layer_out = out
+		out = self.transo(out, taskid)
 
 		if _use_kd:
 			if (prev_layer_ind + 1) in self.kd_layers:
-				kd_o.append(out)
-				return enc_out, get_kd_loss(torch.stack(kd_o, dim=0), mask=None if mask is None else mask.squeeze(1)) if len(kd_o) > 1 else out.new_zeros(1)
+				kd_o.append(_last_layer_out)
+				return out, get_kd_loss(torch.stack(kd_o, dim=0), mask=None if mask is None else mask.squeeze(1)) if len(kd_o) > 1 else out.new_zeros(1)
 		else:
-			return enc_out
+			return out
