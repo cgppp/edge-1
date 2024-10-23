@@ -82,7 +82,7 @@ class data_sampler_token:
 	def __init__(self, tnpredl, task_weight_T, ntrain, train_taskl, **kwargs):
 
 		self.task_generators = {_t: inf_data_generator(str(_) for _ in range(_tntrain)) for _t, _tntrain in zip(train_taskl, ntrain)}
-		self.train_taskl, self.tnpred, self.tdebit = train_taskl, {_k: {_i: _ for _i, _ in enumerate(_v)} for _k, _v in tnpredl.items()}, {}
+		self.train_taskl, self.tnpred, self.tdebit = train_taskl, {_k: {str(_i): _ for _i, _ in enumerate(_v)} for _k, _v in tnpredl.items()}, {}
 		_ = [sum(tnpredl[_t]) for _t in train_taskl]
 		_st = float(sum(_))
 		self.tnt = [ceil(_w * _st) for _w in T_normalize([float(_nt) for _nt in _], task_weight_T)]
