@@ -33,7 +33,7 @@ def handle(finput, ftarget, fvocab_i, fvocab_t, fvocab_task, frs, minbsize=1, ex
 				task_grp = rsf.create_group(_str_taskd)
 				src_grp = task_grp.create_group("src")
 				tgt_grp = task_grp.create_group("tgt")
-				if npred and torder:
+				if npred:
 					rsf[str(torder[-1])].create_dataset("npred", data=np_array(npred, dtype=np_int32), **h5datawargs)
 					npred.clear()
 				torder.append(taskd)
@@ -45,6 +45,9 @@ def handle(finput, ftarget, fvocab_i, fvocab_t, fvocab_task, frs, minbsize=1, ex
 			tgt_grp.create_dataset(wid, data=rtd, **h5datawargs)
 			npred.append(npredb)
 			curd[taskd] = _id + 1
+		if npred:
+			rsf[_str_taskd].create_dataset("npred", data=np_array(npred, dtype=np_int32), **h5datawargs)
+			npred.clear()
 		rsf["taskorder"] = np_array(torder, dtype=np_int32)
 		curd = [curd[_] for _ in torder]
 		rsf["ndata"] = np_array(curd, dtype=np_int32)
