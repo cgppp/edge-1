@@ -4,11 +4,7 @@ import sys
 
 from utils.fmt.base import FileList, sys_open
 
-interval = 15
-
-def handle(srcf, osfl):
-
-	global interval
+def handle(srcf, osfl, interval=15, max_id=3):
 
 	fwd = {}
 
@@ -19,13 +15,13 @@ def handle(srcf, osfl):
 			src = li[0]
 			if src:
 				lts = len(src.split())
-				wid = lts // interval
-				if wid not in fwd:
+				wid = min(lts // interval, max_id)
+				if wid in fwd:
+					fwrtl = fwd[wid]
+				else:
 					sind = str(wid) + "_"
 					fwrtl = [sys_open(sind + srcf, "wb") for srcf in osfl]
 					fwd[wid] = fwrtl
-				else:
-					fwrtl = fwd[wid]
 				for wl, fw in zip(li[1:], fwrtl):
 					fw.write(wl.encode("utf-8"))
 					fw.write(ens)
