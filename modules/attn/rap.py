@@ -76,22 +76,11 @@ class SelfAttn(SelfAttnBase):
 
 	def load_base(self, base_module):
 
-		self.attn_dim, self.hsize, self.num_head = base_module.attn_dim, base_module.hsize, base_module.num_head
-
-		self.adaptor = base_module.adaptor
-
-		self.outer = base_module.outer
-
-		self.normer = base_module.normer
-
-		self.drop = base_module.drop
-
-		self.rel_pemb = base_module.rel_pemb
-		if self.rel_pemb is not None:
-			self.k_rel_pos, self.xseql = base_module.k_rel_pos, base_module.xseql
-			self.ref_rel_posm = base_module.ref_rel_posm
-			self.register_buffer("rel_pos", base_module.rel_pos, persistent=False)
-			self.register_buffer("rel_pos_cache", base_module.rel_pos_cache, persistent=False)
+		for _key in ["attn_dim", "hsize", "num_head", "adaptor", "outer", "normer", "drop", "rel_pemb", "rel_shift", "clamp_max", "clamp_min", "xseql", "ref_rel_posm", "rope_poff", "rope_doff", "rope_alpha", "ref_ropem", "uni_direction_reduction", "ref_alibim"]:
+			if hasattr(base_module, _key):
+				setattr(self, _key, getattr(base_module, _key))
+		for _key, _ in base_module.named_buffers():
+			self.register_buffer(_key, _, persistent=_key not in base_module._non_persistent_buffers_set)
 
 class CrossAttn(CrossAttnBase):
 
@@ -125,17 +114,11 @@ class CrossAttn(CrossAttnBase):
 
 	def load_base(self, base_module):
 
-		self.attn_dim, self.hsize, self.num_head = base_module.attn_dim, base_module.hsize, base_module.num_head
-
-		self.query_adaptor = base_module.query_adaptor
-
-		self.kv_adaptor = base_module.kv_adaptor
-
-		self.outer = base_module.outer
-
-		self.normer = base_module.normer
-
-		self.drop = base_module.drop
+		for _key in ["attn_dim", "hsize", "num_head", "query_adaptor", "kv_adaptor", "outer", "normer", "drop", "is_decoding"]:
+			if hasattr(base_module, _key):
+				setattr(self, _key, getattr(base_module, _key))
+		for _key, _ in base_module.named_buffers():
+			self.register_buffer(_key, _, persistent=_key not in base_module._non_persistent_buffers_set)
 
 class ResSelfAttn(ResSelfAttnBase):
 

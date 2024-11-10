@@ -42,13 +42,8 @@ class DecoderLayer(DecoderLayerBase):
 
 	def load_base(self, base_decoder_layer):
 
-		self.self_attn = base_decoder_layer.self_attn
-		self.cross_attn = base_decoder_layer.cross_attn
-		self.ff = base_decoder_layer.ff
-		self.layer_normer1 = base_decoder_layer.layer_normer1
-		self.layer_normer2 = base_decoder_layer.layer_normer2
-		self.drop = base_decoder_layer.drop
-		self.norm_residual = base_decoder_layer.norm_residual
+		for _key, _ in base_decoder_layer.named_children():
+			self.add_module(_key, _)
 
 class Decoder(DecoderBase):
 
