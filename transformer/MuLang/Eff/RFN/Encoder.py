@@ -4,7 +4,7 @@ from math import sqrt
 from torch import nn
 
 from modules.mulang.eff.rfn import LSTMCell4FFN
-from transformer.MuLang.Eff.Base.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase
+from transformer.MuLang.Eff.LALNT.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none
 
 from cnfg.ihyp import *

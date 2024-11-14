@@ -1,6 +1,6 @@
 #encoding: utf-8
 
-from transformer.MuLang.Eff.Base.NMT import NMT as NMTBase
+from transformer.MuLang.Eff.NMT import NMT as NMTBase
 from transformer.MuLang.Eff.RFN.Decoder import Decoder
 from transformer.MuLang.Eff.RFN.Encoder import Encoder
 from utils.fmt.parser import parse_double_value_tuple

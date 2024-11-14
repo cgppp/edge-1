@@ -5,7 +5,7 @@ from math import sqrt
 from torch import nn
 
 from modules.mulang.eff.rfn import LSTMCell4FFN
-from transformer.MuLang.Eff.Base.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
+from transformer.MuLang.Eff.LALNT.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
 from utils.fmt.parser import parse_none
