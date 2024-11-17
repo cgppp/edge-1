@@ -9,7 +9,7 @@ from time import sleep
 from utils.fmt.gec.kb.dynquad import batch_padder
 from utils.fmt.gec.kb.freader.mixer import gec_noise_reader
 from utils.fmt.gec.noise.floader import Loader as LoaderBase
-from utils.fmt.kbegen.loader import loader
+from utils.fmt.kbegen.mploader import loader
 from utils.fmt.raw.reader.sort.tag import sort_lines_reader
 from utils.h5serial import h5File
 
