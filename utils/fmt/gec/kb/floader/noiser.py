@@ -2,9 +2,7 @@
 
 import torch
 from numpy import array as np_array, int32 as np_int32, int8 as np_int8
-from os.path import exists as fs_check
 from random import seed as rpyseed, shuffle
-from time import sleep
 
 from utils.fmt.gec.kb.dynquad import batch_padder
 from utils.fmt.gec.kb.freader.mixer import gec_noise_reader
@@ -14,7 +12,7 @@ from utils.fmt.raw.reader.sort.tag import sort_lines_reader
 from utils.h5serial import h5File
 
 from cnfg.gec.gector import noise_char, noise_vcb, plm_vcb, seed as rand_seed
-from cnfg.ihyp import cache_len_default, h5_fileargs, h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
+from cnfg.ihyp import cache_len_default, h5_fileargs, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
 
 class Loader(LoaderBase):
 
@@ -29,13 +27,10 @@ class Loader(LoaderBase):
 		dloader = self.file_loader(self.kbloader, self.sfile, self.noiser, self.tokenizer, max_len=self.max_len)
 		file_reader = sort_lines_reader(line_read=self.raw_cache_size)
 		while self.running.value:
-			if self.todo:
-				_cache_file = self.todo.pop(0)
+			_cache_file = self.get_todo()
+			if _cache_file is not None:
 				with h5File(_cache_file, "w", **h5_fileargs) as rsf:
-					src_grp = rsf.create_group("src")
-					kb_grp = rsf.create_group("kb")
-					edt_grp = rsf.create_group("edt")
-					tgt_grp = rsf.create_group("tgt")
+					src_grp, kb_grp, edt_grp, tgt_grp = rsf.create_group("src"), rsf.create_group("kb"), rsf.create_group("edt"), rsf.create_group("tgt")
 					curd = 0
 					for i_d, kd, ed, td in batch_padder(dloader, self.bsize, self.maxpad, self.maxpart, self.maxtoken, self.minbsize, file_reader=file_reader):
 						wid = str(curd)
@@ -45,35 +40,22 @@ class Loader(LoaderBase):
 						tgt_grp.create_dataset(wid, data=np_array(td, dtype=np_int32), **h5datawargs)
 						curd += 1
 					rsf["ndata"] = np_array([curd], dtype=np_int32)
-				self.out.append(_cache_file)
-			else:
-				sleep(self.sleep_secs)
+				with self.out_lck:
+					self.out.append(_cache_file)
 
 	def iter_func(self, *args, **kwargs):
 
-		while self.running.value and (not self.out):
-			sleep(self.sleep_secs)
-		if self.out:
-			_cache_file = self.out.pop(0)
-			if fs_check(_cache_file):
-				try:
-					td = h5File(_cache_file, "r", **h5_fileargs)
-				except Exception as e:
-					td = None
-					if self.print_func is not None:
-						self.print_func(e)
-				if td is not None:
-					if self.print_func is not None:
-						self.print_func("load %s" % _cache_file)
-					tl = [str(i) for i in range(td["ndata"][()].item())]
-					shuffle(tl)
-					src_grp = td["src"]
-					kb_grp = td["kb"]
-					edt_grp = td["edt"]
-					tgt_grp = td["tgt"]
-					for i_d in tl:
-						yield torch.from_numpy(src_grp[i_d][()]), torch.from_numpy(kb_grp[i_d][()]), torch.from_numpy(edt_grp[i_d][()]), torch.from_numpy(tgt_grp[i_d][()])
-					td.close()
-					if self.print_func is not None:
-						self.print_func("close %s" % _cache_file)
-			self.todo.append(_cache_file)
+		td, _cache_file = self.get_h5()
+		if td is not None:
+			if self.print_func is not None:
+				self.print_func("load %s" % _cache_file)
+			tl = [str(i) for i in range(td["ndata"][()].item())]
+			shuffle(tl)
+			src_grp, kb_grp, edt_grp, tgt_grp = td["src"], td["kb"], td["edt"], td["tgt"]
+			for i_d in tl:
+				yield torch.from_numpy(src_grp[i_d][()]), torch.from_numpy(kb_grp[i_d][()]), torch.from_numpy(edt_grp[i_d][()]), torch.from_numpy(tgt_grp[i_d][()])
+			td.close()
+			if self.print_func is not None:
+				self.print_func("close %s" % _cache_file)
+			with self.todo_lck:
+				self.todo.append(_cache_file)

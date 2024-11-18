@@ -1,13 +1,10 @@
 #encoding: utf-8
 
 import torch
-from multiprocessing import Manager, Value
 from numpy import array as np_array, int32 as np_int32, int8 as np_int8
-from os.path import exists as fs_check
 from random import seed as rpyseed, shuffle
-from shutil import rmtree
-from time import sleep
 
+from utils.fmt.floader import Loader as LoaderBase
 from utils.fmt.gec.noise.base import Noiser
 from utils.fmt.gec.noise.freader import gec_noise_reader
 from utils.fmt.gec.noise.triple import batch_padder
@@ -18,23 +15,21 @@ from utils.h5serial import h5File
 from utils.process import start_process
 
 from cnfg.gec.gector import noise_char, noise_vcb, plm_vcb, seed as rand_seed
-from cnfg.ihyp import cache_len_default, h5_fileargs, h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
+from cnfg.ihyp import cache_len_default, h5_fileargs, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
 
-class Loader:
+class Loader(LoaderBase):
 
 	def __init__(self, sfile, vcbf=plm_vcb, noise_char=noise_char, noise_vcb=noise_vcb, max_len=cache_len_default, num_cache=2, raw_cache_size=4194304, minfreq=False, ngpu=1, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, sleep_secs=1.0, norm_u8=False, file_loader=gec_noise_reader, print_func=print, **kwargs):
 
-		self.sfile, self.max_len, self.num_cache, self.raw_cache_size, self.minbsize, self.maxpad, self.maxpart, self.sleep_secs, self.file_loader, self.print_func = sfile, max_len, num_cache, raw_cache_size, ngpu, maxpad, maxpart, sleep_secs, file_loader, print_func
+		super(Loader, self).__init__(sleep_secs=sleep_secs, print_func=print_func, **kwargs)
+		self.sfile, self.max_len, self.num_cache, self.raw_cache_size, self.minbsize, self.maxpad, self.maxpart, self.file_loader = sfile, max_len, num_cache, raw_cache_size, ngpu, maxpad, maxpart, file_loader
 		self.bsize, self.maxtoken = (bsize, maxtoken,) if self.minbsize == 1 else (bsize * self.minbsize, maxtoken * self.minbsize,)
 		self.cache_path = get_cache_path(self.sfile) if isinstance(self.sfile, str) else get_cache_path(*self.sfile)
 		self.tokenizer = Tokenizer(vcbf, norm_u8=norm_u8)
 		self.noiser = Noiser(char=noise_char, vcb=noise_vcb)
-		self.manager = Manager()
-		self.out = self.manager.list()
-		self.todo = self.manager.list([get_cache_fname(self.cache_path, i=_) for _ in range(self.num_cache)])
-		self.running = Value("B", 1, lock=True)
+		with self.todo_lck:
+			self.todo.extend([get_cache_fname(self.cache_path, i=_) for _ in range(self.num_cache)])
 		self.p_loader = start_process(target=self.loader)
-		self.iter = None
 
 	def loader(self):
 
@@ -42,12 +37,10 @@ class Loader:
 		dloader = self.file_loader(self.sfile, self.noiser, self.tokenizer, max_len=self.max_len, inf_loop=self.raw_cache_size is not None)
 		file_reader = sort_lines_reader(line_read=self.raw_cache_size)
 		while self.running.value:
-			if self.todo:
-				_cache_file = self.todo.pop(0)
+			_cache_file = self.get_todo()
+			if _cache_file is not None:
 				with h5File(_cache_file, "w", **h5_fileargs) as rsf:
-					src_grp = rsf.create_group("src")
-					edt_grp = rsf.create_group("edt")
-					tgt_grp = rsf.create_group("tgt")
+					src_grp, edt_grp, tgt_grp = rsf.create_group("src"), rsf.create_group("edt"), rsf.create_group("tgt")
 					curd = 0
 					for i_d, ed, td in batch_padder(dloader, self.bsize, self.maxpad, self.maxpart, self.maxtoken, self.minbsize, file_reader=file_reader):
 						wid = str(curd)
@@ -56,67 +49,22 @@ class Loader:
 						tgt_grp.create_dataset(wid, data=np_array(td, dtype=np_int32), **h5datawargs)
 						curd += 1
 					rsf["ndata"] = np_array([curd], dtype=np_int32)
-				self.out.append(_cache_file)
-			else:
-				sleep(self.sleep_secs)
+				with self.out_lck:
+					self.out.append(_cache_file)
 
 	def iter_func(self, *args, **kwargs):
 
-		while self.running.value and (not self.out):
-			sleep(self.sleep_secs)
-		if self.out:
-			_cache_file = self.out.pop(0)
-			if fs_check(_cache_file):
-				try:
-					td = h5File(_cache_file, "r", **h5_fileargs)
-				except Exception as e:
-					td = None
-					if self.print_func is not None:
-						self.print_func(e)
-				if td is not None:
-					if self.print_func is not None:
-						self.print_func("load %s" % _cache_file)
-					tl = [str(i) for i in range(td["ndata"][()].item())]
-					shuffle(tl)
-					src_grp = td["src"]
-					edt_grp = td["edt"]
-					tgt_grp = td["tgt"]
-					for i_d in tl:
-						yield torch.from_numpy(src_grp[i_d][()]), torch.from_numpy(edt_grp[i_d][()]), torch.from_numpy(tgt_grp[i_d][()])
-					td.close()
-					if self.print_func is not None:
-						self.print_func("close %s" % _cache_file)
-			self.todo.append(_cache_file)
-
-	def __call__(self, *args, **kwargs):
-
-		if self.iter is None:
-			self.iter = self.iter_func(*args, **kwargs)
-		for _ in self.iter:
-			yield _
-		self.iter = None
-
-	def status(self, mode=True):
-
-		with self.running.get_lock():
-			self.running.value = 1 if mode else 0
-
-	def close(self):
-
-		self.running.value = 0
-		sleep(self.sleep_secs)
-		if self.p_loader.is_alive():
-			try:
-				self.p_loader.terminate()
-			except Exception as e:
-				if self.print_func is not None:
-					self.print_func(e)
-			if self.p_loader.is_alive():
-				try:
-					self.p_loader.kill()
-				except Exception as e:
-					if self.print_func is not None:
-						self.print_func(e)
-		if not self.p_loader.is_alive():
-			self.p_loader.join(self.sleep_secs)
-		rmtree(self.cache_path, ignore_errors=True)
+		td, _cache_file = self.get_h5()
+		if td is not None:
+			if self.print_func is not None:
+				self.print_func("load %s" % _cache_file)
+			tl = [str(i) for i in range(td["ndata"][()].item())]
+			shuffle(tl)
+			src_grp, edt_grp, tgt_grp = td["src"], td["edt"], td["tgt"]
+			for i_d in tl:
+				yield torch.from_numpy(src_grp[i_d][()]), torch.from_numpy(edt_grp[i_d][()]), torch.from_numpy(tgt_grp[i_d][()])
+			td.close()
+			if self.print_func is not None:
+				self.print_func("close %s" % _cache_file)
+			with self.todo_lck:
+				self.todo.append(_cache_file)

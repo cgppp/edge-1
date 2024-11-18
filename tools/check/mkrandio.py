@@ -6,7 +6,7 @@ from numpy.random import randint as np_randint
 
 from utils.h5serial import h5File
 
-from cnfg.ihyp import h5_fileargs, h5_libver, h5datawargs
+from cnfg.ihyp import h5_fileargs, h5datawargs
 
 def handle(bsize, seql, nword, frs, ndata=1):
 
