@@ -72,6 +72,7 @@ h5datawargs = {"track_times": False} if hdf5_data_compression is None else {"com
 h5modelwargs = {"track_times": False} if hdf5_model_compression is None else {"compression": hdf5_model_compression, "compression_opts": hdf5_model_compression_level, "shuffle": True, "track_times": False}
 h5zipargs = {"compression": "gzip", "compression_opts": 9, "shuffle":True, "track_times": False}
 h5_libver = "latest" if hdf5_perf_over_camp else "earliest"
+h5_fileargs = {"libver": h5_libver, "swmr": True, "track_order": hdf5_track_order, "locking": False}
 
 list_key_func = str
 

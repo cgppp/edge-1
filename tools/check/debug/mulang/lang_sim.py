@@ -22,7 +22,7 @@ def lang_distance(lang1, lang2):
 
 	return angle
 
-with h5File(cnfg.dev_data, "r") as td:
+with h5File(cnfg.dev_data, "r", **h5_fileargs) as td:
 	ntest = td["ndata"][()].item()
 	nword = td["nword"][()].tolist()
 	nwordi, ntask, nwordt = nword[0], nword[1], nword[-1]

@@ -9,6 +9,8 @@ from h5py import Dataset
 
 from utils.h5serial import h5File
 
+from cnfg.ihyp import h5_fileargs
+
 def handle_group(srcg):
 
 	rs = 0
@@ -22,7 +24,7 @@ def handle_group(srcg):
 
 def handle(srcf):
 
-	with h5File(srcf, "r") as sfg:
+	with h5File(srcf, "r", **h5_fileargs) as sfg:
 		rs = handle_group(sfg)
 	print(rs)
 

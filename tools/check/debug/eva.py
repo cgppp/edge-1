@@ -27,7 +27,7 @@ def eva(ed, i, model):
 	_, trans = torch.max(output, -1)
 	return trans
 
-td = h5File(cnfg.test_data, "r")
+td = h5File(cnfg.test_data, "r", **h5_fileargs)
 
 ntest = td["ndata"][()].item()
 nwordi = td["nword"][()].tolist()[0]

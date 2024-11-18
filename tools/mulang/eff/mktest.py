@@ -20,7 +20,7 @@ def handle(finput, fvocab_i, fvocab_task, frs, minbsize=1, expand_for_mulgpu=Tru
 	else:
 		_bsize = bsize
 		_maxtoken = maxtoken
-	with h5File(frs, "w", libver=h5_libver) as rsf:
+	with h5File(frs, "w", **h5_fileargs) as rsf:
 		curd = {}
 		torder = []
 		for i_d, taskd in batch_padder(finput, vcbi, vcbtask, _bsize, maxpad, maxpart, _maxtoken, minbsize):

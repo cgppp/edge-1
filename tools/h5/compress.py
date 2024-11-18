@@ -21,7 +21,7 @@ def handle(srcf, rsf, h5args=h5zipargs):
 	if srcf == rsf:
 		h5save(h5load(srcf, restore_list=False), rsf, h5args=h5args)
 	else:
-		with h5File(srcf, "r") as sfg, h5File(rsf, "w", libver=h5_libver) as rfg:
+		with h5File(srcf, "r", **h5_fileargs) as sfg, h5File(rsf, "w", **h5_fileargs) as rfg:
 			handle_group(sfg, rfg, h5args=h5args)
 
 if __name__ == "__main__":

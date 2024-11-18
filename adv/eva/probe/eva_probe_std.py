@@ -58,7 +58,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 	w = float(w)
 	return sum_loss / w, (w - r) / w * 100.0
 
-td = h5File(sys.argv[1], "r")
+td = h5File(sys.argv[1], "r", **h5_fileargs)
 
 ntest = td["ndata"][()].item()
 nword = td["nword"][()].tolist()

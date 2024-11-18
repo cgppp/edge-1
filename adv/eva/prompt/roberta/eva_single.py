@@ -93,7 +93,7 @@ lossf = torch_compile(lossf, *torch_compile_args, **torch_compile_kwargs)
 
 use_amp = cnfg.use_amp and use_cuda
 
-with h5File(sys.argv[1], "r") as td:
+with h5File(sys.argv[1], "r", **h5_fileargs) as td:
 	vloss, vprec = eva(td, td["ndata"][()].item(), mymodel, lossf, cuda_device, multi_gpu, use_amp)
 
 print("loss/error: %.3f %.2f" % (vloss, vprec,))

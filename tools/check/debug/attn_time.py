@@ -12,7 +12,7 @@ from utils.h5serial import h5File
 from utils.torch.comp import torch_inference_mode
 from utils.tqdm import tqdm
 
-from cnfg.ihyp import tqdm_mininterval
+from cnfg.ihyp import h5_fileargs, tqdm_mininterval
 from cnfg.vocab.base import pad_id
 
 device = torch.device("cuda:7")
@@ -20,7 +20,7 @@ isize, nheads, adim = 512, 8, 64
 
 num_iter = int(sys.argv[2])
 
-with h5File(sys.argv[1], "r") as td:
+with h5File(sys.argv[1], "r", **h5_fileargs) as td:
 	ntest = td["ndata"][()].item()
 	src_grp, tgt_grp = td["src"], td["tgt"]
 	tl = []

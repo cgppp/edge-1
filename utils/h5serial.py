@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 from utils.fmt.base import dict_is_list, list2dict
 
-from cnfg.ihyp import h5_libver, h5modelwargs, hdf5_track_order, list_key_func
+from cnfg.ihyp import h5_fileargs, h5_libver, h5modelwargs, hdf5_track_order, list_key_func
 
 try:
 	h5py.get_config().track_order = hdf5_track_order
@@ -46,7 +46,7 @@ def h5write_list(gwrt, ltw, h5args=h5modelwargs):
 
 def h5save(obj_save, fname, h5args=h5modelwargs):
 
-	with h5File(fname, "w", libver=h5_libver) as h5f:
+	with h5File(fname, "w", **h5_fileargs) as h5f:
 		_obj_save = tuple(obj_save) if isinstance(obj_save, Iterator) else obj_save
 		if isinstance(_obj_save, dict):
 			h5write_dict(h5f, _obj_save, h5args=h5args)
@@ -79,7 +79,7 @@ def h5load_group(grd):
 
 def h5load(fname, restore_list=True):
 
-	with h5File(fname, "r") as f:
+	with h5File(fname, "r", **h5_fileargs) as f:
 		rsd = h5load_group(f)
 	if restore_list:
 		rsd = restore_list_in_dict(rsd)

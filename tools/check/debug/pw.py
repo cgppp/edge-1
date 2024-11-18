@@ -16,7 +16,7 @@ from utils.h5serial import h5File, h5load
 import cnfg.base as cnfg
 from cnfg.ihyp import *
 
-with h5File(cnfg.test_data, "r") as td:
+with h5File(cnfg.test_data, "r", **h5_fileargs) as td:
 	nwordi = td["nword"][()].tolist()[0]
 
 vcbt, nwordt = ldvocab(sys.argv[2])

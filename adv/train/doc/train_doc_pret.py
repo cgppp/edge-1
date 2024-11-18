@@ -232,8 +232,8 @@ multi_gpu_optimizer = multi_gpu and cnfg.multi_gpu_optimizer
 
 set_random_seed(cnfg.seed, use_cuda)
 
-td = h5File(cnfg.train_data, "r")
-vd = h5File(cnfg.dev_data, "r")
+td = h5File(cnfg.train_data, "r", **h5_fileargs)
+vd = h5File(cnfg.dev_data, "r", **h5_fileargs)
 
 nword = td["nword"][()].tolist()
 nwordi, nwordp, nwordt = nword[0], nword[1], nword[-1]

@@ -6,12 +6,12 @@ from numpy.random import randint as np_randint
 
 from utils.h5serial import h5File
 
-from cnfg.ihyp import h5_libver, h5datawargs
+from cnfg.ihyp import h5_fileargs, h5_libver, h5datawargs
 
 def handle(bsize, seql, nword, frs, ndata=1):
 
 	_bsize = bsize
-	with h5File(frs, "w", libver=h5_libver) as rsf:
+	with h5File(frs, "w", **h5_fileargs) as rsf:
 		src_grp = rsf.create_group("src")
 		tgt_grp = rsf.create_group("tgt")
 		for curd in range(ndata):

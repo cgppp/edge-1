@@ -19,7 +19,7 @@ from utils.h5serial import h5File
 from utils.process import start_process
 
 from cnfg.base import seed as rand_seed
-from cnfg.ihyp import h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
+from cnfg.ihyp import h5_fileargs, h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
 from cnfg.vocab.plm.custbert import init_normal_token_id, init_vocab, pad_id, vocab_size
 
 class Loader:
@@ -50,7 +50,7 @@ class Loader:
 		while self.running.value:
 			if self.todo:
 				_cache_file = self.todo.pop(0)
-				with h5File(_cache_file, "w", libver=h5_libver) as rsf:
+				with h5File(_cache_file, "w", **h5_fileargs) as rsf:
 					src_grp = rsf.create_group("src")
 					curd = 0
 					for i_d in batch_padder(dloader, self.vcb, self.bsize, self.maxpad, self.maxpart, self.maxtoken, self.minbsize, file_reader=file_reader, map_batch=map_batch, pad_id=pad_id):
@@ -68,7 +68,7 @@ class Loader:
 				_cache_file = self.out.pop(0)
 				if fs_check(_cache_file):
 					try:
-						td = h5File(_cache_file, "r")
+						td = h5File(_cache_file, "r", **h5_fileargs)
 					except Exception as e:
 						td = None
 						if self.print_func is not None:

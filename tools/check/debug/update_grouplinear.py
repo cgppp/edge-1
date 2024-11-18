@@ -18,7 +18,7 @@ def load_fixing(module):
 	if isinstance(module, GroupLinear) and (module.bias is not None) and (module.bias.dim() == 2):
 		module.bias = nn.Parameter(module.bias.unsqueeze(1))
 
-with h5File(cnfg.dev_data, "r") as td:
+with h5File(cnfg.dev_data, "r", **h5_fileargs) as td:
 	nword = td["nword"][()].tolist()
 	nwordi, ntask, nwordt = nword[0], nword[1], nword[-1]
 

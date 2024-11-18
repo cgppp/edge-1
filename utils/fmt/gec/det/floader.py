@@ -13,7 +13,7 @@ from utils.fmt.raw.reader.sort.tag import sort_lines_reader
 from utils.h5serial import h5File
 
 from cnfg.gec.gector import noise_char, noise_vcb, plm_vcb, seed as rand_seed, unbalance_det
-from cnfg.ihyp import cache_len_default, h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
+from cnfg.ihyp import cache_len_default, h5_fileargs, h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
 
 class Loader(LoaderBase):
 
@@ -30,7 +30,7 @@ class Loader(LoaderBase):
 		while self.running.value:
 			if self.todo:
 				_cache_file = self.todo.pop(0)
-				with h5File(_cache_file, "w", libver=h5_libver) as rsf:
+				with h5File(_cache_file, "w", **h5_fileargs) as rsf:
 					src_grp = rsf.create_group("src")
 					tgt_grp = rsf.create_group("tgt")
 					curd = 0
@@ -52,7 +52,7 @@ class Loader(LoaderBase):
 			_cache_file = self.out.pop(0)
 			if fs_check(_cache_file):
 				try:
-					td = h5File(_cache_file, "r")
+					td = h5File(_cache_file, "r", **h5_fileargs)
 				except Exception as e:
 					td = None
 					if self.print_func is not None:

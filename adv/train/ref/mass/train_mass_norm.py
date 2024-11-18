@@ -225,8 +225,8 @@ else:
 
 set_random_seed(cnfg.seed, use_cuda)
 
-td = (h5File(cnfg.train_data_src, "r"), h5File(cnfg.train_data_tgt, "r"),)
-vd = h5File(cnfg.dev_data, "r")
+td = (h5File(cnfg.train_data_src, "r", **h5_fileargs), h5File(cnfg.train_data_tgt, "r", **h5_fileargs),)
+vd = h5File(cnfg.dev_data, "r", **h5_fileargs)
 
 ntrain_src = td[0]["ndata"][()].item()
 ntrain_tgt = td[1]["ndata"][()].item()

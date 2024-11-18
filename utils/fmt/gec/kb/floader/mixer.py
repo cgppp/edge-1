@@ -14,7 +14,7 @@ from utils.fmt.raw.reader.sort.tag import sort_lines_reader
 from utils.h5serial import h5File
 
 from cnfg.gec.gector import plm_vcb, seed as rand_seed
-from cnfg.ihyp import cache_len_default, h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
+from cnfg.ihyp import cache_len_default, h5_fileargs, h5_libver, h5datawargs, max_pad_tokens_sentence, max_sentences_gpu, max_tokens_gpu, normal_tokens_vs_pad_tokens
 
 class Loader(LoaderBase):
 
@@ -32,7 +32,7 @@ class Loader(LoaderBase):
 		while self.running.value:
 			if self.todo:
 				_cache_file = self.todo.pop(0)
-				with h5File(_cache_file, "w", libver=h5_libver) as rsf:
+				with h5File(_cache_file, "w", **h5_fileargs) as rsf:
 					src_grp = rsf.create_group("src")
 					kb_grp = rsf.create_group("kb")
 					edt_grp = rsf.create_group("edt")
@@ -58,7 +58,7 @@ class Loader(LoaderBase):
 			_cache_file = self.out.pop(0)
 			if fs_check(_cache_file):
 				try:
-					td = h5File(_cache_file, "r")
+					td = h5File(_cache_file, "r", **h5_fileargs)
 				except Exception as e:
 					td = None
 					if self.print_func is not None:
@@ -71,7 +71,7 @@ class Loader(LoaderBase):
 					fd = None
 					if self.sfile is not None:
 						try:
-							fd = h5File(self.sfile, "r")
+							fd = h5File(self.sfile, "r", **h5_fileargs)
 						except Exception as e:
 							if self.print_func is not None:
 								self.print_func(e)

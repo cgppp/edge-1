@@ -220,7 +220,7 @@ else:
 
 set_random_seed(cnfg.seed, use_cuda)
 
-td = h5File(cnfg.train_data, "r")
+td = h5File(cnfg.train_data, "r", **h5_fileargs)
 
 ntrain = td["ndata"][()].item()
 nword = td["nword"][()].tolist()

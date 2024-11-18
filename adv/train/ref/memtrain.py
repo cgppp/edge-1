@@ -220,8 +220,8 @@ if cnfg.save_train_state:
 
 logger = get_logger(wkdir + "train.log")
 
-td = h5File(cnfg.train_data, "r")
-vd = h5File(cnfg.dev_data, "r")
+td = h5File(cnfg.train_data, "r", **h5_fileargs)
+vd = h5File(cnfg.dev_data, "r", **h5_fileargs)
 
 ntrain = td["ndata"][()].item()
 nvalid = vd["ndata"][()].item()

@@ -17,7 +17,7 @@ from cnfg.ihyp import *
 
 def handle(srcf, rsf, typ, rlist):
 
-	with h5File(cnfg.dev_data, "r") as td:
+	with h5File(cnfg.dev_data, "r", **h5_fileargs) as td:
 		nword = td["nword"][()].tolist()
 		nwordi, nwordt = nword[0], nword[-1]
 

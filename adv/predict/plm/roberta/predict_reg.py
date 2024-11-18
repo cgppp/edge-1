@@ -86,7 +86,7 @@ if cuda_device:
 mymodel = torch_compile(mymodel, *torch_compile_args, **torch_compile_kwargs)
 
 ens = "\n".encode("utf-8")
-with sys_open(sys.argv[1], "wb") as f, h5File(cnfg.test_data, "r") as td, torch_inference_mode():
+with sys_open(sys.argv[1], "wb") as f, h5File(cnfg.test_data, "r", **h5_fileargs) as td, torch_inference_mode():
 	src_grp = td["src"]
 	for i in tqdm(range(td["ndata"][()].item()), mininterval=tqdm_mininterval):
 		seq_batch = torch.from_numpy(src_grp[str(i)][()])

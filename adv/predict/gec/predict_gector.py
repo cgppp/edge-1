@@ -25,7 +25,7 @@ def load_fixing(module):
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
-td = h5File(cnfg.test_data, "r")
+td = h5File(cnfg.test_data, "r", **h5_fileargs)
 
 ntest = td["ndata"][()].item()
 vcbt = reverse_dict(ldvocab(sys.argv[2], minf=False, omit_vsize=vocab_size, vanilla=False, init_vocab=init_vocab, init_normal_token_id=init_normal_token_id)[0])

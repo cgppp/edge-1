@@ -25,7 +25,7 @@ def load_fixing(module):
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
-td = h5File(cnfg.test_data, "r")
+td = h5File(cnfg.test_data, "r", **h5_fileargs)
 
 tl = [(str(nsent), str(_curd),) for nsent, ndata in zip(td["nsent"][()].tolist(), td["ndata"][()].tolist()) for _curd in range(ndata)]
 nwordi = td["nword"][()].tolist()[0]

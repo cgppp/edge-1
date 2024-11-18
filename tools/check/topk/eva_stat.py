@@ -29,7 +29,7 @@ def load_fixing(module):
 
 k = int(sys.argv[2])
 
-td = h5File(sys.argv[1], "r")
+td = h5File(sys.argv[1], "r", **h5_fileargs)
 
 ntest = td["ndata"][()].item()
 nword = td["nword"][()].tolist()

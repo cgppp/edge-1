@@ -18,7 +18,7 @@ def handle(finput, ftarget, fvocab_i, fvocab_t, frs, minbsize=1, expand_for_mulg
 	else:
 		_bsize = bsize
 		_maxtoken = maxtoken
-	with h5File(frs, "w", libver=h5_libver) as rsf:
+	with h5File(frs, "w", **h5_fileargs) as rsf:
 		src_grp = rsf.create_group("src")
 		tgt_grp = rsf.create_group("tgt")
 		curd = 0

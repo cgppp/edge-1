@@ -16,7 +16,7 @@ from cnfg.vocab.base import pad_id
 
 def handle(srcf, ref):
 
-	with h5File(srcf, "r") as fs, h5File(ref, "r") as fr, torch_inference_mode():
+	with h5File(srcf, "r", **h5_fileargs) as fs, h5File(ref, "r", **h5_fileargs) as fr, torch_inference_mode():
 		p_grp, ind_grp, tgt_grp = fs["p"], fs["ind"], fr["tgt"]
 		ndata = fs["ndata"][()].item()
 		nword = 0

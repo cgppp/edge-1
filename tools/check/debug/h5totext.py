@@ -8,9 +8,10 @@ from utils.fmt.vocab.base import reverse_dict
 from utils.fmt.vocab.token import ldvocab
 from utils.h5serial import h5File
 
+from cnfg.ihyp import h5_fileargs
 from cnfg.vocab.base import eos_id
 
-with h5File(sys.argv[1], "r") as td:
+with h5File(sys.argv[1], "r", **h5_fileargs) as td:
 	ntest = td["ndata"][()].item()
 	nwordi = td["nword"][()].tolist()[0]
 	vcbt, nwordt = ldvocab(sys.argv[2])

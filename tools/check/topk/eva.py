@@ -30,7 +30,7 @@ def load_fixing(module):
 
 k = int(sys.argv[2])
 
-td = h5File(sys.argv[1], "r")
+td = h5File(sys.argv[1], "r", **h5_fileargs)
 
 ntest = td["ndata"][()].item()
 nword = td["nword"][()].tolist()
@@ -74,7 +74,7 @@ beam_size = cnfg.beam_size
 length_penalty = cnfg.length_penalty
 
 src_grp, tgt_grp = td["src"], td["tgt"]
-with h5File(sys.argv[3], "w", libver=h5_libver) as rsf, torch_inference_mode():
+with h5File(sys.argv[3], "w", **h5_fileargs) as rsf, torch_inference_mode():
 	p_grp = rsf.create_group("p")
 	ind_grp = rsf.create_group("ind")
 	for i in tqdm(range(ntest), mininterval=tqdm_mininterval):

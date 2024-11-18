@@ -27,7 +27,7 @@ use_amp = cnfg.use_amp and use_cuda
 
 set_random_seed(cnfg.seed, use_cuda)
 
-td = h5File(cnfg.dev_data, "r")
+td = h5File(cnfg.dev_data, "r", **h5_fileargs)
 
 ntest = td["ndata"][()].item()
 nword = td["nword"][()].tolist()
