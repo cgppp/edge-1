@@ -2,8 +2,46 @@
 
 from utils.fmt.plm.dual import batch_padder as batch_padder_base
 
-from cnfg.vocab.plm.t5 import pad_id
+from cnfg.vocab.plm.t5 import pad_id, sos_id
 
-def batch_padder(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, pad_id=pad_id, **kwargs):
+def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, get_bsize=get_bsize, file_reader=file_reader, iter_to_int=iter_to_int, tgt_start_id=sos_id, **kwargs):
 
-	return batch_padder_base(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, pad_id=pad_id, **kwargs)
+	_f_maxpart = float(maxpart)
+	rsi = []
+	rst = []
+	nd = maxlen = mlen_i = mlen_t = 0
+	for i_d, td in zip(file_reader(finput, keep_empty_line=True), file_reader(ftarget, keep_empty_line=True)):
+		i_d, td = list(iter_to_int(i_d)), list(iter_to_int(td))
+		if (tgt_start_id is not None) and (td[0] != tgt_start_id):
+			td.insert(0, tgt_start_id)
+		lid = len(i_d)
+		ltd = len(td)
+		lgth = lid + ltd
+		if maxlen == 0:
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
+			_bsize = get_bsize(maxlen + _maxpad, maxtoken, bsize)
+		if (nd < minbsize) or (lgth <= maxlen and nd < _bsize):
+			rsi.append(i_d)
+			rst.append(td)
+			if lid > mlen_i:
+				mlen_i = lid
+			if ltd > mlen_t:
+				mlen_t = ltd
+			nd += 1
+		else:
+			yield rsi, rst, mlen_i, mlen_t
+			rsi = [i_d]
+			rst = [td]
+			mlen_i = lid
+			mlen_t = ltd
+			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
+			maxlen = lgth + _maxpad
+			_bsize = get_bsize(maxlen + _maxpad, maxtoken, bsize)
+			nd = 1
+	if rsi:
+		yield rsi, rst, mlen_i, mlen_t
+
+def batch_padder(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, batch_loader=batch_loader, pad_id=pad_id, **kwargs):
+
+	return batch_padder_base(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, batch_loader=batch_loader, pad_id=pad_id, **kwargs)
