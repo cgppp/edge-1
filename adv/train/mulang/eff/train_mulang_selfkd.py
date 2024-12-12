@@ -231,18 +231,20 @@ nword = td["nword"][()].tolist()
 nwordi, ntask, nwordt = nword[0], nword[1], nword[-1]
 
 task_weight_T = cnfg.task_weight_T
+task_iset = cnfg.task_iset
 if (task_weight_T is None) or (task_weight_T == 1.0):
-	tl = [(str(i), _task,) for _nd, _task in zip(ntrain, td["taskorder"][()].tolist()) for i in range(_nd)]
+	tl = [(str(i), _task,) for _nd, _task in zip(ntrain, td["taskorder"][()].tolist()) for i in range(_nd) if _task not in task_iset]
 	train_sampler = None
 	ntrain = len(tl)
 else:
-	train_taskorder = td["taskorder"][()].tolist()
+	if task_iset:
+		train_taskorder, ntrain = zip(*((_task, _,) for _task, _ in zip(td["taskorder"][()].tolist(), ntrain) if _task not in task_iset))
 	_tnd = dict(zip(train_taskorder, ntrain))
 	train_taskorder.sort()
 	ntrain = [_tnd[i] for i in train_taskorder]
 	_tnd = None
 	train_sampler = data_sampler({i: td[str(i)]["npred"][()].tolist() for i in train_taskorder}, task_weight_T, ntrain, train_taskorder)
-nvalid = [(str(i), _task,) for _nd, _task in zip(nvalid, vd["taskorder"][()].tolist()) for i in range(_nd)]
+nvalid = [(str(i), _task,) for _nd, _task in zip(nvalid, vd["taskorder"][()].tolist()) for i in range(_nd) if _task not in task_iset]
 
 kd_T = cnfg.T
 kd_step = remain_steps - cnfg.kd_step
