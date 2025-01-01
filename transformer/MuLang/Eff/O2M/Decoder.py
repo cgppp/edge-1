@@ -269,9 +269,13 @@ class Decoder(DecoderBase):
 
 	def update_vocab(self, indices, wemb_weight=None):
 
+		nwd = indices.numel()
+		if self.task_id_shift > 0:
+			indices = torch.cat((indices, torch.arange(self.task_id_shift, self.wemb.weight.size(0), dtype=indices.dtype, device=indices.device),), dim=0)
+			self.task_id_shift = nwd
 		_nwd = indices.numel()
 		_wemb = nn.Embedding(_nwd, self.wemb.weight.size(-1), padding_idx=self.wemb.padding_idx)
-		_classifier = MBLinear(self.classifier.weight.size(-1), _nwd, self.classifier.bias.size(0))
+		_classifier = (NWMBLinear if self.task_id_shift > 0 else MBLinear)(self.classifier.weight.size(-1), nwd, self.classifier.bias.size(0))
 		with torch_no_grad():
 			if wemb_weight is None:
 				_wemb.weight.copy_(self.wemb.weight.index_select(0, indices))
