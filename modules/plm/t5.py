@@ -7,7 +7,7 @@ from torch import nn
 from modules.act import Custom_Act, GEGLU, LGLU, get_act
 from modules.base import CrossAttn as CrossAttnBase, Linear, PositionwiseFF as PositionwiseFFBase, ResCrossAttn as ResCrossAttnBase, ResSelfAttn as ResSelfAttnBase, SelfAttn as SelfAttnBase
 from modules.dropout import Dropout
-from modules.norm import RMSNorm as Norm
+from modules.norm.base import RMSNorm as Norm
 from utils.fmt.parser import parse_none
 from utils.relpos.bucket import build_rel_pos_bucket, build_rel_pos_bucket_map
 from utils.relpos.rope import apply_rope

@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 from modules.dropout import Dropout
-from modules.norm import RMSNorm as Norm
+from modules.norm.base import RMSNorm as Norm
 from modules.plm.t5 import PositionwiseFF, ResSelfAttn
 from transformer.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none

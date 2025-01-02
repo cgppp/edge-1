@@ -2,7 +2,7 @@
 
 from torch.nn import LayerNorm
 
-from modules.norm import SimpNorm
+from modules.norm.exp import SimpNorm
 from utils.base import add_module
 
 def disable_ln_bias(modin):

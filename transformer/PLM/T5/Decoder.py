@@ -5,7 +5,7 @@ from math import sqrt
 from torch import nn
 
 from modules.dropout import Dropout
-from modules.norm import RMSNorm as Norm
+from modules.norm.base import RMSNorm as Norm
 from modules.plm.t5 import PositionwiseFF, ResCrossAttn, ResSelfAttn
 from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
 from utils.base import index_tensors, select_zero_

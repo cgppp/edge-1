@@ -2,7 +2,7 @@
 
 from torch import nn
 
-from modules.norm import ResCrossAttn, ResSelfAttn
+from modules.norm.exp import ResCrossAttn, ResSelfAttn
 from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
 from utils.fmt.parser import parse_none
 

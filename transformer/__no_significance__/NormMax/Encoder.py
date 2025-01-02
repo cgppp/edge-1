@@ -2,7 +2,7 @@
 
 from torch import nn
 
-from modules.norm import ResSelfAttn
+from modules.norm.exp import ResSelfAttn
 from transformer.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none
 
