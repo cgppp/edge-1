@@ -71,7 +71,7 @@ class RMSNorm(LayerNorm):
 def rms_norm(x, normalized_shape, weight, eps):
 
 	_xn = x.div(x.norm(p=2, dim=-1, keepdim=True).div(sqrt(float(normalized_shape if isinstance(normalized_shape, Integral) else normalized_shape[-1]))).add_(eps))
-		if weight is not None:
-			_xn = _xn.mul_(weight)
+	if weight is not None:
+		_xn = _xn.mul_(weight)
 
-		return _xn
+	return _xn
