@@ -134,6 +134,15 @@ def ModuleList2Dict(modin):
 
 	return ModuleDict(zip([str(i) for i in range(len(modin))], modin))
 
+def get_module_devtyp(modin):
+
+	for _ in modin.parameters():
+		return _.device, _.dtype
+	for _ in modin.buffers():
+		return _.device, _.dtype
+
+	return None, None
+
 def get_module_nl(m, nl):
 
 	_m, _success = m, True
