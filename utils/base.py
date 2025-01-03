@@ -226,10 +226,29 @@ def load_tensor_attr(m, strin, t, print_func=print, **kwargs):
 		elif print_func is not None:
 			print_func(strin)
 
+	return m
+
 def load_tensor_attrd(m, din, **kwargs):
 
 	for _k, _v in din.items():
 		load_tensor_attr(m, _k, _v, **kwargs)
+
+	return m
+
+def copy_module_parameter(src, tgt, **kwargs):
+
+	return load_tensor_attrd(tgt, src.named_parameters(), **kwargs)
+
+def copy_module_buffer(src, tgt, **kwargs):
+
+	return load_tensor_attrd(tgt, src.named_buffers(), **kwargs)
+
+def copy_module_parabuf(src, tgt, **kwargs):
+
+	_ = src.named_parameters()
+	_.update(src.named_buffers())
+
+	return load_tensor_attrd(tgt, _, **kwargs)
 
 def is_buffer_persistent(m, strin, persistent=True, print_func=print, **kwargs):
 

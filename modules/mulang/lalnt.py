@@ -6,6 +6,7 @@ from torch import nn
 from torch.nn import functional as nnFunc
 
 from modules.mulang.base import MBLinear
+from utils.torch.comp import torch_std_mean
 
 class MWLinear(MBLinear):
 
@@ -55,7 +56,7 @@ class LayerNorm(nn.LayerNorm):
 		if (self.weight is None) and (self.bias is None):
 			_xn = nnFunc.layer_norm(x, self.normalized_shape, None, None, self.eps)
 		else:
-			_std, _mean = torch.std_mean(x, dim=-1, unbiased=False, keepdim=True)# x.std(dim=-1, unbiased=False, keepdim=True), x.mean(dim=-1, keepdim=True)
+			_std, _mean = torch_std_mean(x, dim=-1, unbiased=False, keepdim=True)
 			_xn = (x - _mean) / (_std + self.eps)
 			_bsize = [1 for i in range(x.dim() - len(self.normalized_shape))] + list(self.normalized_shape)
 			_bsize[0] = x.size(0)

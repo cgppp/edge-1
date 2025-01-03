@@ -43,6 +43,10 @@ if hasattr(torch, "autograd") and hasattr(torch.autograd, "set_detect_anomaly"):
 	except Exception as e:
 		print(e)
 
+def torch_std_mean_cust(x, *args, **kwargs):
+
+	return x.std(*args, **kwargs), x.mean(*args, **kwargs)
+
 def all_done_bool(stat, *inputs, **kwargs):
 
 	return stat.all().item()
@@ -226,3 +230,4 @@ else:
 torch_is_grad_enabled, torch_set_grad_enabled, torch_no_grad = torch.is_grad_enabled, torch.set_grad_enabled, torch.no_grad
 
 torch_compile = torch.compile if hasattr(torch, "compile") and use_torch_compile else identity_func
+torch_std_mean = torch.std_mean if hasattr(torch, "std_mean") else torch_std_mean_cust

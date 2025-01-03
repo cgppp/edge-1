@@ -3,6 +3,8 @@
 import torch
 from math import sqrt
 
+from utils.torch.comp import torch_std_mean
+
 from cnfg.ihyp import *
 
 def renorm(x, dim=-1):
@@ -11,7 +13,7 @@ def renorm(x, dim=-1):
 
 def std_norm(x, dim=-1, eps=ieps_ln_default):
 
-	_std, _mean = torch.std_mean(x, dim=dim, unbiased=False, keepdim=True)#.detach()
+	_std, _mean = torch_std_mean(x, dim=dim, unbiased=False, keepdim=True)#.detach()
 
 	return x.sub(_mean).div_(_std.add(eps))
 

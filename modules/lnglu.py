@@ -7,7 +7,7 @@ from torch import nn
 
 from modules.base import Dropout, Linear, PositionwiseFF as PositionwiseFFBase, ResCrossAttn as ResCrossAttnBase, ResSelfAttn as ResSelfAttnBase
 from utils.fmt.parser import parse_none
-from utils.torch.comp import torch_no_grad
+from utils.torch.comp import torch_no_grad, torch_std_mean
 
 from cnfg.ihyp import *
 
@@ -24,7 +24,7 @@ class LNGLU(nn.LayerNorm):
 
 	def forward(self, x, **kwargs):
 
-		_std, _mean = torch.std_mean(x, dim=-1, unbiased=False, keepdim=True)# x.std(dim=-1, unbiased=False, keepdim=True), x.mean(dim=-1, keepdim=True)#.detach()
+		_std, _mean = torch_std_mean(x, dim=-1, unbiased=False, keepdim=True)#.detach()
 		_xn = (x - _mean) / (_std + self.eps)
 		_x1, _x2 = self.bias.addcmul(self.weight, _xn.unsqueeze(-1)).unbind(-1)
 
