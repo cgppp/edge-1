@@ -245,7 +245,7 @@ def copy_module_buffer(src, tgt, **kwargs):
 
 def copy_module_parabuf(src, tgt, **kwargs):
 
-	_ = src.named_parameters()
+	_ = dict(src.named_parameters())
 	_.update(src.named_buffers())
 
 	return load_tensor_attrd(tgt, _, **kwargs)
