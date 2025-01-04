@@ -4,7 +4,7 @@ import torch
 
 from utils.func import identity_func
 
-from cnfg.ihyp import allow_fp16_reduction, allow_tf32, enable_torch_check, torch_amp_autocast_device_type, use_deterministic, use_inference_mode, use_torch_compile
+from cnfg.ihyp import allow_fp16_reduction, allow_tf32, enable_torch_check, torch_amp_autocast_device_type, use_bf4fp16, use_deterministic, use_inference_mode, use_torch_compile
 
 secure_type_map = {torch.float16: torch.float64, torch.float32: torch.float64, torch.uint8: torch.int64, torch.int8: torch.int64, torch.int16: torch.int64, torch.int32: torch.int64}
 
@@ -181,6 +181,12 @@ else:
 	torch_any_dim = torch_any_byte_dim
 	torch_any_wodim = torch_any_byte_wodim
 	flip_mask = flip_mask_byte
+
+# handling default type for fp16
+_torch_support_bf16 = hasattr(torch, "bfloat16")
+fp16_default_tensor_type = torch.bfloat16 if use_bf4fp16 and _torch_support_bf16 else torch.float16
+if _torch_support_bf16:
+	secure_type_map[torch.bfloat16] = torch.float64
 
 # handling torch.cuda.amp, fp16 will NOT be really enabled if torch.amp or torch.cuda.amp does not exist (for early versions)
 _use_torch_amp_autocast = hasattr(torch, "amp") and hasattr(torch.amp, "autocast") and hasattr(torch.amp, "GradScaler")

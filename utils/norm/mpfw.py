@@ -5,6 +5,7 @@ import torch
 from modules.norm.base import LayerNorm as fpLayerNorm, RMSNorm as fpRMSNorm
 from modules.norm.mpfw import LayerNorm, RMSNorm
 from utils.base import add_module, copy_module_parabuf, get_module_devtyp
+from utils.torch.comp import fp16_default_tensor_type
 
 def replace_fp_norm(modin):
 
@@ -28,7 +29,7 @@ def norm_para_fp32(modin):
 
 	return modin
 
-def convert(modin, device=None, dtype=torch.bfloat16, non_blocking=True):
+def convert(modin, device=None, dtype=fp16_default_tensor_type, non_blocking=True):
 
 	modin.to(device=device, dtype=dtype, non_blocking=True)
 	replace_fp_norm(modin)
