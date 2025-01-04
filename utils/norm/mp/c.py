@@ -3,7 +3,7 @@
 import torch
 
 from modules.norm.base import LayerNorm as fpLayerNorm, RMSNorm as fpRMSNorm
-from modules.norm.mphw import LayerNorm, RMSNorm
+from modules.norm.mp.c import LayerNorm, RMSNorm
 from utils.base import add_module, copy_module_parabuf, get_module_devtyp
 from utils.torch.comp import fp16_default_tensor_type
 
