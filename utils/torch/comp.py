@@ -7,6 +7,7 @@ from utils.func import identity_func
 from cnfg.ihyp import allow_fp16_reduction, allow_tf32, enable_torch_check, torch_amp_autocast_device_type, use_bf4fp16, use_deterministic, use_inference_mode, use_torch_compile
 
 secure_type_map = {torch.float16: torch.float64, torch.float32: torch.float64, torch.uint8: torch.int64, torch.int8: torch.int64, torch.int16: torch.int64, torch.int32: torch.int64}
+tensor_numpy_map = {}
 
 try:
 	if hasattr(torch, "set_float32_matmul_precision"):
@@ -46,6 +47,13 @@ if hasattr(torch, "autograd") and hasattr(torch.autograd, "set_detect_anomaly"):
 def torch_std_mean_cust(x, *args, **kwargs):
 
 	return x.std(*args, **kwargs), x.mean(*args, **kwargs)
+
+def tensor_numpy(x, tensor_numpy_map=tensor_numpy_map, **kwargs):
+
+	_type = x.dtype
+	_x = x.to(tensor_numpy_map[_type], non_blocking=True) if _type in tensor_numpy_map else x
+
+	return _x.numpy(**kwargs)
 
 def all_done_bool(stat, *inputs, **kwargs):
 
@@ -187,6 +195,7 @@ _torch_support_bf16 = hasattr(torch, "bfloat16")
 fp16_default_tensor_type = torch.bfloat16 if use_bf4fp16 and _torch_support_bf16 else torch.float16
 if _torch_support_bf16:
 	secure_type_map[torch.bfloat16] = torch.float64
+	tensor_numpy_map[torch.bfloat16] = torch.float32
 
 # handling torch.cuda.amp, fp16 will NOT be really enabled if torch.amp or torch.cuda.amp does not exist (for early versions)
 _use_torch_amp_autocast = hasattr(torch, "amp") and hasattr(torch.amp, "autocast") and hasattr(torch.amp, "GradScaler")

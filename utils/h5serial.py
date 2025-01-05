@@ -5,6 +5,7 @@ import torch
 from collections.abc import Iterator
 
 from utils.fmt.base import dict_is_list, list2dict
+from utils.torch.comp import tensor_numpy
 
 from cnfg.ihyp import h5_fileargs, h5modelwargs, hdf5_track_order, list_key_func
 
@@ -38,7 +39,7 @@ def h5write_dict(gwrt, dtw, h5args=h5modelwargs):
 			h5write_list(gwrt[k], _v, h5args=h5args)
 		else:
 			_ = _v if _v.device.type == "cpu" else _v.cpu()
-			gwrt.create_dataset(k, data=_.numpy(), **h5args)
+			gwrt.create_dataset(k, data=tensor_numpy(_), **h5args)
 
 def h5write_list(gwrt, ltw, h5args=h5modelwargs):
 
