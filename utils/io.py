@@ -5,35 +5,48 @@ from os import remove
 from os.path import exists as fs_check
 from threading import Thread
 
-from utils.h5serial import h5load, h5save
+from utils.fmt.base import dict_is_list
+from utils.h5serial import h5File, h5save
 from utils.torch.comp import torch_no_grad
 
-from cnfg.ihyp import h5modelwargs, hdf5_save_parameter_name, n_keep_best#, hdf5_load_parameter_name
+from cnfg.ihyp import h5_fileargs, h5modelwargs, hdf5_save_parameter_name, list_key_func, n_keep_best#, hdf5_load_parameter_name
 
-def load_model_cpu_p(modf, base_model, mp=None, **kwargs):
+def load_model_cpu_p_ohf(ohf, base_model, list_key_func=list_key_func, **kwargs):
 
 	with torch_no_grad():
-		for para, mp in zip(base_model.parameters(), h5load(modf, restore_list=True) if mp is None else mp):
-			para.copy_(mp)
+		for i, para in enumerate(base_model.parameters()):
+			_key = list_key_func(i)
+			if _key in ohf:
+				para.copy_(torch.from_numpy(ohf[_key][()]))
 
 	return base_model
 
-def load_model_cpu_np(modf, base_model, mp=None, strict=False, print_func=print, **kwargs):
+def load_model_cpu_np_ohf(ohf, base_model, **kwargs):
 
-	_ = base_model.load_state_dict(h5load(modf, restore_list=False) if mp is None else mp, strict=strict, **kwargs)
-	if (print_func is not None) and (_ is not None):
-		for _msg in _:
-			if _msg:
-				print_func(_msg)
+	with torch_no_grad():
+		for _n, _p in base_model.state_dict().items():
+			if _n in ohf:
+				_p.copy_(torch.from_numpy(ohf[_n][()]))
 
 	return base_model
 
-def load_model_cpu_auto(modf, base_model, mp=None, **kwargs):
+def load_model_cpu_p(modf, base_model, **kwargs):
 
-	_mp = h5load(modf, restore_list=True) if mp is None else mp
-	_load_model_func = load_model_cpu_p if isinstance(_mp, list) else load_model_cpu_np
+	with h5File(modf, "r", **h5_fileargs) as ohf:
 
-	return _load_model_func(modf, base_model, mp=_mp, **kwargs)
+		return load_model_cpu_p_ohf(ohf, base_model, **kwargs)
+
+def load_model_cpu_np(modf, base_model, **kwargs):
+
+	with h5File(modf, "r", **h5_fileargs) as ohf:
+
+		return load_model_cpu_np_ohf(ohf, base_model, **kwargs)
+
+def load_model_cpu_auto(modf, base_model, **kwargs):
+
+	with h5File(modf, "r", **h5_fileargs) as ohf:
+
+		return (load_model_cpu_p_ohf if dict_is_list(set(f.keys()), kfunc=list_key_func) else load_model_cpu_np_ohf)(ohf, base_model, **kwargs)
 
 mp_func_p = lambda m: [_t.data for _t in m.parameters()]
 mp_func_np = lambda m: {_k: _t.data for _k, _t in m.named_parameters()}
