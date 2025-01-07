@@ -46,7 +46,7 @@ def load_model_cpu_auto(modf, base_model, **kwargs):
 
 	with h5File(modf, "r", **h5_fileargs) as ohf:
 
-		return (load_model_cpu_p_ohf if dict_is_list(set(f.keys()), kfunc=list_key_func) else load_model_cpu_np_ohf)(ohf, base_model, **kwargs)
+		return (load_model_cpu_p_ohf if dict_is_list(set(ohf.keys()), kfunc=list_key_func) else load_model_cpu_np_ohf)(ohf, base_model, **kwargs)
 
 mp_func_p = lambda m: [_t.data for _t in m.parameters()]
 mp_func_np = lambda m: {_k: _t.data for _k, _t in m.named_parameters()}
