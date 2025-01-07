@@ -13,14 +13,16 @@ def safetensors_to_h5(srcfl, rsf, h5args=h5zipargs):
 		for srcf in srcfl:
 			h5write_dict(h5f, load_file(srcf), h5args=h5args)
 
-def h5_to_safetensors(srcf, rsf):
+def h5_to_safetensors(srcfl, rsf):
 
-	save_file(h5load(srcf, restore_list=False), rsf)
+	_ = h5load(srcfl[0], restore_list=False)
+	for srcf in srcfl[1:]:
+		_.update(h5load(srcf, restore_list=False))
+	save_file(_, rsf)
 
-def handle(srcf, rsf):
+def handle(srcfl, rsf):
 
-	_execf = h5_to_safetensors if srcf.endswith(".h5") else safetensors_to_h5
-	_execf(srcf, rsf)
+	(safetensors_to_h5 if rsf.endswith(".h5") else h5_to_safetensors)(srcfl, rsf)
 
 if __name__ == "__main__":
 	handle(sys.argv[1:-1], sys.argv[-1])
