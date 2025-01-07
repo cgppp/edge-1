@@ -9,7 +9,7 @@ from cnfg.ihyp import *
 
 def torch_to_h5(srcfl, rsf, h5args=h5zipargs):
 
-	with h5File(fname, "w", **h5_fileargs) as h5f:
+	with h5File(rsf, "w", **h5_fileargs) as h5f:
 		for srcf in srcfl:
 			h5write_dict(h5f, torch.load(srcf, map_location="cpu"), h5args=h5args)
 

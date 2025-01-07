@@ -8,7 +8,7 @@ from cnfg.ihyp import *
 
 def handle(srcfl, rsf, h5args=h5zipargs):
 
-	with h5File(fname, "w", **h5_fileargs) as h5fr:
+	with h5File(rsf, "w", **h5_fileargs) as h5fr:
 		for srcf in srcfl:
 			with h5File(srcf, "r", **h5_fileargs) as h5fs:
 				for _k, _v in h5fs.items():

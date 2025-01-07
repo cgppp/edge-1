@@ -9,7 +9,7 @@ from cnfg.ihyp import *
 
 def safetensors_to_h5(srcfl, rsf, h5args=h5zipargs):
 
-	with h5File(fname, "w", **h5_fileargs) as h5f:
+	with h5File(rsf, "w", **h5_fileargs) as h5f:
 		for srcf in srcfl:
 			h5write_dict(h5f, load_file(srcf), h5args=h5args)
 
