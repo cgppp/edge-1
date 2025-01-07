@@ -5,11 +5,12 @@
 """
 
 import sys
+import torch
 
-from utils.h5serial import h5load, h5save
+from utils.h5serial import h5File, h5save
 from utils.torch.comp import secure_type_map
 
-from cnfg.ihyp import h5zipargs
+from cnfg.ihyp import h5_fileargs, h5zipargs
 
 def handle(srcfl, rsf):
 
@@ -18,20 +19,20 @@ def handle(srcfl, rsf):
 	sec_rsm = {}
 	nmodel = {}
 	for modelf in srcfl:
-		_nmp = h5load(modelf, restore_list=False)
-		for _n, _p in sec_rsm.items():
-			if _n in _nmp:
-				_ = _nmp[_n]
-				_m_type = map_type[_n]
-				_p.add_(_ if _m_type is None else _.to(_m_type, non_blocking=True))
-				nmodel[_n] += 1
-		for _n, _p in _nmp.items():
-			if _n not in sec_rsm:
-				src_type[_n] = _p_dtype = _p.dtype
-				map_type[_n] = _m_type = secure_type_map.get(_p_dtype, None)
-				sec_rsm[_n] = _p if _m_type is None else _p.to(_m_type, non_blocking=True)
-				nmodel[_n] = 1
-		_nmp = None
+		with h5File(modelf, "r", **h5_fileargs) as _nmp:
+			for _n, _p in sec_rsm.items():
+				if _n in _nmp:
+					_ = torch.from_numpy(_nmp[_n][()])
+					_m_type = map_type[_n]
+					_p.add_(_ if _m_type is None else _.to(_m_type, non_blocking=True))
+					nmodel[_n] += 1
+			for _n, _p in _nmp.items():
+				if _n not in sec_rsm:
+					_p = torch.from_numpy(_p[()])
+					src_type[_n] = _p_dtype = _p.dtype
+					map_type[_n] = _m_type = secure_type_map.get(_p_dtype, None)
+					sec_rsm[_n] = _p if _m_type is None else _p.to(_m_type, non_blocking=True)
+					nmodel[_n] = 1
 
 	for _n, _p in sec_rsm.items():
 		_p.div_(float(nmodel[_n]))

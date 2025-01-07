@@ -6,7 +6,8 @@ import torch
 from transformer.NMT import NMT
 from utils.fmt.vocab.base import reverse_dict
 from utils.fmt.vocab.token import ldvocab
-from utils.h5serial import h5File, h5load
+from utils.h5serial import h5File
+from utils.io import load_model_cpu
 from utils.tqdm import tqdm
 
 import cnfg.base as cnfg
@@ -36,7 +37,7 @@ vcbt = reverse_dict(vcbt)
 
 mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, cnfg.ff_hsize, cnfg.drop, cnfg.attn_drop, cnfg.act_drop, cnfg.share_emb, cnfg.nhead, cache_len_default, cnfg.attn_hsize)
 
-mymodel.load_state_dict(h5load(sys.argv[1]))
+load_model_cpu(sys.argv[1], mymodel)
 
 mymodel.eval()
 
