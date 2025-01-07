@@ -22,7 +22,7 @@ def h5_to_torch(srcfl, rsf):
 
 def handle(srcfl, rsf):
 
-	(torch_to_h5 if rsf.endswith(".h5") else h5_to_torch)(srcf, rsf)
+	(torch_to_h5 if rsf.endswith(".h5") else h5_to_torch)(srcfl, rsf)
 
 if __name__ == "__main__":
 	handle(sys.argv[1], sys.argv[-1])
