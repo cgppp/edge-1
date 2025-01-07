@@ -11,7 +11,7 @@ def torch_to_h5(srcf, rsf, h5args=h5zipargs):
 	h5save(torch.load(srcf, map_location="cpu"), rsf, h5args=h5args)
 
 def h5_to_torch(srcf, rsf):
-	torch.save(h5load.load(srcf, restore_list=True), rsf)
+	torch.save(h5load(srcf, restore_list=True), rsf)
 
 def handle(srcf, rsf):
 
