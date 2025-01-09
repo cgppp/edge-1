@@ -39,9 +39,9 @@ rsam = ResSelfAttn(isize, hsize=None, num_head=num_head, dropout=attn_drop)
 rslm = ResHPLSTM(isize, num_head=num_head, dropout=dropout, act_drop=act_drop)
 rsem = EncoderLayer(isize, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head)
 if cuda_device is not None:
-	rsam.to(cuda_device)
-	rslm.to(cuda_device)
-	rsem.to(cuda_device)
+	rsam.to(cuda_device, non_blocking=True)
+	rslm.to(cuda_device, non_blocking=True)
+	rsem.to(cuda_device, non_blocking=True)
 
 t_af, t_lf, t_ef, t_ab, t_lb, t_eb = [], [], [], [], [], []
 for _td, _m in zip(tdl, maskl):

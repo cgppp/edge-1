@@ -44,13 +44,13 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 	for i_d in tqdm(tl, mininterval=tqdm_mininterval):
 		seq_batch = torch.from_numpy(src_grp[i_d][()])
 		seq_o = torch.from_numpy(ref_grp[i_d][()])
-		seq_s = torch.from_numpy(tgt_grp[i_d][()]).float()
+		seq_s = torch.from_numpy(tgt_grp[i_d][()]).to(torch.float32, non_blocking=True)
 
 		if mv_device:
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
 			seq_o = seq_o.to(mv_device, non_blocking=True)
 			seq_s = seq_s.to(mv_device, non_blocking=True)
-		seq_batch, seq_o = seq_batch.long(), seq_o.long()
+		seq_batch, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 
 		loss = lossf(model(seq_batch, seq_o), seq_s)
 		if multi_gpu:
@@ -66,7 +66,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 			_ls[(i_d, t_d, s_d)] = loss_add / wd_add
 		sum_wd += wd_add
 		ot = seq_o.narrow(1, 1, lo)
-		_done_tokens += ot.ne(0).int().sum().item()
+		_done_tokens += ot.ne(0).to(torch.int32, non_blocking=True).sum().item()
 
 		if _done_tokens >= tokens_optm:
 			if multi_gpu:
@@ -135,12 +135,12 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu):
 			bid = str(i)
 			seq_batch = torch.from_numpy(src_grp[bid][()])
 			seq_o = torch.from_numpy(ref_grp[bid][()])
-			seq_s = torch.from_numpy(tgt_grp[bid][()]).float()
+			seq_s = torch.from_numpy(tgt_grp[bid][()]).to(torch.float32, non_blocking=True)
 			if mv_device:
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
 				seq_s = seq_s.to(mv_device, non_blocking=True)
-			seq_batch, seq_o = seq_batch.long(), seq_o.long()
+			seq_batch, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 			loss = lossf(model(seq_batch, seq_o), seq_s)
 			if multi_gpu:
 				loss = loss.sum()

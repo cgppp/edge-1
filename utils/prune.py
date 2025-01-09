@@ -55,7 +55,7 @@ def report_type_prune_ratio(modin, typl):
 			for _tmpm in _m.modules():
 				if isinstance(_tmpm, BernoulliParameter):
 					_tmpd = _tmpm.data
-					rsp += _tmpd.eq(0.0).int().sum().item()
+					rsp += _tmpd.eq(0.0).to(torch.int32, non_blocking=True).sum().item()
 					rsa += _tmpd.numel()
 
 	return float(rsp) / float(rsa) if rsa != 0 else 0.0

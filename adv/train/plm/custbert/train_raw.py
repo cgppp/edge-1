@@ -46,7 +46,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		#seq_batch = torch.from_numpy(src_grp[i_d][()])
 		if mv_device:
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
-		seq_batch = seq_batch.long()
+		seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 
 		seq_i, mlm_mask = get_batch(seq_batch)
 		with torch_autocast(enabled=_use_amp):
@@ -61,7 +61,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		else:
 			scaler.scale(loss).backward()
 
-		wd_add = mlm_mask.int().sum().item()#seq_batch[mlm_mask].ne(pad_id)
+		wd_add = mlm_mask.to(torch.int32, non_blocking=True).sum().item()#seq_batch[mlm_mask].ne(pad_id)
 		loss = output = seq_batch = seq_i = mlm_mask = None
 		sum_loss += loss_add
 		#if save_loss:
@@ -143,7 +143,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 			#seq_batch = torch.from_numpy(src_grp[i][()])
 			if mv_device:
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
-			seq_batch = seq_batch.long()
+			seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 			seq_i, mlm_mask = get_batch(seq_batch)
 			with torch_autocast(enabled=use_amp):
 				output = model(seq_i, mlm_mask=mlm_mask, word_prediction=True)
@@ -157,7 +157,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 			ot = seq_batch[mlm_mask]
 			#data_mask = ot.ne(pad_id)
 			w += ot.numel()
-			r += trans.eq(ot).int().sum().item()
+			r += trans.eq(ot).to(torch.int32, non_blocking=True).sum().item()
 			trans = loss = output = ot = seq_batch = mlm_mask = None
 	w = float(w) if w > 0 else 1.0
 	return sum_loss / w, (w - r) / w * 100.0

@@ -43,7 +43,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		seq_batch = torch.from_numpy(src_grp[i_d][()])
 		if mv_device:
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
-		seq_batch = seq_batch.long()
+		seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 		with torch_autocast(enabled=_use_amp):
 			output = model(seq_batch, seq_batch.eq(pad_id).unsqueeze(1))
 			loss = lossf(output, seq_batch)
@@ -56,7 +56,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		else:
 			scaler.scale(loss).backward()
 
-		wd_add = seq_batch.numel() - seq_batch.eq(pad_id).int().sum().item() - seq_batch.eq(sos_id).int().sum().item() - seq_batch.eq(eos_id).int().sum().item()
+		wd_add = seq_batch.numel() - seq_batch.eq(pad_id).to(torch.int32, non_blocking=True).sum().item() - seq_batch.eq(sos_id).to(torch.int32, non_blocking=True).sum().item() - seq_batch.eq(eos_id).to(torch.int32, non_blocking=True).sum().item()
 		loss = output = seq_batch = None
 		sum_loss += loss_add
 		if save_loss:
@@ -134,7 +134,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 			seq_batch = torch.from_numpy(src_grp[bid][()])
 			if mv_device:
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
-			seq_batch = seq_batch.long()
+			seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 			with torch_autocast(enabled=use_amp):
 				output = model(seq_batch, seq_batch.eq(pad_id).unsqueeze(1))
 				loss = lossf(output, seq_batch)
@@ -145,8 +145,8 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 					trans = output.argmax(-1)
 			sum_loss += loss.data.item()
 			data_mask = seq_batch.ne(pad_id) & seq_batch.ne(sos_id) & seq_batch.ne(eos_id)
-			correct = (trans.eq(seq_batch) & data_mask).int()
-			w += data_mask.int().sum().item()
+			correct = (trans.eq(seq_batch) & data_mask).to(torch.int32, non_blocking=True)
+			w += data_mask.to(torch.int32, non_blocking=True).sum().item()
 			r += correct.sum().item()
 			correct = data_mask = trans = loss = output = seq_batch = None
 	w = float(w)

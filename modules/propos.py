@@ -34,7 +34,7 @@ class PropEmb(nn.Module):
 		if mask is None:
 			return pos2p(_num_pos, _length, scale=self.scale, sid=_length - 1, device=self.weight.device, dtype=self.weight.dtype).squeeze(0).mm(self.weight)
 		else:
-			_r_len = _length - mask.long().sum(-1)
+			_r_len = _length - mask.to(torch.int64, non_blocking=True).sum(-1)
 			_min_len = _r_len.min().item()
 			return pos2p(_num_pos, _length, scale=self.scale, sid=_min_len - 1, device=self.weight.device, dtype=self.weight.dtype).index_select(0, _r_len - _min_len).view(_bsize * _length, _num_pos).mm(self.weight).view(_bsize, _length, _isize)
 

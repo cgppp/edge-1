@@ -32,7 +32,7 @@ from cnfg.vocab.plm.roberta import vocab_size
 
 reg_weight, reg_bias = cnfg.reg_weight, cnfg.reg_bias
 _compare_threshold = 0.5 if reg_weight is None else (0.5 / reg_weight)
-compare_func = (lambda tgt, ref: ref.gt(_compare_threshold).to(tgt.dtype).eq(tgt)) if reg_bias is None else (lambda tgt, ref: ref.add(reg_bias).gt(_compare_threshold).to(tgt.dtype).eq(tgt))
+compare_func = (lambda tgt, ref: ref.gt(_compare_threshold).to(tgt.dtype, non_blocking=True).eq(tgt)) if reg_bias is None else (lambda tgt, ref: ref.add(reg_bias).gt(_compare_threshold).to(tgt.dtype, non_blocking=True).eq(tgt))
 
 def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm=32768, nreport=None, save_every=None, chkpf=None, state_holder=None, statesf=None, num_checkpoint=1, cur_checkid=0, report_eva=True, remain_steps=None, save_loss=False, save_checkp_epoch=False, scaler=None):
 
@@ -49,7 +49,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		if mv_device:
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
 			seq_o = seq_o.to(mv_device, non_blocking=True)
-		seq_batch = seq_batch.long()#, seq_o.long()
+		seq_batch = seq_batch.to(torch.int64, non_blocking=True)#, seq_o.to(torch.int64, non_blocking=True)
 
 		with torch_autocast(enabled=_use_amp):
 			output = model(seq_batch)
@@ -142,7 +142,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 			if mv_device:
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
-			seq_batch = seq_batch.long()#, seq_o.long()
+			seq_batch = seq_batch.to(torch.int64, non_blocking=True)#, seq_o.to(torch.int64, non_blocking=True)
 			with torch_autocast(enabled=use_amp):
 				output = model(seq_batch)
 				loss = lossf(output, seq_o)
@@ -153,7 +153,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 					trans = output.argmax(-1)
 			sum_loss += loss.data.item()
 			w += seq_o.numel()
-			r += compare_func(trans, seq_o).int().sum().item()
+			r += compare_func(trans, seq_o).to(torch.int32, non_blocking=True).sum().item()
 			trans = loss = output = seq_batch = seq_o = None
 	w = float(w)
 	return sum_loss / w, (w - r) / w * 100.0

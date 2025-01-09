@@ -63,7 +63,7 @@ with sys_open(sys.argv[4], "wb") as fwrt, torch_inference_mode():
 		seq_batch = torch.from_numpy(src_grp[bid][()])
 		if cuda_device:
 			seq_batch = seq_batch.to(cuda_device, non_blocking=True)
-		seq_batch = seq_batch.long()
+		seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 		_mask = seq_batch.eq(pad_id)
 		with torch_autocast(enabled=use_amp):
 			# mask pad/sos/eos_id in output

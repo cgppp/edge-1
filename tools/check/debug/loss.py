@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from loss.base import LabelSmoothingLoss
 
 lossf=LabelSmoothingLoss(8, label_smoothing=0.1, ignore_index=0, reduction="none", forbidden_index=3)
-target=torch.ones(5,1).long()
+target=torch.ones(5,1).to(torch.int64, non_blocking=True)
 target.data[0]=0
 target.data[1]=1
 target.data[2]=2

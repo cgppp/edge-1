@@ -633,7 +633,7 @@ class Decoder(nn.Module):
 			# done_trans: (bsize)
 			done_trans = wds.squeeze(1).eq(eos_id)
 
-			_ndone = done_trans.int().sum().item()
+			_ndone = done_trans.to(torch.int32, non_blocking=True).sum().item()
 			if _ndone == bsize:
 				for _iu, _tran in enumerate(torch.cat(trans, 1).unbind(0)):
 					rs[mapper[_iu]] = _tran
@@ -813,7 +813,7 @@ class Decoder(nn.Module):
 
 			# check beam states(done or not)
 
-			_ndone = _done_trans_u.int().sum().item()
+			_ndone = _done_trans_u.to(torch.int32, non_blocking=True).sum().item()
 			if _ndone == bsize:
 				if (not clip_beam) and (length_penalty > 0.0):
 					scores = scores / lpv.view(bsize, beam_size)

@@ -74,7 +74,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		if mv_device:
 			seq_o = seq_o.to(mv_device, non_blocking=True)
 			seq_t = seq_t.to(mv_device, non_blocking=True)
-		seq_o, seq_t = seq_o.long(), seq_t.long()
+		seq_o, seq_t = seq_o.to(torch.int64, non_blocking=True), seq_t.to(torch.int64, non_blocking=True)
 
 		_bt_taskid = torch.randint(t_sample_max_id, seq_t.size(), dtype=seq_t.dtype, device=seq_t.device)
 		_bt_taskid[_bt_taskid.ge(seq_t)] += 1
@@ -93,7 +93,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		else:
 			scaler.scale(loss).backward()
 
-		wd_add = ot.ne(pad_id).int().sum().item()
+		wd_add = ot.ne(pad_id).to(torch.int32, non_blocking=True).sum().item()
 		loss = output = oi = ot = seq_batch = seq_o = None
 		sum_loss += loss_add
 		if save_loss:
@@ -175,7 +175,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
 				seq_t = seq_t.to(mv_device, non_blocking=True)
-			seq_batch, seq_o, seq_t = seq_batch.long(), seq_o.long(), seq_t.long()
+			seq_batch, seq_o, seq_t = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True), seq_t.to(torch.int64, non_blocking=True)
 			ot = seq_o.narrow(1, 1, lo).contiguous()
 			with torch_autocast(enabled=use_amp):
 				output = model(seq_batch, seq_o.narrow(1, 0, lo), taskid=seq_t)
@@ -187,8 +187,8 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 					trans = output.argmax(-1)
 			sum_loss += loss.data.item()
 			data_mask = ot.ne(pad_id)
-			correct = (trans.eq(ot) & data_mask).int()
-			w += data_mask.int().sum().item()
+			correct = (trans.eq(ot) & data_mask).to(torch.int32, non_blocking=True)
+			w += data_mask.to(torch.int32, non_blocking=True).sum().item()
 			r += correct.sum().item()
 			correct = data_mask = trans = loss = output = ot = seq_batch = seq_o = None
 	w = float(w)

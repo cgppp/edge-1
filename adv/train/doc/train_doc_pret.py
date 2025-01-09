@@ -70,7 +70,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
 			seq_pret = seq_pret.to(mv_device, non_blocking=True)
 			seq_o = seq_o.to(mv_device, non_blocking=True)
-		seq_batch, seq_pret, seq_o = seq_batch.long(), seq_pret.long(), seq_o.long()
+		seq_batch, seq_pret, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_pret.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 
 		loss_add = 0.0
 		for sbu, oiu, otu, start_sent_id in split_doc(seq_batch, seq_o, max_sent=24):
@@ -86,7 +86,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 				scaler.scale(loss).backward()
 			loss = output = None
 
-		wd_add = seq_o.narrow(-1, 1, seq_o.size(-1) - 1).ne(pad_id).int().sum().item()
+		wd_add = seq_o.narrow(-1, 1, seq_o.size(-1) - 1).ne(pad_id).to(torch.int32, non_blocking=True).sum().item()
 		seq_batch = seq_o = seq_pret = None
 		sum_loss += loss_add
 		if save_loss:
@@ -168,7 +168,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
 				seq_pret = seq_pret.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
-			seq_batch, seq_pret, seq_o = seq_batch.long(), seq_pret.long(), seq_o.long()
+			seq_batch, seq_pret, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_pret.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 
 			oi = seq_o.narrow(-1, 0, lo).contiguous()
 			ot = seq_o.narrow(-1, 1, lo).contiguous()
@@ -182,8 +182,8 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 					trans = output.argmax(-1)
 			sum_loss += loss.data.item()
 			data_mask = ot.ne(pad_id)
-			correct = (trans.eq(ot) & data_mask).int()
-			w += data_mask.int().sum().item()
+			correct = (trans.eq(ot) & data_mask).to(torch.int32, non_blocking=True)
+			w += data_mask.to(torch.int32, non_blocking=True).sum().item()
 			r += correct.sum().item()
 			correct = data_mask = trans = loss = output = ot = oi = seq_batch = seq_o = seq_pret = None
 	w = float(w)

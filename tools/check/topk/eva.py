@@ -85,11 +85,11 @@ with h5File(sys.argv[3], "w", **h5_fileargs) as rsf, torch_inference_mode():
 		if cuda_device:
 			seq_batch = seq_batch.to(cuda_device, non_blocking=True)
 			seq_o = seq_o.to(cuda_device, non_blocking=True)
-		seq_batch, seq_o = seq_batch.long(), seq_o.long()
+		seq_batch, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 		with torch_autocast(enabled=use_amp):
 			output = mymodel(seq_batch, seq_o.narrow(1, 0, lo))
 		p, ind = output.masked_fill_(seq_o.narrow(1, 1, lo).eq(pad_id).unsqueeze(-1), 0.0).topk(k, dim=-1)
-		ind = ind.int()
+		ind = ind.to(torch.int32, non_blocking=True)
 		if cuda_device:
 			p = p.cpu()
 			ind = ind.cpu()

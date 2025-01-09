@@ -37,7 +37,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 			if mv_device:
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
-			seq_batch, seq_o = seq_batch.long(), seq_o.long()
+			seq_batch, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 			with torch_autocast(enabled=use_amp):
 				output = model(seq_batch)
 				loss = lossf(output, seq_o)
@@ -48,7 +48,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 					trans = output.argmax(-1)
 			sum_loss += loss.data.item()
 			w += seq_o.numel()
-			r += trans.eq(seq_o).int().sum().item()
+			r += trans.eq(seq_o).to(torch.int32, non_blocking=True).sum().item()
 			trans = loss = output = seq_batch = seq_o = None
 	w = float(w)
 	return sum_loss / w, (w - r) / w * 100.0

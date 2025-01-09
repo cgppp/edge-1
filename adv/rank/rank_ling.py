@@ -74,7 +74,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 		if cuda_device:
 			seq_batch = seq_batch.to(cuda_device, non_blocking=True)
 			seq_o = seq_o.to(cuda_device, non_blocking=True)
-		seq_batch, seq_o = seq_batch.long(), seq_o.long()
+		seq_batch, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 		lo = seq_o.size(1) - 1
 		ot = seq_o.narrow(1, 1, lo).contiguous()
 		with torch_autocast(enabled=use_amp):
@@ -85,7 +85,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 			_mask = ot.eq(pad_id)
 			loss = loss.masked_fill_(_mask, 0.0).sum(-1)
 		if norm_token:
-			lenv = (ot.size(-1) - _mask.int().sum(-1)).to(loss, non_blocking=True)
+			lenv = (ot.size(-1) - _mask.to(torch.int32, non_blocking=True).sum(-1)).to(loss, non_blocking=True)
 			loss = loss / lenv
 		f.write("\n".join([str(rsu) for rsu in loss.tolist()]).encode("utf-8"))
 		f.write(ens)

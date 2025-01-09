@@ -35,7 +35,7 @@ def pad_tensors(tensor_list, dim=-1):
 def clear_pad(batch_in, mask=None, dim=-1, pad_id=pad_id):
 
 	_mask = batch_in.eq(pad_id) if mask is None else mask
-	npad = _mask.int().sum(dim).min().item()
+	npad = _mask.to(torch.int32, non_blocking=True).sum(dim).min().item()
 	if npad > 0:
 		return batch_in.narrow(dim, 0, batch_in.size(dim) - npad)
 	else:
@@ -43,7 +43,7 @@ def clear_pad(batch_in, mask=None, dim=-1, pad_id=pad_id):
 
 def clear_pad_mask(batch_list, mask, dims, mask_dim=-1, return_contiguous=True):
 
-	npad = mask.int().sum(mask_dim).min().item()
+	npad = mask.to(torch.int32, non_blocking=True).sum(mask_dim).min().item()
 	if npad > 0:
 		_n_ret = mask.size(mask_dim) - npad
 		if return_contiguous:

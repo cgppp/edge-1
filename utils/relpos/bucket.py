@@ -12,14 +12,14 @@ def _relative_position_bucket(length, num_buckets=32, max_distance=128, bidirect
 	relative_buckets = 0
 	if bidirectional:
 		num_buckets //= 2
-		relative_buckets += (relative_position > 0).to(torch.long) * num_buckets
+		relative_buckets += (relative_position > 0).to(torch.long, non_blocking=True) * num_buckets
 		relative_position = torch.abs(relative_position)
 	else:
 		relative_position = -torch.min(relative_position, torch.zeros_like(relative_position))
 	max_exact = num_buckets // 2
 	is_small = relative_position < max_exact
 
-	relative_position_if_large = max_exact + (torch.log(relative_position.float() / max_exact) / log(max_distance / max_exact) * (num_buckets - max_exact)).to(torch.long)
+	relative_position_if_large = max_exact + (torch.log(relative_position.to(torch.float32, non_blocking=True) / max_exact) / log(max_distance / max_exact) * (num_buckets - max_exact)).to(torch.long)
 	relative_position_if_large = torch.min(relative_position_if_large, torch.full_like(relative_position_if_large, num_buckets - 1))
 
 	relative_buckets += torch.where(is_small, relative_position, relative_position_if_large)
@@ -32,7 +32,7 @@ def build_rel_pos_bucket_map(k_rel_pos=32, max_len=128, uni_direction=False, dev
 	_ = k_rel_pos + 1
 	_thres = _ // 2
 	_f_thres = float(_thres)
-	_m = torch.arange(_thres, max_len, device=device).div(_f_thres).log().div(log(float(max_len) / _f_thres)).mul(float(_) - _f_thres).long().add_(_thres)
+	_m = torch.arange(_thres, max_len, device=device).div(_f_thres).log().div(log(float(max_len) / _f_thres)).mul(float(_) - _f_thres).to(torch.int64, non_blocking=True).add_(_thres)
 
 	return torch.cat((torch.arange(0, _thres, dtype=torch.long, device=device), _m,), dim=-1) if uni_direction else torch.cat((-_m.flip(-1), torch.arange(-_thres + 1, _thres, dtype=torch.long, device=device), _m,), dim=-1).add_(k_rel_pos)
 

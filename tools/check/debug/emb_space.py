@@ -40,7 +40,7 @@ for i in tqdm(range(1, nrun + 1)):
 	td = torch.randint(0, vsize, (bsize,), dtype=torch.long, device=device)
 	out = tmod(td)
 	loss_v = lossf(out, td)
-	num_cor += out.argmax(-1).eq(td).int().sum().item()
+	num_cor += out.argmax(-1).eq(td).to(torch.int32, non_blocking=True).sum().item()
 	loss_v.backward()
 	if i % nacc == 0:
 		optm.step()

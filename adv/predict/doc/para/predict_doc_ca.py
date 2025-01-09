@@ -79,7 +79,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 		if cuda_device:
 			seq_batch = seq_batch.to(cuda_device, non_blocking=True)
 			seq_o = seq_o.to(cuda_device, non_blocking=True)
-		seq_batch, seq_o = seq_batch.long(), seq_o.long()
+		seq_batch, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 		bsize, _nsent, seql = seq_batch.size()
 		_nsent_use = _nsent - 1
 		with torch_autocast(enabled=use_amp):

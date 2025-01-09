@@ -8,13 +8,13 @@ from utils.torch.comp import mask_tensor_type
 
 def mask_token(inpute, p, mask_id):
 
-	return inpute.masked_fill_(inpute.new_full(inpute.size(), p, dtype=torch.float, device=inpute.device).bernoulli().to(mask_tensor_type, non_blocking=True), mask_id)
+	return inpute.masked_fill_(inpute.new_full(inpute.size(), p, dtype=torch.float32, device=inpute.device).bernoulli().to(mask_tensor_type, non_blocking=True), mask_id)
 
 def mask_rand_token(inpute, p, start_id, end_id):
 
-	_m = inpute.new_full(inpute.size(), p, dtype=torch.float, device=inpute.device).bernoulli().to(mask_tensor_type, non_blocking=True)
+	_m = inpute.new_full(inpute.size(), p, dtype=torch.float32, device=inpute.device).bernoulli().to(mask_tensor_type, non_blocking=True)
 
-	return inpute.masked_scatter_(_m, torch.randint(start_id, end_id, (_m.int().sum().item(),), dtype=inpute.dtype, device=inpute.device))
+	return inpute.masked_scatter_(_m, torch.randint(start_id, end_id, (_m.to(torch.int32, non_blocking=True).sum().item(),), dtype=inpute.dtype, device=inpute.device))
 
 def get_sind(seql, p, maxv=None):
 

@@ -64,9 +64,9 @@ class Encoder(EncoderBase):
 					if mask is None:
 						_mask = mask
 					else:
-						_mask = torch.cat((mask, mask.new_ones((_npad, 1, seql)),), dim=0).view(_reduced_bsize, self.nmimo, 1, seql).int().sum(1).eq(self.nmimo)
+						_mask = torch.cat((mask, mask.new_ones((_npad, 1, seql)),), dim=0).view(_reduced_bsize, self.nmimo, 1, seql).to(torch.int32, non_blocking=True).sum(1).eq(self.nmimo)
 				else:
-					_mask = mask.view(_reduced_bsize, self.nmimo, 1, seql).int().sum(1).eq(self.nmimo)
+					_mask = mask.view(_reduced_bsize, self.nmimo, 1, seql).to(torch.int32, non_blocking=True).sum(1).eq(self.nmimo)
 				out = out.view(_reduced_bsize, self.nmimo, seql, isize)
 				out = out.transpose(0, 1).contiguous().view(self.nmimo, _reduced_bsize * seql, isize).bmm(_w_trans).transpose(0, 1).contiguous().view(_reduced_bsize, seql, self.nmimo, isize)
 				if _b_trans is not None:

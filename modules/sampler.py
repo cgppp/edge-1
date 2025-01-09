@@ -103,7 +103,7 @@ class SamplerFunction(Function):
 			_sv = inputs.new_empty(isize).uniform_(0.0, 1.0)
 			_ics = _ics.unsqueeze(0)
 			ctx.sum_batch = True
-		_ms = _ics.ge(_sv).int().cumsum(dim).eq(1)
+		_ms = _ics.ge(_sv).to(torch.int32, non_blocking=True).cumsum(dim).eq(1)
 
 		return _ms.to(inputs.dtype, non_blocking=True)
 
@@ -135,7 +135,7 @@ class EffSamplerFunction(Function):
 		else:
 			ctx.sum_batch = False
 		_sv = weight.new_empty(wsize).uniform_(0.0, 1.0)
-		_mask = _ics.ge(_sv).int().cumsum(dim).eq(1)
+		_mask = _ics.ge(_sv).to(torch.int32, non_blocking=True).cumsum(dim).eq(1)
 		_ind = _mask.argmax(dim)
 
 		_ind += torch.arange(0, bsize * nop, nop, dtype=_ind.dtype, device=_ind.device)

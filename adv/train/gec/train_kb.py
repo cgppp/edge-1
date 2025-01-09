@@ -48,7 +48,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 			seq_kb = seq_kb.to(mv_device, non_blocking=True)
 			seq_edt = seq_edt.to(mv_device, non_blocking=True)
 			seq_o = seq_o.to(mv_device, non_blocking=True)
-		seq_batch, seq_kb, seq_edt, seq_o = seq_batch.long(), seq_kb.long(), seq_edt.long(), seq_o.long()
+		seq_batch, seq_kb, seq_edt, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_kb.to(torch.int64, non_blocking=True), seq_edt.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 		if mlm_enhance > 0.0:
 			seq_batch, seq_kb, seq_edt, seq_o = get_batch(seq_batch, seq_kb, seq_edt, seq_o, p=mlm_enhance)
 
@@ -63,7 +63,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		else:
 			scaler.scale(loss).backward()
 
-		wd_add = seq_batch.ne(pad_id).int().sum().item()
+		wd_add = seq_batch.ne(pad_id).to(torch.int32, non_blocking=True).sum().item()
 		loss = seq_batch = seq_kb = seq_edt = seq_o = None
 		sum_loss += loss_add
 		#if save_loss:
@@ -146,7 +146,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 				seq_kb = seq_kb.to(mv_device, non_blocking=True)
 				seq_edt = seq_edt.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
-			seq_batch, seq_kb, seq_edt, seq_o = seq_batch.long(), seq_kb.long(), seq_edt.long(), seq_o.long()
+			seq_batch, seq_kb, seq_edt, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_kb.to(torch.int64, non_blocking=True), seq_edt.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 			with torch_autocast(enabled=use_amp):
 				loss, trans = model(seq_batch, kb=seq_kb, edit=seq_edt, tgt=seq_o, prediction=True)
 				if multi_gpu:
@@ -154,8 +154,8 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 					trans = torch.cat([_.to(mv_device, non_blocking=True) for _ in trans], 0)
 			sum_loss += loss.data.item()
 			data_mask = seq_batch.ne(pad_id)
-			correct = (trans.eq(seq_o) & data_mask).int()
-			w += data_mask.int().sum().item()
+			correct = (trans.eq(seq_o) & data_mask).to(torch.int32, non_blocking=True)
+			w += data_mask.to(torch.int32, non_blocking=True).sum().item()
 			r += correct.sum().item()
 			correct = data_mask = trans = loss = seq_batch = seq_kb = seq_edt = seq_o = None
 	w = float(w)

@@ -61,7 +61,7 @@ def all_done_bool(stat, *inputs, **kwargs):
 
 def all_done_byte(stat, bsize=None, **kwargs):
 
-	return stat.int().sum().item() == (stat.numel() if bsize is None else bsize)
+	return stat.to(torch.int32, non_blocking=True).sum().item() == (stat.numel() if bsize is None else bsize)
 
 def exist_any_bool(stat):
 
@@ -69,7 +69,7 @@ def exist_any_bool(stat):
 
 def exist_any_byte(stat):
 
-	return stat.int().sum().item() > 0
+	return stat.to(torch.int32, non_blocking=True).sum().item() > 0
 
 def torch_all_bool_wodim(x, *inputs, **kwargs):
 
@@ -77,7 +77,7 @@ def torch_all_bool_wodim(x, *inputs, **kwargs):
 
 def torch_all_byte_wodim(x, *inputs, **kwargs):
 
-	return x.int().sum(*inputs, **kwargs).eq(x.numel())
+	return x.to(torch.int32, non_blocking=True).sum(*inputs, **kwargs).eq(x.numel())
 
 def torch_all_bool_dim(x, dim, *inputs, **kwargs):
 
@@ -85,7 +85,7 @@ def torch_all_bool_dim(x, dim, *inputs, **kwargs):
 
 def torch_all_byte_dim(x, dim, *inputs, **kwargs):
 
-	return x.int().sum(*inputs, dim=dim, **kwargs).eq(x.size(dim))
+	return x.to(torch.int32, non_blocking=True).sum(*inputs, dim=dim, **kwargs).eq(x.size(dim))
 
 def torch_all_bool(x, *inputs, dim=None, **kwargs):
 
@@ -93,7 +93,7 @@ def torch_all_bool(x, *inputs, dim=None, **kwargs):
 
 def torch_all_byte(x, *inputs, dim=None, **kwargs):
 
-	return x.int().sum(*inputs, **kwargs).eq(x.numel()) if dim is None else x.int().sum(*inputs, dim=dim, **kwargs).eq(x.size(dim))
+	return x.to(torch.int32, non_blocking=True).sum(*inputs, **kwargs).eq(x.numel()) if dim is None else x.to(torch.int32, non_blocking=True).sum(*inputs, dim=dim, **kwargs).eq(x.size(dim))
 
 def torch_any_bool_wodim(x, *inputs, **kwargs):
 
@@ -101,7 +101,7 @@ def torch_any_bool_wodim(x, *inputs, **kwargs):
 
 def torch_any_byte_wodim(x, *inputs, **kwargs):
 
-	return x.int().sum(*inputs, **kwargs).gt(0)
+	return x.to(torch.int32, non_blocking=True).sum(*inputs, **kwargs).gt(0)
 
 def torch_any_bool_dim(x, dim, *inputs, **kwargs):
 
@@ -109,7 +109,7 @@ def torch_any_bool_dim(x, dim, *inputs, **kwargs):
 
 def torch_any_byte_dim(x, dim, *inputs, **kwargs):
 
-	return x.int().sum(*inputs, dim=dim, **kwargs).gt(0)
+	return x.to(torch.int32, non_blocking=True).sum(*inputs, dim=dim, **kwargs).gt(0)
 
 def torch_any_bool(x, *inputs, dim=None, **kwargs):
 
@@ -117,7 +117,7 @@ def torch_any_bool(x, *inputs, dim=None, **kwargs):
 
 def torch_any_byte(x, *inputs, dim=None, **kwargs):
 
-	return x.int().sum(*inputs, **kwargs).gt(0) if dim is None else x.int().sum(*inputs, dim=dim, **kwargs).gt(0)
+	return x.to(torch.int32, non_blocking=True).sum(*inputs, **kwargs).gt(0) if dim is None else x.to(torch.int32, non_blocking=True).sum(*inputs, dim=dim, **kwargs).gt(0)
 
 def flip_mask_bool(mask, dim):
 

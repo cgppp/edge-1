@@ -4,7 +4,7 @@ import torch
 
 def clear_pad_mask(batch_in, mask, dim=-1):
 
-	npad = mask.int().sum(dim).min().item()
+	npad = mask.to(torch.int32, non_blocking=True).sum(dim).min().item()
 	if npad > 0:
 		seql = batch_in.size(dim)
 		return batch_in.narrow(dim, 0, seql - npad), mask.narrow(dim, 0, seql - npad)

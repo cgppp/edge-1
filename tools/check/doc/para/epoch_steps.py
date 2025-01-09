@@ -22,7 +22,7 @@ def handle(h5f, bsize, shuf=True):
 		for nsent, i_d in tqdm(tl, mininterval=tqdm_mininterval):
 			seq_batch = torch.from_numpy(tgt_grp[nsent][i_d][()])
 			ot = seq_batch.narrow(-1, 1, seq_batch.size(-1) - 1)
-			ntoken += ot.ne(0).int().sum().item()
+			ntoken += ot.ne(0).to(torch.int32, non_blocking=True).sum().item()
 			if ntoken >= bsize:
 				nstep += 1
 				ntoken = 0

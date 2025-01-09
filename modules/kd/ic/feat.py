@@ -60,7 +60,7 @@ class Cache(nn.Module):
 			_num_ind = _gold_ind.size(0)
 			_base = x.new_zeros(_num_ind, _isize)
 			self.cache_index.index_copy_(0, _gold_ind, torch.arange(_num_ind, dtype=_gold_ind.dtype, device=_gold_ind.device))
-			_base.index_add_(0, self.cache_index.index_select(0, _f_gold), _.view(-1, _isize)).div_(_ind_counts.to(_base.dtype).unsqueeze(-1))
+			_base.index_add_(0, self.cache_index.index_select(0, _f_gold), _.view(-1, _isize)).div_(_ind_counts.to(_base.dtype, non_blocking=True).unsqueeze(-1))
 			_mavg_beta = self.mavg_beta if self.cache_update_steps >= self.warm_mvavg_steps else (self.mavg_beta * sqrt(float(self.cache_update_steps) / float(self.warm_mvavg_steps)))
 			self.cache_p.index_copy_(0, _gold_ind, self.cache_p.index_select(0, _gold_ind).mul_(_mavg_beta).view_as(_base).add_(_base, alpha=1.0 - _mavg_beta) if _mavg_beta > 0.0 else _base)
 		self.cache_update_steps += 1

@@ -1,6 +1,6 @@
 #encoding: utf-8
 
-#import torch
+import torch
 #from math import sqrt
 from torch import nn
 
@@ -55,7 +55,7 @@ class NormMax(nn.Module):
 			if mask is None:
 				return xi.std(dim=dim, keepdim=keepdim) if xi.size(dim) > 1 else xi.new_ones(1, dtype=xi.dtype, device=xi.device)
 			else:
-				_sx, _ne = xi.masked_fill(mask, 0.0).sum(dim=dim, keepdim=True), float(mask.size(dim)) - mask.float().sum(dim=dim, keepdim=True)
+				_sx, _ne = xi.masked_fill(mask, 0.0).sum(dim=dim, keepdim=True), float(mask.size(dim)) - mask.to(torch.float32, non_blocking=True).sum(dim=dim, keepdim=True)
 				_sx /= _ne
 				_xstd = ((xi - _sx).pow(2).masked_fill_(mask, 0.0).sum(dim=dim, keepdim=keepdim) / (_ne - 1.0 + eps)).sqrt()
 				return _xstd

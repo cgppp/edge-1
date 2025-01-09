@@ -25,7 +25,7 @@ def norm_para_fp32(modin):
 
 	for _m in modin.modules():
 		if isinstance(_m, (LayerNorm, RMSNorm,)):
-			_m.float()
+			_m.to(torch.float32, non_blocking=True)
 
 	return modin
 

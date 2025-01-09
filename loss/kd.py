@@ -15,7 +15,7 @@ def token_loss_mask_reduction(loss, mask=None, reduction="mean"):
 	if mask is not None:
 		loss.masked_fill_(mask, 0.0)
 		if _is_mean_reduction:
-			_num -= mask.int().sum().item()
+			_num -= mask.to(torch.int32, non_blocking=True).sum().item()
 	if reduction != "none":
 		loss = loss.sum()
 	if _is_mean_reduction:
@@ -60,7 +60,7 @@ def scaledis_loss(s, t, mask=None, dim=-1, reduction="mean", sort=True, stable=F
 	_ht, _tt = _st.narrow(dim, 0, _n), _st.narrow(dim, 1, _n)
 	_zero_mask = _ts.eq(0.0) | _tt.eq(0.0)
 	if torch_any_wodim(_zero_mask).item():
-		loss = (_hs / _ts - _ht / _tt).masked_fill(_zero_mask, 0.0).abs().sum(dim) / (float(_n) - _zero_mask.to(s.dtype).sum(dim))
+		loss = (_hs / _ts - _ht / _tt).masked_fill(_zero_mask, 0.0).abs().sum(dim) / (float(_n) - _zero_mask.to(s.dtype, non_blocking=True).sum(dim))
 	else:
 		loss = (_hs / _ts - _ht / _tt).abs().mean(dim)
 
@@ -109,7 +109,7 @@ def simorder_loss(s, t, mask=None, dim=-1, reduction="mean", alpha=0.5, eps=ieps
 		_sim.masked_fill_(mask, 0.0)
 		_order_loss.masked_fill_(mask, 0.0)
 		if _is_mean_reduction:
-			_num -= mask.int().sum().item()
+			_num -= mask.to(torch.int32, non_blocking=True).sum().item()
 	if reduction != "none":
 		_sim = _sim.sum()
 		_order_loss = _order_loss.sum()

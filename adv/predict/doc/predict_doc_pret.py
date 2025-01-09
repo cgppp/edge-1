@@ -79,7 +79,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 		if cuda_device:
 			seq_batch = seq_batch.to(cuda_device, non_blocking=True)
 			seq_pret = seq_pret.to(cuda_device, non_blocking=True)
-		seq_batch, seq_pret = seq_batch.long(), seq_pret.long()
+		seq_batch, seq_pret = seq_batch.to(torch.int64, non_blocking=True), seq_pret.to(torch.int64, non_blocking=True)
 		bsize, nsent, seql = seq_batch.size()
 		with torch_autocast(enabled=use_amp):
 			output = mymodel.decode(seq_batch, seq_pret, beam_size, None, length_penalty).view(bsize, nsent, -1)

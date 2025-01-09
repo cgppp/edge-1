@@ -89,19 +89,19 @@ with torch_inference_mode():
 		if cuda_device:
 			seq_batch = seq_batch.to(cuda_device, non_blocking=True)
 			seq_o = seq_o.to(cuda_device, non_blocking=True)
-		seq_batch, seq_o = seq_batch.long(), seq_o.long()
+		seq_batch, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 		with torch_autocast(enabled=use_amp):
 			output = mymodel(seq_batch, seq_o.narrow(1, 0, lo))
 		tgt = seq_o.narrow(1, 1, lo)
 		mask = tgt.eq(pad_id).unsqueeze(-1)
 		p, ind = output.masked_fill_(mask, 0.0).topk(k, dim=-1)
 		data_mask = ~mask
-		cum_p.add_(p.view(-1, k).sum(0).double())
-		m_ind.add_((ind.eq(tgt.unsqueeze(-1)) & data_mask).view(-1, k).long().sum(0))
-		nword += data_mask.int().sum().item()
+		cum_p.add_(p.view(-1, k).sum(0).to(torch.float64, non_blocking=True))
+		m_ind.add_((ind.eq(tgt.unsqueeze(-1)) & data_mask).view(-1, k).to(torch.int64, non_blocking=True).sum(0))
+		nword += data_mask.to(torch.int32, non_blocking=True).sum().item()
 	nword = float(nword) / 100.0
 	cum_p = cum_p.div_(nword).cumsum(-1)
-	m_ind = m_ind.cumsum(-1).double().div_(nword)
+	m_ind = m_ind.cumsum(-1).to(torch.float64, non_blocking=True).div_(nword)
 
 td.close()
 

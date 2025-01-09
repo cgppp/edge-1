@@ -48,10 +48,10 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		seq_batch = torch.from_numpy(src_grp[i_d][()])
 		if mv_device:
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
-		seq_batch = seq_batch.long()
-		_sample_base = torch.full(seq_batch.size(), p_mask_eva, dtype=torch.float, device=seq_batch.device)
+		seq_batch = seq_batch.to(torch.int64, non_blocking=True)
+		_sample_base = torch.full(seq_batch.size(), p_mask_eva, dtype=torch.float32, device=seq_batch.device)
 		_sample_mask = _sample_base.bernoulli().to(mask_tensor_type, non_blocking=True)
-		while _sample_mask.int().sum().item() < 1:
+		while _sample_mask.to(torch.int32, non_blocking=True).sum().item() < 1:
 			_sample_mask = _sample_base.bernoulli().to(mask_tensor_type, non_blocking=True)
 		output = model(seq_batch, eva_mask=_sample_mask, emask_p=p_mask_eva)
 		loss = lossf(output, seq_batch)
@@ -65,7 +65,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		else:
 			loss.backward()
 
-		wd_add = seq_batch.ne(0).int().sum().item()
+		wd_add = seq_batch.ne(0).to(torch.int32, non_blocking=True).sum().item()
 		loss = output = seq_batch = _sample_mask = _sample_base = None
 		sum_loss += loss_add
 		if save_loss:
@@ -144,10 +144,10 @@ def eva(ed, vl, model, lossf, mv_device, multi_gpu):
 			seq_batch = torch.from_numpy(src_grp[bid][()])
 			if mv_device:
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
-			seq_batch = seq_batch.long()
-			_sample_base = torch.full(seq_batch.size(), p_mask_eva, dtype=torch.float, device=seq_batch.device)
+			seq_batch = seq_batch.to(torch.int64, non_blocking=True)
+			_sample_base = torch.full(seq_batch.size(), p_mask_eva, dtype=torch.float32, device=seq_batch.device)
 			_sample_mask = _sample_base.bernoulli().to(mask_tensor_type, non_blocking=True)
-			while _sample_mask.int().sum().item() < 1:
+			while _sample_mask.to(torch.int32, non_blocking=True).sum().item() < 1:
 				_sample_mask = _sample_base.bernoulli().to(mask_tensor_type, non_blocking=True)
 			output = _evam(seq_batch, eva_mask=_sample_mask, emask_p=p_mask_eva)
 			_output, _target = output.masked_select(_sample_mask.unsqueeze(-1)).view(-1, output.size(-1)), seq_batch.masked_select(_sample_mask).view(-1)
@@ -155,8 +155,8 @@ def eva(ed, vl, model, lossf, mv_device, multi_gpu):
 			trans = _output.argmax(-1)
 			sum_loss += loss.data.item()
 			data_mask = _target.ne(0)
-			correct = (trans.eq(_target) & data_mask).int()
-			w += data_mask.int().sum().item()
+			correct = (trans.eq(_target) & data_mask).to(torch.int32, non_blocking=True)
+			w += data_mask.to(torch.int32, non_blocking=True).sum().item()
 			r += correct.sum().item()
 			correct = data_mask = trans = _output = _target = loss = output = seq_batch = _sample_base = None
 	w = float(w)

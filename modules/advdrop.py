@@ -18,7 +18,7 @@ class DropFunction(Function):
 	def forward(ctx, inputs, maskp, inplace=False, non_adversarial=True):
 
 		"""_maskp_check = maskp.gt(0.99)# 1 - eps
-		if _maskp_check.int().sum().item() > 0:
+		if _maskp_check.to(torch.int32, non_blocking=True).sum().item() > 0:
 			_maskp = maskp.masked_fill_(_maskp_check, 0.99)# 1 - eps
 		else:
 			_maskp = maskp"""

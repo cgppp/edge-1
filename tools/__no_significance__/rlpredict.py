@@ -87,7 +87,7 @@ for _cur_r_layer in range(cnfg.nlayer):
 				seq_batch = torch.from_numpy(src_grp[str(i)][()])
 				if cuda_device:
 					seq_batch = seq_batch.to(cuda_device, non_blocking=True)
-				seq_batch = seq_batch.long()
+				seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 				output = mymodel.decode(seq_batch, beam_size, None, length_penalty)
 				#output = mymodel.train_decode(seq_batch, beam_size, None, length_penalty)
 				if multi_gpu:
@@ -115,7 +115,7 @@ for _cur_r_layer in range(cnfg.nlayer):
 				seq_batch = torch.from_numpy(src_grp[str(i)][()])
 				if cuda_device:
 					seq_batch = seq_batch.to(cuda_device, non_blocking=True)
-				seq_batch = seq_batch.long()
+				seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 				output = mymodel.decode(seq_batch, beam_size, None, length_penalty)
 				#output = mymodel.train_decode(seq_batch, beam_size, None, length_penalty)
 				if multi_gpu:

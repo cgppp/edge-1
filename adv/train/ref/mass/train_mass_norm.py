@@ -57,7 +57,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
 			seq_o = seq_o.to(mv_device, non_blocking=True)
 			_src_mask = _src_mask.to(mv_device, non_blocking=True)
-		seq_batch = seq_batch.long()
+		seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 
 		oi = seq_o.narrow(1, 0, lo)
 		ot = seq_o.narrow(1, 1, lo).contiguous()
@@ -73,7 +73,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		else:
 			loss.backward()
 
-		wd_add = ot.ne(0).int().sum().item()
+		wd_add = ot.ne(0).to(torch.int32, non_blocking=True).sum().item()
 		loss = output = oi = ot = seq_batch = seq_o = _src_mask = None
 		sum_loss += loss_add
 		if save_loss:
@@ -153,7 +153,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu):
 			if mv_device:
 				seq_batch = seq_batch.to(mv_device, non_blocking=True)
 				seq_o = seq_o.to(mv_device, non_blocking=True)
-			seq_batch, seq_o = seq_batch.long(), seq_o.long()
+			seq_batch, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 			ot = seq_o.narrow(1, 1, lo).contiguous()
 			output = model(seq_batch, seq_o.narrow(1, 0, lo), lang_id=1)
 			loss = lossf(output, ot)
@@ -164,8 +164,8 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu):
 				trans = output.argmax(-1)
 			sum_loss += loss.data.item()
 			data_mask = ot.ne(0)
-			correct = (trans.eq(ot) & data_mask).int()
-			w += data_mask.int().sum().item()
+			correct = (trans.eq(ot) & data_mask).to(torch.int32, non_blocking=True)
+			w += data_mask.to(torch.int32, non_blocking=True).sum().item()
 			r += correct.sum().item()
 			correct = data_mask = trans = loss = output = ot = seq_batch = seq_o = None
 	w = float(w)

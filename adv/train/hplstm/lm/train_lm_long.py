@@ -41,7 +41,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 	cur_b, _ls = 1, {} if save_loss else None
 
 	for i_d in tqdm(tl, mininterval=tqdm_mininterval):
-		seq_o = td.select(0, i_d).long()
+		seq_o = td.select(0, i_d).to(torch.int64, non_blocking=True)
 		lo = seq_o.size(1) - 1
 		if mv_device:
 			seq_o = seq_o.to(mv_device, non_blocking=True)
@@ -142,7 +142,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 	with torch_inference_mode():
 		while curind <= last_ind:
 			nretr = min(last_ind - curind, step_size)
-			seq_o = ed.narrow(-1, curind, nretr).long()
+			seq_o = ed.narrow(-1, curind, nretr).to(torch.int64, non_blocking=True)
 			lo = seq_o.size(1) - 1
 			if mv_device:
 				seq_o = seq_o.to(mv_device, non_blocking=True)
@@ -152,7 +152,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 				loss = lossf(output, ot)
 				trans = output.argmax(-1)
 			sum_loss += loss.data.item()
-			correct = trans.eq(ot).int()
+			correct = trans.eq(ot).to(torch.int32, non_blocking=True)
 			w += ot.numel()
 			r += correct.sum().item()
 			correct = data_mask = trans = loss = output = ot = seq_o = None

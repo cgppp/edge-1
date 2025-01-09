@@ -32,12 +32,12 @@ def handle(srcf, ref):
 			#mask = seq_o.eq(pad_id)
 			#p.masked_fill_(mask.unsqueeze(-1), 0.0)
 			data_mask = seq_o.ne(pad_id)
-			cum_p.add_(p.view(-1, ntopk).sum(0).double())
-			m_ind.add_((ind.eq(seq_o.unsqueeze(-1)) & data_mask.unsqueeze(-1)).view(-1, ntopk).long().sum(0))
-			nword += data_mask.int().sum().item()
+			cum_p.add_(p.view(-1, ntopk).sum(0).to(torch.float64, non_blocking=True))
+			m_ind.add_((ind.eq(seq_o.unsqueeze(-1)) & data_mask.unsqueeze(-1)).view(-1, ntopk).to(torch.int64, non_blocking=True).sum(0))
+			nword += data_mask.to(torch.int32, non_blocking=True).sum().item()
 	nword = float(nword) / 100.0
 
-	return cum_p.div_(nword).cumsum(-1), m_ind.cumsum(-1).double().div_(nword)
+	return cum_p.div_(nword).cumsum(-1), m_ind.cumsum(-1).to(torch.float64, non_blocking=True).div_(nword)
 
 if __name__ == "__main__":
 	c_p, c_i = handle(sys.argv[1], sys.argv[2])

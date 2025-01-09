@@ -1,5 +1,7 @@
 #encoding: utf-8
 
+import torch
+
 from modules.eqsparse.IdWeightAcc import IdWeightAccFunc
 from modules.eqsparse.einsumbe import EqsLinear as EqsLinearBase
 
@@ -9,7 +11,7 @@ class EqsLinear(EqsLinearBase):
 
 		super(EqsLinear, self).__init__(in_features, out_features, num_conn, bias=bias, **kwargs)
 
-		self.register_buffer("conn", self.conn.int(), persistent=True)
+		self.register_buffer("conn", self.conn.to(torch.int32, non_blocking=True), persistent=True)
 
 	def forward(self, x, **kwargs):
 

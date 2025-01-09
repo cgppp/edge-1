@@ -23,7 +23,7 @@ def eva(ed, i, model):
 	if cuda_device:
 		seq_batch = seq_batch.to(cuda_device, non_blocking=True)
 		seq_o = seq_o.to(cuda_device, non_blocking=True)
-	seq_batch, seq_o = seq_batch.long(), seq_o.long()
+	seq_batch, seq_o = seq_batch.to(torch.int64, non_blocking=True), seq_o.to(torch.int64, non_blocking=True)
 	output = model(seq_batch, seq_o.narrow(1, 0, lo))
 	_, trans = torch.max(output, -1)
 	return trans
@@ -58,7 +58,7 @@ with open(sys.argv[3], "wb") as f:
 		#seq_batch = torch.from_numpy(td_src_grp[str(i)][()])
 		#if cuda_device:
 			#seq_batch = seq_batch.to(cuda_device, non_blocking=True)
-#seq_batch = #seq_batch.long()
+#seq_batch = #seq_batch.to(torch.int64, non_blocking=True)
 		#output = mymodel.decode(seq_batch, beam_size).tolist()
 		output = eva(td, i, mymodel).tolist()
 		for tran in output:

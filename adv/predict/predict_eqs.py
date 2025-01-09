@@ -78,7 +78,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 		seq_batch = torch.from_numpy(src_grp[str(i)][()])
 		if cuda_device:
 			seq_batch = seq_batch.to(cuda_device, non_blocking=True)
-		seq_batch = seq_batch.long()
+		seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 		with torch_autocast(enabled=use_amp):
 			output = mymodel.decode(seq_batch, beam_size, None, length_penalty)
 		if multi_gpu:

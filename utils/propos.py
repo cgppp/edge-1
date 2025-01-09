@@ -7,7 +7,7 @@ from utils.torch.comp import mask_tensor_type
 
 normer = torch.nn.Softmax(-1)
 
-def pos2p(num_pos, length, scale=1.0, sid=0, device=None, dtype=torch.float, normer=normer):
+def pos2p(num_pos, length, scale=1.0, sid=0, device=None, dtype=torch.float32, normer=normer):
 
 	_inds = torch.arange(length, device=device, dtype=dtype).unsqueeze(0)
 	_ = torch.arange(sid, length, device=device, dtype=dtype)

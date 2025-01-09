@@ -44,7 +44,7 @@ class TopCache(nn.Module):
 		_f_g = gold.view(-1)
 		_e_g_size = [*gold.size(), -1]
 		# (bsize, nquery, ntopk)
-		_c_i = self.cache_index.index_select(0, _f_g).narrow(-1, 0, self.num_topk).long().view(_e_g_size)
+		_c_i = self.cache_index.index_select(0, _f_g).narrow(-1, 0, self.num_topk).to(torch.int64, non_blocking=True).view(_e_g_size)
 		_c_p = norm_func(self.cache_p.index_select(0, _f_g).narrow(-1, 0, self.num_topk), dim=-1).view(_e_g_size)
 		_c_p.masked_fill_(gold_pad_mask.unsqueeze(-1), 0.0)
 		_m_s = x.gather(-1, _c_i)
@@ -76,7 +76,7 @@ class TopCache(nn.Module):
 				_ = torch_any_dim(_mask, -1, keepdim=False)#.expand(-1, num_topk)
 				_new_p[_] = _new_p[_].div_(_ind_counts.to(_new_p.dtype, non_blocking=True).unsqueeze(0).expand(_new_p.size(0), -1)[_mask].unsqueeze(-1)).view(-1)#.view(-1, num_topk)
 			_mavg_beta = self.mavg_beta if self.cache_update_steps >= self.warm_mvavg_steps else (self.mavg_beta * sqrt(float(self.cache_update_steps) / float(self.warm_mvavg_steps)))
-			_m_s_t = torch.sparse_coo_tensor(torch.stack([_gold_ind.unsqueeze(-1).repeat(1, num_topk_cache).view(-1), self.cache_index.index_select(0, _gold_ind).long().view(-1)], 0), (self.cache_p.index_select(0, _gold_ind) * _mavg_beta).view(-1), size=(vsize, vsize,), device=_new_p.device).add_(torch.sparse_coo_tensor(torch.stack([_f_gold.unsqueeze(-1).repeat(1, num_topk).view(-1), _new_i.view(-1)], 0), _new_p.view(-1), size=(vsize, vsize,), device=_new_p.device), alpha=1.0 - _mavg_beta).coalesce()
+			_m_s_t = torch.sparse_coo_tensor(torch.stack([_gold_ind.unsqueeze(-1).repeat(1, num_topk_cache).view(-1), self.cache_index.index_select(0, _gold_ind).to(torch.int64, non_blocking=True).view(-1)], 0), (self.cache_p.index_select(0, _gold_ind) * _mavg_beta).view(-1), size=(vsize, vsize,), device=_new_p.device).add_(torch.sparse_coo_tensor(torch.stack([_f_gold.unsqueeze(-1).repeat(1, num_topk).view(-1), _new_i.view(-1)], 0), _new_p.view(-1), size=(vsize, vsize,), device=_new_p.device), alpha=1.0 - _mavg_beta).coalesce()
 			# when sorted is False, _gold_ind is in reverse order with pytorch 1.11.0
 			_gold_ind, _ind_counts = _m_s_t.indices()[0].unique(sorted=False, return_counts=True)
 			_ind_mlen = _ind_counts.max()
@@ -91,7 +91,7 @@ class TopCache(nn.Module):
 			if _ind_mlen > num_topk_cache:
 				_p, _ = _p.topk(num_topk_cache, dim=-1)
 				_inds = _inds.gather(-1, _)
-			self.cache_index.index_copy_(0, _gold_ind, _inds.int())
+			self.cache_index.index_copy_(0, _gold_ind, _inds.to(torch.int32, non_blocking=True))
 			# is normalization necessary?
 			self.cache_p.index_copy_(0, _gold_ind, norm_func(_p, dim=-1))
 		self.cache_update_steps += 1

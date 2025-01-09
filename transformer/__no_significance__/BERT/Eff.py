@@ -61,11 +61,11 @@ class NMT(EncoderBase):
 						else:
 							_cur_mask &= _wo_mask
 							_wo_mask |= _cur_mask
-						_cont_mask = (_wo_mask.int().sum().item() > 0)
+						_cont_mask = (_wo_mask.to(torch.int32, non_blocking=True).sum().item() > 0)
 					else:
 						_cur_mask = ~_wo_mask
 						_cont_mask = False
-					if _cur_mask.int().sum().item() > 0:
+					if _cur_mask.to(torch.int32, non_blocking=True).sum().item() > 0:
 						out = out.masked_fill(_cur_mask.unsqueeze(-1), 0.0)
 				out = out * self.dscale"""
 
