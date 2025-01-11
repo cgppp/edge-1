@@ -8,10 +8,10 @@ cpu_device = torch.device("cpu")
 
 class OptmAgentCore:
 
-	def __init__(self, Optm, params, *args, cfunc=lambda x: x.to(torch.float32, non_blocking=True), **kwargs):
+	def __init__(self, Optm, params, *args, cfunc=lambda x: x.to(torch.float32, non_blocking=True), filter_by_rgrad=True, **kwargs):
 
-		self.params = params
-		self.c_params = [cfunc(_) for _ in params]
+		self.params = [_ for _ in params if _.requires_grad] if filter_by_rgrad else params
+		self.c_params = [cfunc(_) for _ in self.params]
 		self.optm = Optm(self.params, *args, **kwargs)
 		self.c_optm = Optm(self.c_params, *args, **kwargs)
 		for _ in ["state_dict", "load_state_dict", "register_state_dict_pre_hook", "register_state_dict_post_hook", "register_load_state_dict_pre_hook", "register_load_state_dict_post_hook", "register_step_pre_hook", "register_step_post_hook"]:
