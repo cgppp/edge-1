@@ -237,7 +237,7 @@ mymodel.apply(init_fixing)
 pre_trained_m = cnfg.pre_trained_m
 if pre_trained_m is not None:
 	logger.info("Load pre-trained model from: " + pre_trained_m)
-	mymodel.load_plm(fix_parameter_name(torch.load(pre_trained_m, map_location="cpu")))
+	mymodel.load_plm(pre_trained_m)
 if (cnfg.classifier_indices is not None) and hasattr(mymodel, "update_classifier"):
 	logger.info("Build new classifier")
 	mymodel.update_classifier(torch.as_tensor(cnfg.classifier_indices, dtype=torch.long))

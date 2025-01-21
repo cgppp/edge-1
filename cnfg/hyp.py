@@ -6,7 +6,7 @@ lipschitz_scale = 1.0
 
 # choices: None, "GeLU", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
 advance_activation_function = None
-# choices: None, "GLU" or above activation functions.
+# using GLU activation function for FFN, choices: None, "GLU", "GEGLU", "SwiGLU".
 use_glu_ffn = None
 
 # choices: "v1", "v2"

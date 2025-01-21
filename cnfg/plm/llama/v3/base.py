@@ -2,23 +2,21 @@
 
 from cnfg.base import *
 
-# new configurations for T5
-model_name = ("encoder", "decoder",)
-num_type = None
+model_name = "model"
 pre_trained_m = None
 
-# override standard configurations
 bindDecoderEmb = True
 share_emb = True
 
-isize = 768
-ff_hsize = isize * 4
+isize = 2048# 2048 for 1B
+ff_hsize = isize * 8
 nhead = max(1, isize // 64)
 attn_hsize = isize
+kv_nhead = 8
 
-nlayer = 12
+nlayer = 16# 16 for 1B
 
-drop = 0.1
+drop = 0.0
 attn_drop = drop
 act_drop = drop
 

@@ -11,12 +11,11 @@ from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderL
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
 from utils.fmt.parser import parse_none
-from utils.plm.base import copy_plm_parameter
+from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.plm.t5 import reorder_pemb
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_no_grad
 
-from cnfg.plm.t5.base import remove_classifier_bias
 from cnfg.plm.t5.ihyp import *
 from cnfg.vocab.plm.t5 import eos_id, pad_id, sos_id
 
@@ -47,6 +46,7 @@ class DecoderLayer(DecoderLayerBase):
 
 		return context if query_unit is None else (context, states_return,)
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)
@@ -119,7 +119,7 @@ class DecoderLayer(DecoderLayerBase):
 
 class Decoder(DecoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, share_layer=False, disable_pemb=disable_std_pemb_decoder, model_name="decoder", **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, share_layer=False, disable_pemb=disable_std_pemb_decoder, remove_classifier_bias=remove_classifier_bias, model_name="decoder", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
@@ -135,6 +135,9 @@ class Decoder(DecoderBase):
 		else:
 			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, k_rel_pos=use_k_relative_position_decoder, max_bucket_distance=relative_position_max_bucket_distance_decoder, k_rel_pos_cattn=use_k_relative_position_cattn, max_bucket_distance_cattn=relative_position_max_bucket_distance_cattn, model_name=model_name) for i in range(num_layer)])# if i == 0 else 0
 		self.out_normer = Norm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
+		# T5 does NOT have the bias vector in the classifier
+		if remove_classifier_bias:
+			self.classifier.bias = None
 
 	def forward(self, inpute, inputo, src_pad_mask=None, word_prediction=False, **kwargs):
 
@@ -349,6 +352,7 @@ class Decoder(DecoderBase):
 			#self.wemb.weight[pad_id].zero_()
 			self.classifier.weight[pad_id].zero_()
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)
@@ -363,6 +367,3 @@ class Decoder(DecoderBase):
 				copy_plm_parameter(self.out_normer.bias, plm_parameters, _bias_key)
 			for i, net in enumerate(self.nets):
 				net.load_plm(plm_parameters, model_name=_model_name, layer_idx=i, **kwargs)
-		# T5 does NOT have the bias vector in the classifier
-		if remove_classifier_bias:
-			self.classifier.bias = None

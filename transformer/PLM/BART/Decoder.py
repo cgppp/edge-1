@@ -10,11 +10,10 @@ from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
 from utils.fmt.parser import parse_none
 from utils.plm.bart import load_plm_decoder_layer
-from utils.plm.base import copy_plm_parameter
+from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_no_grad
 
-from cnfg.plm.bart.base import remove_classifier_bias
 from cnfg.plm.bart.ihyp import *
 from cnfg.vocab.plm.roberta import eos_id, pad_id, pemb_start_ind
 
@@ -32,13 +31,14 @@ class DecoderLayer(DecoderLayerBase):
 		self.cross_attn = ResCrossAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn)
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 
 		load_plm_decoder_layer(self, plm_parameters, model_name=model_name, layer_idx=layer_idx, **kwargs)
 
 class Decoder(DecoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, share_layer=False, disable_pemb=disable_std_pemb_decoder, model_name="decoder", **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, share_layer=False, disable_pemb=disable_std_pemb_decoder, remove_classifier_bias=remove_classifier_bias, model_name="decoder", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
@@ -54,6 +54,9 @@ class Decoder(DecoderBase):
 			self.nets = nn.ModuleList([_shared_layer for i in range(num_layer)])
 		else:
 			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, model_name=model_name) for i in range(num_layer)])
+		# BART does NOT have the bias vector in the classifier
+		if remove_classifier_bias:
+			self.classifier.bias = None
 
 	def forward(self, inpute, inputo, src_pad_mask=None, word_prediction=False, **kwargs):
 
@@ -252,6 +255,7 @@ class Decoder(DecoderBase):
 				_ = sqrt(2.0 / sum(self.pemb.size()))
 				self.pemb.uniform_(- _, _)
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)
@@ -266,6 +270,3 @@ class Decoder(DecoderBase):
 				copy_plm_parameter(self.classifier.bias, plm_parameters, "final_logits_bias")
 			for i, net in enumerate(self.nets):
 				net.load_plm(plm_parameters, model_name=_model_name, layer_idx=i, **kwargs)
-		# BART does NOT have the bias vector in the classifier
-		if remove_classifier_bias:
-			self.classifier.bias = None

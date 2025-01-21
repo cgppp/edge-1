@@ -9,7 +9,7 @@ from transformer.Encoder import Encoder as EncoderBase
 from transformer.PLM.BERT.Encoder import EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none
 from utils.plm.bart import load_plm_encoder_layer
-from utils.plm.base import copy_plm_parameter
+from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.torch.comp import torch_no_grad
 
 from cnfg.plm.bart.ihyp import *
@@ -26,6 +26,7 @@ class EncoderLayer(EncoderLayerBase):
 
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn)
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 
 		load_plm_encoder_layer(self, plm_parameters, model_name=model_name, layer_idx=layer_idx, **kwargs)
@@ -65,6 +66,7 @@ class Encoder(EncoderBase):
 
 		return out
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)

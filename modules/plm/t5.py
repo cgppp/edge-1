@@ -4,7 +4,7 @@ import torch
 #from math import sqrt
 from torch import nn
 
-from modules.act import Custom_Act, GEGLU, LGLU, get_act
+from modules.act import Custom_Act, get_act
 from modules.base import CrossAttn as CrossAttnBase, Linear, PositionwiseFF as PositionwiseFFBase, ResCrossAttn as ResCrossAttnBase, ResSelfAttn as ResSelfAttnBase, SelfAttn as SelfAttnBase
 from modules.dropout import Dropout
 from modules.norm.base import RMSNorm as Norm
@@ -192,17 +192,7 @@ class PositionwiseFF(PositionwiseFFBase):
 		if use_glu is None:
 			_.extend([Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_hsize, isize, bias=enable_bias)])
 		else:
-			use_glu = use_glu.lower()
-			if use_glu == "glu":
-				_.append(nn.GLU())
-			elif use_glu == "geglu":
-				_.append(GEGLU())
-			else:
-				_act = get_act(use_glu, None)
-				if _act is not None:
-					_.append(_act())
-					_drop_ind += 1
-				_.append(LGLU())
+			_.append(get_act(use_glu)())
 			_.append(Linear(_hsize // 2, isize, bias=enable_bias))
 		if dropout > 0.0:
 			_.append(Dropout(dropout, inplace=True))

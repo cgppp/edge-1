@@ -135,8 +135,13 @@ class GEGLU(GLU_Act):
 
 	def __init__(self, dim=-1, **kwargs):
 
-		_act = GELU()
-		super(GEGLU, self).__init__(act=_act, dim=dim)
+		super(GEGLU, self).__init__(act=GELU(), dim=dim)
+
+class SwiGLU(GLU_Act):
+
+	def __init__(self, dim=-1, **kwargs):
+
+		super(SwiGLU, self).__init__(act=Swish(), dim=dim)
 
 class Clamp(nn.Module):
 
@@ -160,9 +165,9 @@ class TMix_Act(GLU_Act):
 
 		return torch.cat((_a * _b, _b * _c, _a * _c,), dim=self.dim)
 
-act_dict = {"swish": Swish, "normswish": Swish, "sigmoid": nn.Sigmoid, "geglu": GEGLU, "srelu": SReLU, "mish": Mish, "clamp": Clamp}
+act_dict = {"swish": Swish, "normswish": Swish, "sigmoid": nn.Sigmoid, "glu": nn.GLU(), "geglu": GEGLU, "swiglu": SwiGLU, "srelu": SReLU, "mish": Mish, "clamp": Clamp}
 
-def get_act(strin, value=GELU):
+def get_act(strin, value=GELU, act_dict=act_dict):
 
 	return act_dict.get(strin.lower(), value)
 
@@ -280,6 +285,6 @@ class PruneAct(nn.Module):
 
 def reduce_model(modin):
 
-	rsm = reduce_model_list(modin, [nn.ReLU, nn.Softmax, Sparsemax, Swish, GEGLU, SReLU, SelfGate, PruneAct], [lambda m: (m.inplace,), lambda m: (m.dim,), lambda m: (m.dim,), lambda m: (m.reset_beta, m.beta, m.dim, m.eps) if isinstance(Swish, CustSwish) else lambda m: (m.inplace,), lambda m: (m.dim,), lambda m: (m.inplace, m.k,), lambda m: (m.base, m.beta,), lambda m: (m.ratio, m.p,)])
+	rsm = reduce_model_list(modin, [nn.ReLU, nn.Softmax, Sparsemax, Swish, GEGLU, SwiGLU, SReLU, SelfGate, PruneAct], [lambda m: (m.inplace,), lambda m: (m.dim,), lambda m: (m.dim,), lambda m: (m.reset_beta, m.beta, m.dim, m.eps) if isinstance(Swish, CustSwish) else lambda m: (m.inplace,), lambda m: (m.dim,), lambda m: (m.dim,), lambda m: (m.inplace, m.k,), lambda m: (m.base, m.beta,), lambda m: (m.ratio, m.p,)])
 
 	return reduce_model_list(rsm, [GELU, GeLU_GPT, GeLU_BERT, Mish, nn.Tanh, nn.Sigmoid])

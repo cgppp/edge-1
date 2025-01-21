@@ -14,7 +14,7 @@ from utils.base import free_cache, get_logger, mkdir, set_random_seed
 from utils.contpara import get_model_parameters
 from utils.fmt.base import iter_to_str
 from utils.fmt.base4torch import load_emb, parse_cuda
-from utils.h5serial import h5File, h5load
+from utils.h5serial import h5File
 from utils.init.base import init_model_params
 from utils.io import load_model_cpu, save_model, save_states
 from utils.state.holder import Holder
@@ -218,7 +218,7 @@ mymodel.apply(init_fixing)
 pre_trained_m = cnfg.pre_trained_m
 if pre_trained_m is not None:
 	logger.info("Load pre-trained model from: " + pre_trained_m)
-	mymodel.load_plm(h5load(pre_trained_m, restore_list=True))
+	mymodel.load_plm(pre_trained_m)
 mymodel.build_task_model()
 fine_tune_m = cnfg.fine_tune_m
 if fine_tune_m is not None:

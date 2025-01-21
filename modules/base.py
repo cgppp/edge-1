@@ -6,7 +6,7 @@ from torch import nn
 from torch.autograd import Function
 from torch.utils.cpp_extension import load
 
-from modules.act import Custom_Act, LGLU, get_act, reduce_model as reduce_model_act
+from modules.act import Custom_Act, get_act, reduce_model as reduce_model_act
 from modules.dropout import Dropout, reduce_model as reduce_model_drop
 from utils.base import reduce_model_list
 from utils.decode.beam import repeat_bsize_for_beam_tensor
@@ -40,15 +40,7 @@ class PositionwiseFF(nn.Module):
 		if use_glu is None:
 			_.extend([Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_hsize, isize, bias=enable_bias)])
 		else:
-			use_glu = use_glu.lower()
-			if use_glu == "glu":
-				_.append(nn.GLU())
-			else:
-				_act = get_act(use_glu, None)
-				if _act is not None:
-					_.append(_act())
-					_drop_ind += 1
-				_.append(LGLU())
+			_.append(get_act(use_glu)())
 			_.append(Linear(_hsize // 2, isize, bias=enable_bias))
 		if dropout > 0.0:
 			_.append(Dropout(dropout, inplace=True))

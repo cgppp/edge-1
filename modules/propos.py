@@ -4,7 +4,7 @@ import torch
 from math import sqrt
 from torch import Tensor, nn
 
-from modules.act import Custom_Act, LGLU, get_act
+from modules.act import Custom_Act, get_act
 from modules.base import Linear
 from modules.dropout import Dropout
 from modules.normer import MRNormer, MinNormer
@@ -70,15 +70,7 @@ class InferEmb(PropEmb):
 		if use_glu is None:
 			_.extend([Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_hsize, _num_pos)])
 		else:
-			use_glu = use_glu.lower()
-			if use_glu == "glu":
-				_.append(nn.GLU())
-			else:
-				_act = get_act(use_glu, None)
-				if _act is not None:
-					_.append(_act())
-					_drop_ind += 1
-				_.append(LGLU())
+			_.append(get_act(use_glu)())
 			_.append(Linear(_hsize // 2, isize, bias=enable_bias))
 		if scale == 1.0:
 			_.append(nn.Softmax(-1))

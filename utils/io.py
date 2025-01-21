@@ -6,7 +6,7 @@ from os.path import exists as fs_check
 from threading import Thread
 
 from utils.fmt.base import dict_is_list
-from utils.h5serial import h5File, h5save
+from utils.h5serial import h5File, h5ensure_tensor, h5save
 from utils.torch.comp import torch_no_grad
 
 from cnfg.ihyp import h5_fileargs, h5modelwargs, hdf5_save_parameter_name, list_key_func, n_keep_best#, hdf5_load_parameter_name
@@ -17,7 +17,7 @@ def load_model_cpu_p_ohf(ohf, base_model, list_key_func=list_key_func, **kwargs)
 		for i, para in enumerate(base_model.parameters()):
 			_key = list_key_func(i)
 			if _key in ohf:
-				para.copy_(torch.from_numpy(ohf[_key][()]))
+				para.copy_(h5ensure_tensor(ohf[_key]))
 
 	return base_model
 
@@ -26,27 +26,33 @@ def load_model_cpu_np_ohf(ohf, base_model, **kwargs):
 	with torch_no_grad():
 		for _n, _p in base_model.state_dict().items():
 			if _n in ohf:
-				_p.copy_(torch.from_numpy(ohf[_n][()]))
+				_p.copy_(h5ensure_tensor(ohf[_n]))
 
 	return base_model
 
+def load_model_cpu_auto_ohf(ohf, base_model, **kwargs):
+
+		return (load_model_cpu_p_ohf if dict_is_list(set(ohf.keys()), kfunc=list_key_func) else load_model_cpu_np_ohf)(ohf, base_model, **kwargs)
+
+def h5_reader_wrapper(h5f, func, *args, **kwargs):
+
+	if isinstance(h5f, str):
+		with h5File(h5f, "r", **h5_fileargs) as _:
+			return func(_, *args, **kwargs)
+	else:
+		return func(h5f, *args, **kwargs)
+
 def load_model_cpu_p(modf, base_model, **kwargs):
 
-	with h5File(modf, "r", **h5_fileargs) as ohf:
-
-		return load_model_cpu_p_ohf(ohf, base_model, **kwargs)
+		return h5_reader_wrapper(modf, load_model_cpu_p_ohf, base_model, **kwargs)
 
 def load_model_cpu_np(modf, base_model, **kwargs):
 
-	with h5File(modf, "r", **h5_fileargs) as ohf:
-
-		return load_model_cpu_np_ohf(ohf, base_model, **kwargs)
+		return h5_reader_wrapper(modf, load_model_cpu_np_ohf, base_model, **kwargs)
 
 def load_model_cpu_auto(modf, base_model, **kwargs):
 
-	with h5File(modf, "r", **h5_fileargs) as ohf:
-
-		return (load_model_cpu_p_ohf if dict_is_list(set(ohf.keys()), kfunc=list_key_func) else load_model_cpu_np_ohf)(ohf, base_model, **kwargs)
+		return h5_reader_wrapper(modf, load_model_cpu_auto_ohf, base_model, **kwargs)
 
 mp_func_p = lambda m: [_t.data for _t in m.parameters()]
 mp_func_np = lambda m: {_k: _t.data for _k, _t in m.named_parameters()}

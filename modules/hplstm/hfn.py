@@ -3,7 +3,7 @@
 import torch
 from torch import nn
 
-from modules.act import Custom_Act, LGLU, get_act
+from modules.act import Custom_Act, get_act
 from modules.base import Dropout
 from modules.group.base import GroupLinear
 from modules.hplstm.base import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, ResHPLSTM as ResHPLSTMBase
@@ -38,15 +38,7 @@ class MHPLSTMCore(nn.Module):
 		if use_glu is None:
 			_.extend([Custom_Act() if custom_act else nn.ReLU(inplace=True), GroupLinear(_fhsize, o_hsize, num_head, bias=enable_proj_bias, shuffle=False, trans_input=False, flatten_output=False)])
 		else:
-			use_glu = use_glu.lower()
-			if use_glu == "glu":
-				_.append(nn.GLU())
-			else:
-				_act = get_act(use_glu, None)
-				if _act is not None:
-					_.append(_act())
-					_drop_ind += 1
-				_.append(LGLU())
+			_.append(get_act(use_glu)())
 			_.append(GroupLinear(_fhsize // 2, o_hsize, num_head, bias=enable_proj_bias, shuffle=False, trans_input=False, flatten_output=False))
 		if dropout > 0.0:
 			_.append(Dropout(dropout, inplace=True))

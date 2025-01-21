@@ -146,7 +146,7 @@ lipschitz_scale = 1.0
 
 # using advanced activation function, choices: None, "GeLU", "Swish", "Sigmoid", "NormSwish"
 advance_activation_function = None
-# using GLU activation function for FFN, choices: None, "GLU" or above activation functions.
+# using GLU activation function for FFN, choices: None, "GLU", "GEGLU", "SwiGLU".
 use_glu_ffn = None
 
 # computation order in Transformer sub-layer choices: "v1", "v2"

@@ -5,7 +5,6 @@ from cnfg.base import *
 # new configurations for MBART
 model_name = ("model.encoder", "model.decoder",)
 num_type = None
-remove_classifier_bias = True
 pre_trained_m = None
 
 # override standard configurations

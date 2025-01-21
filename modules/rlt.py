@@ -6,7 +6,7 @@ from torch import nn
 from torch.autograd import Function
 from torch.nn import functional as nnFunc
 
-from modules.act import Custom_Act, LGLU, get_act
+from modules.act import Custom_Act, get_act
 from modules.base import CrossAttn as CrossAttnBase, Dropout, PositionwiseFF as PositionwiseFFBase, ResCrossAttn as ResCrossAttnBase, ResSelfAttn as ResSelfAttnBase, SelfAttn as SelfAttnBase
 from utils.fmt.parser import parse_none
 from utils.math import arcsigmoid
@@ -271,15 +271,7 @@ class PositionwiseFF(PositionwiseFFBase):
 		if use_glu is None:
 			_.extend([Custom_Act() if custom_act else nn.ReLU(inplace=True), LTLinear(_hsize, isize, bias=enable_bias, ngroup=ngroup, p=p)])
 		else:
-			use_glu = use_glu.lower()
-			if use_glu == "glu":
-				_.append(nn.GLU())
-			else:
-				_act = get_act(use_glu, None)
-				if _act is not None:
-					_.append(_act())
-					_drop_ind += 1
-				_.append(LGLU())
+			_.append(get_act(use_glu)())
 			_.append(LTLinear(_hsize // 2, isize, bias=enable_bias, ngroup=ngroup, p=p))
 		if dropout > 0.0:
 			_.append(Dropout(dropout, inplace=True))

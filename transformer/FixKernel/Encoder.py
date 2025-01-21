@@ -4,7 +4,7 @@ import torch
 from math import sqrt
 from torch import nn
 
-from modules.act import Custom_Act, LGLU
+from modules.act import Custom_Act
 from modules.base import Dropout, Linear, SparseNormer
 from modules.group.base import GroupLinear
 from transformer.Encoder import Encoder as EncoderBase
@@ -46,14 +46,7 @@ class EncoderLayer(nn.Module):
 		if use_glu is None:
 			_.append(Custom_Act() if custom_act else nn.ReLU(inplace=True))
 		else:
-			use_glu = use_glu.lower()
-			if use_glu == "glu":
-				_.append(nn.GLU())
-			else:
-				_act = get_act(use_glu, None)
-				if _act is not None:
-					_.append(_act())
-				_.append(LGLU())
+			_.append(get_act(use_glu)())
 		if _act_drop > 0.0:
 			_.append(Dropout(_act_drop, inplace=inplace_after_Custom_Act))
 		self.anchor_net = nn.Sequential(*_)
@@ -70,15 +63,7 @@ class EncoderLayer(nn.Module):
 		if use_glu is None:
 			_.extend([Custom_Act() if custom_act else nn.ReLU(inplace=True), Linear(_fhsize, self.ahsize, bias=enable_bias)])
 		else:
-			use_glu = use_glu.lower()
-			if use_glu == "glu":
-				_.append(nn.GLU())
-			else:
-				_act = get_act(use_glu, None)
-				if _act is not None:
-					_.append(_act())
-					_drop_ind += 1
-				_.append(LGLU())
+			_.append(get_act(use_glu)())
 			_.append(Linear(_fhsize // 2, self.ahsize, bias=enable_bias))
 		if _act_drop > 0.0:
 			_.insert(_drop_ind, Dropout(_act_drop, inplace=inplace_after_Custom_Act))

@@ -3,6 +3,7 @@
 from cnfg.hyp import *
 
 ease_optimization = True
+remove_classifier_bias = True
 
 # choices: None, "GeLU", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
 advance_activation_function = None

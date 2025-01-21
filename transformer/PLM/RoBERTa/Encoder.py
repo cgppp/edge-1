@@ -2,7 +2,7 @@
 
 from transformer.PLM.BERT.Encoder import Encoder as EncoderBase
 from utils.fmt.parser import parse_none
-from utils.plm.base import copy_plm_parameter
+from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.torch.comp import torch_all, torch_no_grad
 
 from cnfg.plm.roberta.base import eliminate_type_emb, num_type
@@ -37,6 +37,7 @@ class Encoder(EncoderBase):
 
 		return out
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)

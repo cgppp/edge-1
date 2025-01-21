@@ -86,3 +86,5 @@ def h5load(fname, restore_list=True):
 		rsd = restore_list_in_dict(rsd)
 
 	return rsd
+
+h5ensure_tensor = lambda x: torch.from_numpy(x[()]) if isinstance(x, h5py.Dataset) else x

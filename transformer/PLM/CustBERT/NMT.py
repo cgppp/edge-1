@@ -5,7 +5,7 @@ from transformer.PLM.CustBERT.Decoder import Decoder
 from transformer.PLM.NMT import NMT as NMTBase
 from utils.fmt.parser import parse_double_value_tuple, parse_none
 from utils.io import load_model_cpu
-from utils.plm.base import set_ln_ieps
+from utils.plm.base import load_plm_wrapper, set_ln_ieps
 from utils.relpos.base import share_rel_pos_cache
 
 from cnfg.ihyp import *
@@ -40,6 +40,7 @@ class NMT(NMTBase):
 
 		return self.dec(self.enc(inpute, mask=_mask), mlm_mask=mlm_mask, word_prediction=word_prediction)
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, *args, **kwargs):
 
-		load_model_cpu(None, self, mp=plm_parameters)
+		load_model_cpu(plm_parameters, self)

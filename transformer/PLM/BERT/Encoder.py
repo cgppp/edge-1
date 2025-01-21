@@ -8,7 +8,7 @@ from modules.dropout import Dropout
 from transformer.Encoder import Encoder as EncoderBase
 from transformer.TA.Encoder import EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none
-from utils.plm.base import copy_plm_parameter
+from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.torch.comp import torch_no_grad
 
 from cnfg.plm.bert.base import num_type
@@ -23,6 +23,7 @@ class EncoderLayer(EncoderLayerBase):
 
 		self.model_name = model_name
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)
@@ -92,6 +93,7 @@ class Encoder(EncoderBase):
 
 		return out
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)

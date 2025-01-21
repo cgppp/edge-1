@@ -61,7 +61,7 @@ mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dro
 pre_trained_m = cnfg.pre_trained_m
 if pre_trained_m is not None:
 	print("Load pre-trained model from: " + pre_trained_m)
-	mymodel.load_plm(fix_parameter_name(torch.load(pre_trained_m, map_location="cpu")))
+	mymodel.load_plm(pre_trained_m)
 if (cnfg.classifier_indices is not None) and hasattr(mymodel, "update_classifier"):
 	print("Build new classifier")
 	mymodel.update_classifier(torch.as_tensor(cnfg.classifier_indices, dtype=torch.long))

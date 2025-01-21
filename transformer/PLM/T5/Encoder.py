@@ -8,7 +8,7 @@ from modules.norm.base import RMSNorm as Norm
 from modules.plm.t5 import PositionwiseFF, ResSelfAttn
 from transformer.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none
-from utils.plm.base import copy_plm_parameter
+from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.plm.t5 import reorder_pemb
 from utils.torch.comp import torch_no_grad
 
@@ -28,6 +28,7 @@ class EncoderLayer(EncoderLayerBase):
 		self.attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, max_bucket_distance=max_bucket_distance)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual, custom_act=use_adv_act_default, enable_bias=enable_prev_ln_bias_default, use_glu=use_glu_ffn)
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)
@@ -111,6 +112,7 @@ class Encoder(EncoderBase):
 
 		return out
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)

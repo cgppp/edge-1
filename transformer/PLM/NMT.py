@@ -2,9 +2,11 @@
 
 from transformer.NMT import NMT as NMTBase
 from utils.fmt.parser import parse_double_value_tuple, parse_none
+from utils.plm.base import load_plm_wrapper
 
 class NMT(NMTBase):
 
+	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):
 
 		_model_name = parse_none(model_name, self.model_name)

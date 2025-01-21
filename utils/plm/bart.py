@@ -5,9 +5,10 @@ from torch import nn
 
 from modules.dropout import Dropout
 from utils.fmt.parser import parse_none
-from utils.plm.base import copy_plm_parameter
+from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.torch.comp import torch_no_grad
 
+@load_plm_wrapper()
 def load_plm_encoder_layer(layer, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 
 	_model_name = parse_none(model_name, layer.model_name)
@@ -38,6 +39,7 @@ def load_plm_encoder_layer(layer, plm_parameters, model_name=None, layer_idx=Non
 		copy_plm_parameter(layer.ff.normer.weight, plm_parameters, "%s.layers.%d.final_layer_norm.weight" % (_model_name, layer_idx,))
 		copy_plm_parameter(layer.ff.normer.bias, plm_parameters, "%s.layers.%d.final_layer_norm.bias" % (_model_name, layer_idx,))
 
+@load_plm_wrapper()
 def load_plm_decoder_layer(layer, plm_parameters, model_name=None, layer_idx=None, **kwargs):
 
 	_model_name = parse_none(model_name, layer.model_name)

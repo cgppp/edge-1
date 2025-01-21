@@ -364,9 +364,11 @@ def float2odd(fin):
 	return _rs
 
 def wrap_float2odd(func):
+
 	@wraps(func)
 	def wrapper(*args, **kwargs):
 		return float2odd(func(*args, **kwargs))
+
 	return wrapper
 
 def iternext(iterin):

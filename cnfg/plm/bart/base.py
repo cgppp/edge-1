@@ -5,7 +5,6 @@ from cnfg.base import *
 # new configurations for BART
 model_name = ("encoder", "decoder",)
 num_type = None
-remove_classifier_bias = True
 pre_trained_m = None
 
 # override standard configurations
