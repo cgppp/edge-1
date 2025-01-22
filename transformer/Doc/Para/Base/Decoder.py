@@ -35,7 +35,7 @@ class DecoderLayer(DecoderLayerBase):
 		if query_unit is None:
 			context = self.self_attn(inputo, mask=tgt_pad_mask)
 		else:
-			context, states_return = self.self_attn(query_unit, states=inputo)
+			context, states_return = self.self_attn(query_unit, mask=tgt_pad_mask, states=inputo)
 
 		context = self.cross_attn(context, inpute, mask=src_pad_mask)
 

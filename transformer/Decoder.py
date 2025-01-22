@@ -47,7 +47,7 @@ class DecoderLayer(nn.Module):
 		if query_unit is None:
 			context = self.self_attn(inputo, mask=tgt_pad_mask)
 		else:
-			context, states_return = self.self_attn(query_unit, states=inputo)
+			context, states_return = self.self_attn(query_unit, mask=tgt_pad_mask, states=inputo)
 
 		context = self.cross_attn(context, inpute, mask=src_pad_mask)
 
@@ -210,9 +210,9 @@ class Decoder(nn.Module):
 
 		self.out_normer = None if self.out_normer is None else base_decoder.out_normer
 
-	def _get_subsequent_mask(self, length):
+	def _get_subsequent_mask(self, length, sid=0):
 
-		return self.mask.narrow(1, 0, length).narrow(2, 0, length).contiguous() if length <= self.xseql else self.mask.new_ones(length, length).triu(1).unsqueeze(0)
+		return self.mask.narrow(1, sid, length - sid).narrow(2, 0, length).contiguous() if length <= self.xseql else self.mask.new_ones(length - sid, length).triu(1 + sid).unsqueeze(0)
 
 	# this function repeats buffers of all cross-attention keys/values, corresponding inputs do not need to be repeated in beam search.
 

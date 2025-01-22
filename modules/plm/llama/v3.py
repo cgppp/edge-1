@@ -51,17 +51,17 @@ class SelfAttn(SelfAttnBase):
 			if _h_real_iK is not None:
 				real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 
-		scores = real_iQ.view(bsize, -1, kv_nheads, nquery, adim).matmul(real_iK.unsqueeze(1))
+		scores = real_iQ.view(bsize, kv_nheads, -1, nquery, adim).matmul(real_iK.unsqueeze(2))
 
 		if self.rel_pemb is not None:
 			if states is None:
 				self.rel_pos_cache = self.get_rel_pos(nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
-				scores += (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, nquery).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).unsqueeze(1)
+				scores += (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, nquery).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).unsqueeze(2)
 			else:
 				self.rel_pos_cache = self.get_rel_pos(seql, sid=sid).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
-				scores += (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).unsqueeze(1)
+				scores += (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).unsqueeze(2)
 		if self.alibi is not None:
-			self.alibi_cache = (self.get_alibi(nquery) if states is None else self.get_alibi(seql, sid=sid)).contiguous().unsqueeze(1) if self.ref_alibim is None else self.ref_alibim.alibi_cache
+			self.alibi_cache = (self.get_alibi(nquery) if states is None else self.get_alibi(seql, sid=sid)).contiguous().unsqueeze(2) if self.ref_alibim is None else self.ref_alibim.alibi_cache
 			scores += self.alibi_cache
 
 		scores = scores / sqrt(adim)
@@ -75,7 +75,7 @@ class SelfAttn(SelfAttnBase):
 		if self.drop is not None:
 			scores = self.drop(scores)
 
-		out = self.outer(scores.matmul(real_iV.unsqueeze(1)).view(bsize, nheads, nquery, adim).transpose(1, 2).contiguous().view(bsize, nquery, self.hsize))
+		out = self.outer(scores.matmul(real_iV.unsqueeze(2)).view(bsize, nheads, nquery, adim).transpose(1, 2).contiguous().view(bsize, nquery, self.hsize))
 
 		return out if states is None else (out, (real_iK, real_iV,),)
 

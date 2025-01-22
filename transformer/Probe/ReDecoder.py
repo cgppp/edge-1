@@ -29,7 +29,7 @@ class DecoderLayer(DecoderLayerBase):
 
 		else:
 			if self.perform_self_attn:
-				context, states_return = self.self_attn(query_unit, states=inputo)
+				context, states_return = self.self_attn(query_unit, mask=tgt_pad_mask, states=inputo)
 			else:
 				context, states_return = query_unit, query_unit if inputo is None else torch.cat((inputo, query_unit,), 1)
 
