@@ -97,7 +97,7 @@ class Decoder(DecoderBase):
 
 		return out
 
-	def greedy_decode(self, inpute, inputo, enc_context, context, src_pad_mask=None, context_mask=None, max_len=512, fill_pad=False, top_k=1, top_p=0.0, temp=1.0, **kwargs):
+	def greedy_decode(self, inpute, inputo, enc_context, context, src_pad_mask=None, context_mask=None, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, **kwargs):
 
 		# forward the whole target documents
 		out_emb = self.wemb(inputo)
@@ -179,7 +179,7 @@ class Decoder(DecoderBase):
 			out = self.out_normer_ctx(out)
 
 		out = self.classifier(out)
-		wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
+		wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 
 		trans = [wds]
 
@@ -208,7 +208,7 @@ class Decoder(DecoderBase):
 				out = self.out_normer_ctx(out)
 
 			out = self.classifier(out)
-			wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
+			wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 

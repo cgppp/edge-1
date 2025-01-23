@@ -73,7 +73,7 @@ class Decoder(DecoderBase):
 
 		return self.beam_decode(inpute, src_pad_mask, beam_size, max_len, length_penalty, fill_pad=fill_pad, ensemble_decoding=ensemble_decoding, bsize=bsize, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, src_pad_mask, max_len, fill_pad=fill_pad, ensemble_decoding=ensemble_decoding, bsize=bsize, **kwargs)
 
-	def greedy_decode(self, inpute, src_pad_mask=None, max_len=512, fill_pad=False, top_k=1, top_p=0.0, temp=1.0, ensemble_decoding=False, bsize=None, **kwargs):
+	def greedy_decode(self, inpute, src_pad_mask=None, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, ensemble_decoding=False, bsize=None, **kwargs):
 
 		bsize = inpute.size(0) if bsize is None else bsize
 
@@ -117,10 +117,10 @@ class Decoder(DecoderBase):
 
 		out = self.classifier(out).softmax(-1)
 		if ensemble_decoding:
-			wds = SampleMax(out.sum(-2), dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
+			wds = SampleMax(out.sum(-2), dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 		else:
 			out = out.transpose(1, 2).contiguous().view(_er_bsize, seql, -1).narrow(0, 0, bsize)
-			wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
+			wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 
 		trans = [wds]
 
@@ -156,10 +156,10 @@ class Decoder(DecoderBase):
 
 			out = self.classifier(out).softmax(-1)
 			if ensemble_decoding:
-				wds = SampleMax(out.sum(-2), dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
+				wds = SampleMax(out.sum(-2), dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 			else:
 				out = out.transpose(1, 2).contiguous().view(_er_bsize, seql, -1).narrow(0, 0, bsize)
-				wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
+				wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 

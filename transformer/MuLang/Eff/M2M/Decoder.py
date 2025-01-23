@@ -140,7 +140,7 @@ class Decoder(DecoderBase):
 
 		return out
 
-	def greedy_decode(self, inpute, taskid=None, src_pad_mask=None, max_len=512, fill_pad=False, top_k=1, top_p=0.0, temp=1.0, **kwargs):
+	def greedy_decode(self, inpute, taskid=None, src_pad_mask=None, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, **kwargs):
 
 		bsize = inpute.size(0)
 
@@ -172,7 +172,7 @@ class Decoder(DecoderBase):
 			out = self.out_normer(out, taskid=taskid)
 
 		out = self.classifier(out, taskid)
-		wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
+		wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 
 		trans = [wds]
 
@@ -196,7 +196,7 @@ class Decoder(DecoderBase):
 				out = self.out_normer(out, taskid=taskid)
 
 			out = self.classifier(out, taskid)
-			wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
+			wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 

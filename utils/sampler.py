@@ -2,11 +2,11 @@
 
 from utils.torch.ext import multinomial
 
-def SampleMax(x, dim=-1, keepdim=False, top_k=1, top_p=0.0, temp=1.0):
+def SampleMax(x, dim=-1, keepdim=False, sample=False, top_k=1, top_p=0.0, temp=1.0):
 
 	_legal_top_p = (top_p > 0.0) and (top_p < 1.0)
 	out = x
-	if (temp > 0.0) and (_legal_top_p or (top_k > 1)):
+	if (temp > 0.0) and (sample or _legal_top_p or (top_k > 1)):
 		inds = None
 		if top_k > 1:
 			out, inds = out.topk(top_k)
