@@ -21,3 +21,6 @@ attn_drop = drop
 act_drop = drop
 
 norm_output = True
+
+greedy_sample_temperature = 0.6
+greedy_sample_top_p = 0.9

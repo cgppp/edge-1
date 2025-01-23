@@ -21,3 +21,8 @@ attn_drop = drop
 act_drop = drop
 
 norm_output = True
+
+greedy_sample_temperature = 0.7
+greedy_sample_top_p = 0.8
+greedy_sample_top_k = 20
+repetition_penalty = 1.1# not supported
