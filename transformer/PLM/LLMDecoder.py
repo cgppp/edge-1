@@ -34,7 +34,7 @@ class Decoder(DecoderBase):
 
 		return out
 
-	def build_states(self, inpute, states=None):
+	def build_states(self, inpute, states=None, return_last_hidden=False, block_size=0):
 
 		rs = {} if states is None else states
 		out = self.wemb(inpute)
@@ -47,12 +47,30 @@ class Decoder(DecoderBase):
 
 		nquery = inpute.size(-1)
 		_ = rs.get(0, (None, None,))[0]
-		sid = 0 if _ is None else _.size(-1)
-		_mask = self._get_subsequent_mask(sid + nquery, sid=sid)
+		_slen = 0 if _ is None else _.size(-1)
+		if (block_size > 0) and (nquery > block_size):
+			_sid = _slen
+			_tid = _sid + nquery
+			while _sid < _tid:
+				_eid = min(_sid + block_size, _tid)
+				_mask = self._get_subsequent_mask(_eid, sid=_sid)
+				_out = out.narrow(1, _sid - _slen, _eid - _sid)
+				for _tmp, net in enumerate(self.nets):
+					_out, _state = net(rs.get(_tmp, (None, None,)), _mask, _out)
+					rs[_tmp] = _state
+				_sid = _eid
+			out = _out
+		else:
+			_mask = self._get_subsequent_mask(_slen + nquery, sid=_slen)
+			for _tmp, net in enumerate(self.nets):
+				out, _state = net(rs.get(_tmp, (None, None,)), _mask, out)
+				rs[_tmp] = _state
 
-		for _tmp, net in enumerate(self.nets):
-			out, _state = net(rs.get(_tmp, (None, None,)), _mask, out)
-			rs[_tmp] = _state
+		if return_last_hidden:
+			out = out.narrow(1, -1, 1)
+			if self.out_normer is not None:
+				out = self.out_normer(out)
+			return out, rs
 
 		return rs
 

@@ -91,27 +91,7 @@ class Decoder(DecoderBase):
 	def greedy_decode(self, inpute, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, states=None, **kwargs):
 
 		bsize = inpute.size(0)
-		_states = {} if states is None else states
-		out = self.wemb(inpute)
-
-		if self.pemb is not None:
-			sqrt_isize = sqrt(out.size(-1))
-			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
-		if self.drop is not None:
-			out = self.drop(out)
-
-		nquery = inpute.size(-1)
-		_ = _states.get(0, (None, None,))[0]
-		sid = 0 if _ is None else _.size(-1)
-		_mask = self._get_subsequent_mask(sid + nquery, sid=sid)
-
-		for _tmp, net in enumerate(self.nets):
-			out, _state = net(_states.get(_tmp, (None, None,)), _mask, out)
-			_states[_tmp] = _state
-
-		out = out.narrow(1, -1, 1)
-		if self.out_normer is not None:
-			out = self.out_normer(out)
+		out, _states = self.build_states(inpute, states=states, return_last_hidden=True)
 
 		out = self.classifier(out)
 		wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
@@ -151,32 +131,11 @@ class Decoder(DecoderBase):
 		beam_size2 = beam_size * beam_size
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
-		_states = {} if states is None else states
-		out = self.wemb(inpute)
+		out, _states = self.build_states(inpute, states=states, return_last_hidden=True)
 
 		if length_penalty > 0.0:
 			lpv = out.new_ones(real_bsize, 1)
 			lpv_base = 6.0 ** length_penalty
-
-		if self.pemb is not None:
-			sqrt_isize = sqrt(out.size(-1))
-			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
-
-		if self.drop is not None:
-			out = self.drop(out)
-
-		nquery = inpute.size(-1)
-		_ = _states.get(0, (None, None,))[0]
-		sid = 0 if _ is None else _.size(-1)
-		_mask = self._get_subsequent_mask(sid + nquery, sid=sid)
-
-		for _tmp, net in enumerate(self.nets):
-			out, _state = net(_states.get(_tmp, (None, None,)), _mask, out)
-			_states[_tmp] = _state
-
-		out = out.narrow(1, -1, 1)
-		if self.out_normer is not None:
-			out = self.out_normer(out)
 
 		out = self.lsm(self.classifier(out))
 
