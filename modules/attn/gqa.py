@@ -5,6 +5,7 @@ from math import sqrt
 
 from modules.base import CrossAttn as CrossAttnBase, Linear, ResCrossAttn as ResCrossAttnBase, ResSelfAttn as ResSelfAttnBase, SelfAttn as SelfAttnBase
 from utils.fmt.parser import parse_none
+from utils.relpos.rope import apply_rope
 
 from cnfg.ihyp import *
 

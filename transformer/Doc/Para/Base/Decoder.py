@@ -116,7 +116,7 @@ class Decoder(DecoderBase):
 
 		return self.beam_decode(inpute, inputc, src_pad_mask, context_mask, beam_size, max_len, length_penalty, fill_pad=fill_pad, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, inputc, src_pad_mask, context_mask, max_len, fill_pad=fill_pad, **kwargs)
 
-	def greedy_decode(self, inpute, inputc, src_pad_mask=None, context_mask=None, max_len=512, fill_pad=False, sample=False, **kwargs):
+	def greedy_decode(self, inpute, inputc, src_pad_mask=None, context_mask=None, max_len=512, fill_pad=False, top_k=1, top_p=0.0, temp=1.0, **kwargs):
 
 		bsize = inpute.size(0)
 
@@ -138,7 +138,7 @@ class Decoder(DecoderBase):
 			out = self.out_normer(out)
 
 		out = self.classifier(out)
-		wds = SampleMax(out.softmax(-1), dim=-1, keepdim=False) if sample else out.argmax(dim=-1)
+		wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
 
 		trans = [wds]
 
@@ -160,7 +160,7 @@ class Decoder(DecoderBase):
 				out = self.out_normer(out)
 
 			out = self.classifier(out)
-			wds = SampleMax(out.softmax(-1), dim=-1, keepdim=False) if sample else out.argmax(dim=-1)
+			wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
 
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 

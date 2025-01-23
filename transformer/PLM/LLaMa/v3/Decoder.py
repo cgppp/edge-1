@@ -7,7 +7,8 @@ from torch import nn
 from modules.base import Dropout
 from modules.norm.base import RMSNorm
 from modules.plm.llama.v3 import PositionwiseFF, ResSelfAttn
-from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderLayerBase
+from transformer.Decoder import DecoderLayer as DecoderLayerBase
+from transformer.PLM.LLMDecoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
 from utils.fmt.parser import parse_none
@@ -20,7 +21,7 @@ from cnfg.vocab.plm.llama.v3 import eos_id, pad_id
 
 class DecoderLayer(DecoderLayerBase):
 
-	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, norm_residual=norm_residual_default, k_rel_pos=use_k_relative_position_decoder, max_bucket_distance=relative_position_max_bucket_distance_decoder, num_kv_head=None, model_name="model", **kwargs):
+	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, norm_residual=norm_residual_default, k_rel_pos=use_k_relative_position_decoder, max_bucket_distance=relative_position_max_bucket_distance_decoder, num_kv_head=None, disable_ffn_bias=disable_ffn_bias, model_name="model", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
@@ -30,7 +31,7 @@ class DecoderLayer(DecoderLayerBase):
 		self.model_name = model_name
 		self.cross_attn = None
 		self.self_attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance, num_kv_head=num_kv_head)
-		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual)
+		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual, disable_ffn_bias=disable_ffn_bias)
 
 	def forward(self, inputo, tgt_pad_mask=None, query_unit=None, **kwargs):
 
@@ -68,7 +69,7 @@ class DecoderLayer(DecoderLayerBase):
 
 class Decoder(DecoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, share_layer=False, disable_pemb=disable_std_pemb_decoder, num_kv_head=None, remove_classifier_bias=remove_classifier_bias, model_name="model", **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, share_layer=False, disable_pemb=disable_std_pemb_decoder, num_kv_head=None, disable_ffn_bias=disable_ffn_bias, remove_classifier_bias=remove_classifier_bias, model_name="model", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
@@ -78,72 +79,20 @@ class Decoder(DecoderBase):
 		self.model_name = model_name
 		self.wemb.padding_idx = pad_id
 		if share_layer:
-			_shared_layer = DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, model_name=model_name)
+			_shared_layer = DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, disable_ffn_bias=disable_ffn_bias, model_name=model_name)
 			self.nets = nn.ModuleList([_shared_layer for i in range(num_layer)])
 		else:
-			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, model_name=model_name) for i in range(num_layer)])
+			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, disable_ffn_bias=disable_ffn_bias, model_name=model_name) for i in range(num_layer)])
 
 		self.out_normer = RMSNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
 		if remove_classifier_bias:
 			self.classifier.bias = None
 
-	def forward(self, inputo, word_prediction=True, pred_mask=None, **kwargs):
-
-		nquery = inputo.size(-1)
-
-		out = self.wemb(inputo)
-
-		if self.pemb is not None:
-			out = self.pemb(inputo, expand=False).add(out, alpha=sqrt(out.size(-1)))
-		if self.drop is not None:
-			out = self.drop(out)
-
-		_mask = self._get_subsequent_mask(nquery)
-
-		for net in self.nets:
-			out = net(out, _mask)
-
-		if self.out_normer is not None:
-			out = self.out_normer(out)
-
-		if word_prediction:
-			if pred_mask is not None:
-				out = out[pred_mask]
-			out = self.lsm(self.classifier(out))
-
-		return out
-
-	def build_states(self, inpute, states=None):
-
-		rs = {} if states is None else states
-		out = self.get_sos_emb(inpute)
-
-		if self.pemb is not None:
-			sqrt_isize = sqrt(out.size(-1))
-			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
-		if self.drop is not None:
-			out = self.drop(out)
-
-		nquery = inpute.size(-1)
-		_ = rs.get(0, (None, None,))[0]
-		sid = 0 if _ is None else _.size(-1)
-		_mask = self._get_subsequent_mask(sid + nquery, sid=sid)
-
-		for _tmp, net in enumerate(self.nets):
-			out, _state = net(rs.get(_tmp, (None, None,)), _mask, out)
-			rs[_tmp] = _state
-
-		return rs
-
-	def decode(self, inpute, beam_size=1, max_len=512, length_penalty=0.0, fill_pad=False, states=None, **kwargs):
-
-		return self.beam_decode(inpute, beam_size, max_len, length_penalty, fill_pad=fill_pad, states=states, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, max_len, fill_pad=fill_pad, states=states, **kwargs)
-
-	def greedy_decode(self, inpute, max_len=512, fill_pad=False, sample=False, states=None, **kwargs):
+	def greedy_decode(self, inpute, max_len=512, fill_pad=False, top_k=1, top_p=0.0, temp=1.0, states=None, **kwargs):
 
 		bsize = inpute.size(0)
 		_states = {} if states is None else states
-		out = self.get_sos_emb(inpute)
+		out = self.wemb(inpute)
 
 		if self.pemb is not None:
 			sqrt_isize = sqrt(out.size(-1))
@@ -165,7 +114,7 @@ class Decoder(DecoderBase):
 			out = self.out_normer(out)
 
 		out = self.classifier(out)
-		wds = SampleMax(out.softmax(-1), dim=-1, keepdim=False) if sample else out.argmax(dim=-1)
+		wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
 
 		trans = [wds]
 		done_trans = wds.eq(eos_id)
@@ -186,7 +135,7 @@ class Decoder(DecoderBase):
 				out = self.out_normer(out)
 
 			out = self.classifier(out)
-			wds = SampleMax(out.softmax(-1), dim=-1, keepdim=False) if sample else out.argmax(dim=-1)
+			wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
 
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 
@@ -203,7 +152,7 @@ class Decoder(DecoderBase):
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
 		_states = {} if states is None else states
-		out = self.get_sos_emb(inpute)
+		out = self.wemb(inpute)
 
 		if length_penalty > 0.0:
 			lpv = out.new_ones(real_bsize, 1)
@@ -308,10 +257,6 @@ class Decoder(DecoderBase):
 		else:
 
 			return trans.view(bsize, beam_size, -1).select(1, 0)
-
-	def get_sos_emb(self, inpute, bsize=None):
-
-		return self.wemb(inpute)
 
 	@load_plm_wrapper()
 	def load_plm(self, plm_parameters, model_name=None, **kwargs):

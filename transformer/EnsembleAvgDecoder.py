@@ -51,7 +51,7 @@ class Decoder(DecoderBase):
 	#	src_pad_mask = input.eq(pad_id).unsqueeze(1)
 	# max_len: maximum length to generate
 
-	def greedy_decode(self, inpute, src_pad_mask=None, max_len=512, fill_pad=False, sample=False, **kwargs):
+	def greedy_decode(self, inpute, src_pad_mask=None, max_len=512, fill_pad=False, top_k=1, top_p=0.0, temp=1.0, **kwargs):
 
 		bsize, seql, isize = inpute[0].size()
 
@@ -83,8 +83,8 @@ class Decoder(DecoderBase):
 
 			outs.append(model.classifier(out).softmax(dim=-1))
 
-		out = torch.stack(outs).mean(0)
-		wds = SampleMax(out, dim=-1, keepdim=False) if sample else out.argmax(dim=-1)
+		out = torch.stack(outs).sum(0)
+		wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
 
 		trans = [wds]
 
@@ -114,8 +114,8 @@ class Decoder(DecoderBase):
 				# outs: [(bsize, 1, nwd)...]
 				outs.append(model.classifier(out).softmax(dim=-1))
 
-			out = torch.stack(outs).mean(0)
-			wds = SampleMax(out, dim=-1, keepdim=False) if sample else out.argmax(dim=-1)
+			out = torch.stack(outs).sum(0)
+			wds = SampleMax(out, dim=-1, keepdim=False, top_k=top_k, top_p=top_p, temp=temp)
 
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 

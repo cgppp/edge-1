@@ -190,7 +190,7 @@ class SparsemaxFunction(Function):
 
 				return rho.view(view).transpose(0, dim)
 
-			input_srt, _ = input.sort(descending=True, dim=dim)
+			input_srt, _ = input.sort(dim=dim, descending=True)
 			input_cumsum = input_srt.cumsum(dim) - 1
 			rhos = _make_ix_like(input, dim)
 			support = rhos * input_srt > input_cumsum
