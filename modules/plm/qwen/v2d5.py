@@ -13,15 +13,15 @@ from cnfg.plm.qwen.v2d5.ihyp import *
 
 class SelfAttn(SelfAttnBase):
 
-	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, num_kv_head=None, add_attn_qkv_bias=add_attn_qkv_bias, sliding_window=sliding_window, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, num_kv_head=None, add_attn_qkv_bias=add_attn_qkv_bias, sliding_window=sliding_window, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
-		super(SelfAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, num_kv_head=num_kv_head, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, use_alibi=use_alibi, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
+		super(SelfAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, num_kv_head=num_kv_head, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
 
 		if add_attn_qkv_bias and (self.adaptor.bias is None):
 			self.adaptor.bias = nn.Parameter(torch.zeros(self.adaptor.weight.size(0)))
 		self.sliding_window = sliding_window
 
-	def forward(self, iQ, mask=None, states=None, **kwargs):
+	def forward(self, iQ, mask=None, states=None, slen=None, **kwargs):
 
 		bsize, nquery = iQ.size()[:2]
 		nheads = self.num_head
@@ -30,21 +30,23 @@ class SelfAttn(SelfAttnBase):
 
 		_ = self.adaptor(iQ).view(bsize, nquery, self.num_qkv_head, adim)
 		real_iQ, real_iK, real_iV = _.narrow(2, 0, nheads), _.narrow(2, nheads, kv_nheads), _.narrow(2, nheads + kv_nheads, kv_nheads)
-		_h_real_iK, seql, sid = None, nquery, 0
+		_h_real_iK, (sid, seql,) = None, (0, nquery,) if slen is None else (slen, nquery + slen,)
 		if self.rope_sin is None:
 			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
 				if _h_real_iK is not None:
-					sid = _h_real_iK.size(-1)
-					seql = nquery + sid
+					if slen is None:
+						sid = _h_real_iK.size(-1)
+						seql += sid
 					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
 		else:
 			if states is not None:
 				_h_real_iK, _h_real_iV = states
 				if _h_real_iK is not None:
-					sid = _h_real_iK.size(-1)
-					seql = nquery + sid
+					if slen is None:
+						sid = _h_real_iK.size(-1)
+						seql += sid
 			if self.ref_ropem is None:
 				_rope_sin, _rope_cos = self.get_rope(seql, sid=sid)
 				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
@@ -80,16 +82,20 @@ class SelfAttn(SelfAttnBase):
 			scores = self.drop(scores)
 
 		out = self.outer(scores.matmul(real_iV.unsqueeze(2)).view(bsize, nheads, nquery, adim).transpose(1, 2).contiguous().view(bsize, nquery, self.hsize))
+		_sliding_window = self.sliding_window
+		if _sliding_window > 0:
+			_ = real_iK.size(-1) - _sliding_window
+			if _ > 0:
+				real_iK, real_iV = real_iK.narrow(-1, _, _sliding_window), real_iV.narrow(2, _, _sliding_window)
 
 		return out if states is None else (out, (real_iK, real_iV,),)
 
-	# this function is to override sinusoid_base_frequency
 	def rope_build(self, length, sid=0, dtype=None, device=None):
 
 		poff, doff, adim = self.rope_poff, self.rope_doff, self.attn_dim
 
 		pos = torch.arange(sid + poff, length + poff, dtype=torch.float32, device=device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=torch.float32, device=device) * -(log(sinusoid_base_frequency) / adim)).exp()
+		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=torch.float32, device=device) * -(log(self.sinusoid_base_frequency) / adim)).exp()
 		_tmp = pos * rdiv_term
 		if self.rope_alpha != 1.0:
 			_tmp.mul_(self.rope_alpha)
