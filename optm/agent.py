@@ -1,17 +1,18 @@
 #encoding: utf-8
 
 import torch
+from torch.optim.optimizer import Optimizer
 
 from utils.torch.comp import torch_no_grad
 
 cpu_device = torch.device("cpu")
 
-class OptmAgentCore:
+class OptmAgentCore(Optimizer):
 
 	def __init__(self, Optm, params, *args, cfunc=lambda x: x.to(torch.float32, non_blocking=True), filter_by_rgrad=True, **kwargs):
 
 		self.params = [_ for _ in params if _.requires_grad] if filter_by_rgrad else params
-		self.c_params = [cfunc(_) for _ in self.params]
+		self.c_params = [cfunc(_).detach() for _ in self.params]
 		self.optm = Optm(self.params, *args, **kwargs)
 		self.c_optm = Optm(self.c_params, *args, **kwargs)
 		for _ in ["state_dict", "load_state_dict", "register_state_dict_pre_hook", "register_state_dict_post_hook", "register_load_state_dict_pre_hook", "register_load_state_dict_post_hook", "register_step_pre_hook", "register_step_post_hook"]:
@@ -39,14 +40,22 @@ class OptmAgentCore:
 		self.optm.zero_grad(*args, **kwargs)
 		self.c_optm.zero_grad(*args, **kwargs)
 
+	def __getattr__(self, name):
+
+		if hasattr(self.c_optm, name):
+
+			return getattr(self.c_optm, name)
+
+		raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
 class FP32OptmAgent(OptmAgentCore):
 
 	def __init__(self, Optm, params, *args, **kwargs):
 
-		super(FP32OptmAgent, self).__init__( Optm, params, *args, cfunc=lambda x: x.to(torch.float32, non_blocking=True), **kwargs)
+		super(FP32OptmAgent, self).__init__(Optm, params, *args, cfunc=lambda x: x.to(torch.float32, non_blocking=True), **kwargs)
 
 class CPUFP32OptmAgent(OptmAgentCore):
 
 	def __init__(self, Optm, params, *args, **kwargs):
 
-		super(CPUFP32OptmAgent, self).__init__( Optm, params, *args, cfunc=lambda x: x.to(device=cpu_device, dtype=torch.float32, non_blocking=True), **kwargs)
+		super(CPUFP32OptmAgent, self).__init__(Optm, params, *args, cfunc=lambda x: x.to(device=cpu_device, dtype=torch.float32, non_blocking=True), **kwargs)
