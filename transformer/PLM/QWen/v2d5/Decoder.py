@@ -2,6 +2,7 @@
 
 import torch
 from math import sqrt
+from numbers import Integral
 from torch import nn
 
 from modules.base import Dropout
@@ -33,12 +34,12 @@ class DecoderLayer(DecoderLayerBase):
 		self.self_attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance, num_kv_head=num_kv_head, add_attn_qkv_bias=add_attn_qkv_bias, sliding_window=sliding_window)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual, disable_ffn_bias=disable_ffn_bias)
 
-	def forward(self, inputo, tgt_pad_mask=None, query_unit=None, slen=None, **kwargs):
+	def forward(self, inputo, tgt_pad_mask=None, query_unit=None, slen=None, sliding_window_khead=None, **kwargs):
 
 		if query_unit is None:
-			context = self.self_attn(inputo, mask=tgt_pad_mask, slen=slen)
+			context = self.self_attn(inputo, mask=tgt_pad_mask, slen=slen, sliding_window_khead=sliding_window_khead)
 		else:
-			context, states_return = self.self_attn(query_unit, mask=tgt_pad_mask, states=inputo, slen=slen)
+			context, states_return = self.self_attn(query_unit, mask=tgt_pad_mask, states=inputo, slen=slen, sliding_window_khead=sliding_window_khead)
 
 		context = self.ff(context)
 
@@ -88,7 +89,7 @@ class Decoder(DecoderBase):
 		if remove_classifier_bias:
 			self.classifier.bias = None
 
-	def build_states(self, inpute, states=None, return_last_hidden=False, block_size=0, slen=None, **kwargs):
+	def build_states(self, inpute, states=None, return_last_hidden=False, block_size=0, slen=None, sliding_window_khead=None, **kwargs):
 
 		_states = {} if states is None else states
 		out = self.wemb(inpute)
@@ -100,6 +101,7 @@ class Decoder(DecoderBase):
 			out = self.drop(out)
 
 		nquery = inpute.size(-1)
+		_sliding_window_khead = None if sliding_window_khead is None else (sliding_window_khead if isinstance(sliding_window_khead, Integral) else nquery)
 		if slen is None:
 			_ = _states.get(0, (None, None,))[0]
 			_slen = 0 if _ is None else _.size(-1)
@@ -113,14 +115,14 @@ class Decoder(DecoderBase):
 				_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=(_sid - (0 if (_states.get(0, (None, None,))[0] is None) else (_states.get(0, (None, None,))[0].size(-1)))) if self.sliding_window > 0 else 0)
 				_out = out.narrow(1, _sid - _slen, _eid - _sid)
 				for _tmp, net in enumerate(self.nets):
-					_out, _state = net(_states.get(_tmp, (None, None,)), _mask, _out, slen=_sid)
+					_out, _state = net(_states.get(_tmp, (None, None,)), _mask, _out, slen=_sid, sliding_window_khead=_sliding_window_khead)
 					_states[_tmp] = _state
 				_sid = _eid
 			out = _out
 		else:
 			_mask = self._get_subsequent_mask(_slen + nquery, sid=_slen)
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states.get(_tmp, (None, None,)), _mask, out, slen=_slen)
+				out, _state = net(_states.get(_tmp, (None, None,)), _mask, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
 
 		if return_last_hidden:
@@ -131,16 +133,17 @@ class Decoder(DecoderBase):
 
 		return _states
 
-	def greedy_decode(self, inpute, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, states=None, slen=None, **kwargs):
+	def greedy_decode(self, inpute, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, states=None, slen=None, sliding_window_khead=None, **kwargs):
 
-		bsize = inpute.size(0)
 		_states = {} if states is None else states
+		bsize, nquery = inpute.size()[:2]
+		_sliding_window_khead = None if sliding_window_khead is None else (sliding_window_khead if isinstance(sliding_window_khead, Integral) else nquery)
 		if slen is None:
 			_ = _states.get(0, (None, None,))[0]
 			_slen = 0 if _ is None else _.size(-1)
 		else:
 			_slen = slen
-		out, _states = self.build_states(inpute, states=_states, return_last_hidden=True, slen=_slen)
+		out, _states = self.build_states(inpute, states=_states, return_last_hidden=True, slen=_slen, sliding_window_khead=_sliding_window_khead)
 		_slen += inpute.size(-1)
 
 		out = self.classifier(out)
@@ -158,7 +161,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states[_tmp], None, out, slen=_slen)
+				out, _state = net(_states[_tmp], None, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
 
 			if self.out_normer is not None:
@@ -175,19 +178,20 @@ class Decoder(DecoderBase):
 
 		return torch.cat(trans, 1)
 
-	def beam_decode(self, inpute, beam_size=8, max_len=512, length_penalty=0.0, return_all=False, clip_beam=clip_beam_with_lp, fill_pad=False, states=None, slen=None, **kwargs):
+	def beam_decode(self, inpute, beam_size=8, max_len=512, length_penalty=0.0, return_all=False, clip_beam=clip_beam_with_lp, fill_pad=False, states=None, slen=None, sliding_window_khead=None, **kwargs):
 
-		bsize = inpute.size(0)
+		_states = {} if states is None else states
+		bsize, nquery = inpute.size()[:2]
+		_sliding_window_khead = None if sliding_window_khead is None else (sliding_window_khead if isinstance(sliding_window_khead, Integral) else nquery)
 		beam_size2 = beam_size * beam_size
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
-		_states = {} if states is None else states
 		if slen is None:
 			_ = _states.get(0, (None, None,))[0]
 			_slen = 0 if _ is None else _.size(-1)
 		else:
 			_slen = slen
-		out, _states = self.build_states(inpute, states=_states, return_last_hidden=True, slen=_slen)
+		out, _states = self.build_states(inpute, states=_states, return_last_hidden=True, slen=_slen, sliding_window_khead=_sliding_window_khead)
 		_slen += inpute.size(-1)
 
 		if length_penalty > 0.0:
@@ -218,7 +222,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states[_tmp], None, out, slen=_slen)
+				out, _state = net(_states[_tmp], None, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
 
 			if self.out_normer is not None:
@@ -280,8 +284,9 @@ class Decoder(DecoderBase):
 		_ = length - sid
 		_l = length - lsid
 		_mask = self.mask.narrow(1, sid, _).narrow(2, lsid, _l).contiguous() if length <= self.xseql else self.mask.new_ones(_, _l).triu(1 + sid - lsid).unsqueeze(0)
-		if (self.sliding_window > 0) and (length > self.sliding_window):
-			_mask = _mask | _mask.new_ones(_, _l).tril(sid - self.sliding_window - lsid).unsqueeze(0)
+		_sliding_window = self.sliding_window
+		if (_sliding_window > 0) and (_l > _sliding_window):
+			_mask = _mask | _mask.new_ones(_, _l).tril(sid - _sliding_window - lsid).unsqueeze(0)
 
 		return _mask
 

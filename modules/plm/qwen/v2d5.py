@@ -7,6 +7,7 @@ from torch import nn
 from modules.attn.gqa import SelfAttn as SelfAttnBase
 from modules.base import PositionwiseFF as PositionwiseFFBase, ResSelfAttn as ResSelfAttnBase
 from modules.norm.base import RMSNorm
+from utils.fmt.parser import parse_none
 from utils.relpos.rope import apply_rope
 
 from cnfg.plm.qwen.v2d5.ihyp import *
@@ -21,7 +22,7 @@ class SelfAttn(SelfAttnBase):
 			self.adaptor.bias = nn.Parameter(torch.zeros(self.adaptor.weight.size(0)))
 		self.sliding_window, self.sliding_window_khead = sliding_window, sliding_window_khead
 
-	def forward(self, iQ, mask=None, states=None, slen=None, **kwargs):
+	def forward(self, iQ, mask=None, states=None, slen=None, sliding_window_khead=None, **kwargs):
 
 		bsize, nquery = iQ.size()[:2]
 		nheads = self.num_head
@@ -86,8 +87,8 @@ class SelfAttn(SelfAttnBase):
 		if _sliding_window > 0:
 			_ = real_iK.size(-1) - _sliding_window
 			if _ > 0:
-				_sliding_window_khead = self.sliding_window_khead
-				if _sliding_window_khead > 0:
+				_sliding_window_khead = parse_none(sliding_window_khead, self.sliding_window_khead)
+				if (_sliding_window_khead > 0) and (_sliding_window_khead < _sliding_window):
 					_ += _sliding_window_khead
 					_sliding_window -= _sliding_window_khead
 					real_iK, real_iV = torch.cat((real_iK.narrow(-1, 0, _sliding_window_khead), real_iK.narrow(-1, _, _sliding_window),), dim=-1), torch.cat((real_iV.narrow(2, 0, _sliding_window_khead), real_iV.narrow(2, _, _sliding_window),), dim=2)
