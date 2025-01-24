@@ -126,6 +126,7 @@ class PositionalEmb(nn.Module):
 
 		super(PositionalEmb, self).__init__()
 
+		self.num_pos, self.num_dim, self.poff, self.doff, self.alpha, self.sinusoid_base_frequency = num_pos, num_dim, pos_offset, dim_offset, alpha, sinusoid_base_frequency
 		self.register_buffer("w", torch.Tensor(num_pos, num_dim), persistent=False)
 		self.reset_parameters()
 
