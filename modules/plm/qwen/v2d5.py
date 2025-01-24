@@ -13,13 +13,13 @@ from cnfg.plm.qwen.v2d5.ihyp import *
 
 class SelfAttn(SelfAttnBase):
 
-	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, num_kv_head=None, add_attn_qkv_bias=add_attn_qkv_bias, sliding_window=sliding_window, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, num_kv_head=None, add_attn_qkv_bias=add_attn_qkv_bias, sliding_window=sliding_window, sliding_window_khead=sliding_window_khead, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
 		super(SelfAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, num_kv_head=num_kv_head, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
 
 		if add_attn_qkv_bias and (self.adaptor.bias is None):
 			self.adaptor.bias = nn.Parameter(torch.zeros(self.adaptor.weight.size(0)))
-		self.sliding_window = sliding_window
+		self.sliding_window, self.sliding_window_khead = sliding_window, sliding_window_khead
 
 	def forward(self, iQ, mask=None, states=None, slen=None, **kwargs):
 
@@ -86,7 +86,13 @@ class SelfAttn(SelfAttnBase):
 		if _sliding_window > 0:
 			_ = real_iK.size(-1) - _sliding_window
 			if _ > 0:
-				real_iK, real_iV = real_iK.narrow(-1, _, _sliding_window), real_iV.narrow(2, _, _sliding_window)
+				_sliding_window_khead = self.sliding_window_khead
+				if _sliding_window_khead > 0:
+					_ += _sliding_window_khead
+					_sliding_window -= _sliding_window_khead
+					real_iK, real_iV = torch.cat((real_iK.narrow(-1, 0, _sliding_window_khead), real_iK.narrow(-1, _, _sliding_window),), dim=-1), torch.cat((real_iV.narrow(2, 0, _sliding_window_khead), real_iV.narrow(2, _, _sliding_window),), dim=2)
+				else:
+					real_iK, real_iV = real_iK.narrow(-1, _, _sliding_window), real_iV.narrow(2, _, _sliding_window)
 
 		return out if states is None else (out, (real_iK, real_iV,),)
 

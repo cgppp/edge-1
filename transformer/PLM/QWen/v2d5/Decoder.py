@@ -110,7 +110,7 @@ class Decoder(DecoderBase):
 			_tid = _sid + nquery
 			while _sid < _tid:
 				_eid = min(_sid + block_size, _tid)
-				_mask = self._get_subsequent_mask(_eid, sid=_sid)
+				_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=(_sid - (0 if (_states.get(0, (None, None,))[0] is None) else (_states.get(0, (None, None,))[0].size(-1)))) if self.sliding_window > 0 else 0)
 				_out = out.narrow(1, _sid - _slen, _eid - _sid)
 				for _tmp, net in enumerate(self.nets):
 					_out, _state = net(_states.get(_tmp, (None, None,)), _mask, _out, slen=_sid)
@@ -275,12 +275,13 @@ class Decoder(DecoderBase):
 
 			return trans.view(bsize, beam_size, -1).select(1, 0)
 
-	def _get_subsequent_mask(self, length, sid=0):
+	def _get_subsequent_mask(self, length, sid=0, lsid=0):
 
 		_ = length - sid
-		_mask = self.mask.narrow(1, sid, _).narrow(2, 0, length).contiguous() if length <= self.xseql else self.mask.new_ones(_, length).triu(1 + sid).unsqueeze(0)
+		_l = length - lsid
+		_mask = self.mask.narrow(1, sid, _).narrow(2, lsid, _l).contiguous() if length <= self.xseql else self.mask.new_ones(_, _l).triu(1 + sid - lsid).unsqueeze(0)
 		if (self.sliding_window > 0) and (length > self.sliding_window):
-			_mask = _mask | _mask.new_ones(_, length).tril(sid - self.sliding_window).unsqueeze(0)
+			_mask = _mask | _mask.new_ones(_, _l).tril(sid - self.sliding_window - lsid).unsqueeze(0)
 
 		return _mask
 

@@ -7,6 +7,7 @@ disable_ffn_bias = True
 remove_classifier_bias = True
 add_attn_qkv_bias = True
 sliding_window = -1# use_sliding_window is False for 0.5B
+sliding_window_khead = 0
 
 # choices: None, "GeLU", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
 advance_activation_function = None
