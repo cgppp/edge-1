@@ -14,10 +14,18 @@ try:
 except Exception as e:
 	pass
 
+class h5File_swmr(h5py.File):
+
+	def __init__(self, name, mode="r", swmr=False, **kwargs):
+		_ = "r" in mode
+		super(h5File_swmr, self).__init__(name, mode=mode, swmr=swmr if _ else False, **kwargs)
+		if (not _) and swmr:
+			self.swmr_mode = swmr
+
 if hasattr(h5py.File, "__enter__") and hasattr(h5py.File, "__exit__"):
-	h5File = h5py.File
+	h5File = h5File_swmr
 else:
-	class h5File(h5py.File):
+	class h5File(h5File_swmr):
 
 		def __enter__(self):
 
