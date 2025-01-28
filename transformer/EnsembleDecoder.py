@@ -66,7 +66,7 @@ class Decoder(nn.Module):
 
 	def decode(self, inpute, src_pad_mask=None, beam_size=1, max_len=512, length_penalty=0.0, fill_pad=False, **kwargs):
 
-		return self.beam_decode(inpute, src_pad_mask, beam_size, max_len, length_penalty, fill_pad=fill_pad, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, src_pad_mask, max_len, fill_pad=fill_pad, **kwargs)
+		return self.beam_decode(inpute, src_pad_mask=src_pad_mask, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, fill_pad=fill_pad, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, src_pad_mask=src_pad_mask, max_len=max_len, fill_pad=fill_pad, **kwargs)
 
 	# inpute: encoded representation from encoders [(bsize, seql, isize)...]
 	# src_pad_mask: mask for given encoding source sentence (bsize, 1, seql), see Encoder, generated with:
@@ -141,7 +141,7 @@ class Decoder(nn.Module):
 
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 
-			done_trans = done_trans | wds.eq(eos_id)
+			done_trans |= wds.eq(eos_id)
 			if all_done(done_trans, bsize):
 				break
 

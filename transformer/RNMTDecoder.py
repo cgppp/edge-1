@@ -236,7 +236,7 @@ class Decoder(DecoderBase):
 
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 
-			done_trans = done_trans | wds.eq(eos_id)
+			done_trans |= wds.eq(eos_id)
 			if all_done(done_trans, bsize):
 				break
 

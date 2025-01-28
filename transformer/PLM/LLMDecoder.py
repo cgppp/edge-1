@@ -74,9 +74,9 @@ class Decoder(DecoderBase):
 
 		return _states
 
-	def decode(self, inpute, beam_size=1, max_len=512, length_penalty=0.0, fill_pad=False, states=None, **kwargs):
+	def decode(self, inpute, beam_size=1, max_len=512, length_penalty=0.0, fill_pad=False, ilen=None, states=None, **kwargs):
 
-		return self.beam_decode(inpute, beam_size, max_len, length_penalty, fill_pad=fill_pad, states=states, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, max_len, fill_pad=fill_pad, states=states, **kwargs)
+		return self.beam_decode(inpute, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, fill_pad=fill_pad, ilen=ilen, states=states, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, max_len=max_len, fill_pad=fill_pad, ilen=ilen, states=states, **kwargs)
 
 	def get_sos_emb(self, inpute, bsize=None):
 

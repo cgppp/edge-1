@@ -16,7 +16,7 @@ disu = lambda a, b: (a.squeeze() - b.squeeze()).abs()
 disf = lambda a, b: disu(a, b).sum()
 
 print("Tokenization")
-ht = transformers.Qwen2TokenizerFast.from_pretrained(llm_path)#LlamaTokenizerFast
+ht = transformers.Qwen2TokenizerFast.from_pretrained(llm_path)
 #print(ht.get_chat_template())
 print(ht.tokenize("<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>user\nHow are you?<|im_end|>\n<|im_start|>assistant\n"))
 ids = ht.encode("<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>user\nHow are you?<|im_end|>\n<|im_start|>assistant\n")

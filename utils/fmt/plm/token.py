@@ -1,12 +1,14 @@
 #encoding: utf-8
 
 import sys
+from json import dumps
 
 from utils.fmt.base import iter_to_int, iter_to_str, loop_file_so, sys_open
 
-tokenize_line = lambda lin, processor: " ".join(processor.convert_ids_to_tokens(processor(lin, return_token_type_ids=False, return_attention_mask=False, return_offsets_mapping=False).input_ids))
-map_line = lambda lin, processor: " ".join(iter_to_str(processor(*lin.split("\t"), return_token_type_ids=False, return_attention_mask=False, return_offsets_mapping=False).input_ids))
+tokenize_line = lambda lin, processor: " ".join(processor(lin))
+map_line = lambda lin, processor: " ".join(iter_to_str(processor(*lin.split("\t"))))
 detokenize_line = lambda lin, processor: processor(list(iter_to_int(lin.split())), skip_special_tokens=False, clean_up_tokenization_spaces=False)
+detokenize_line_jdumps = lambda lin, processor: dumps(processor(list(iter_to_int(lin.split())), skip_special_tokens=False, clean_up_tokenization_spaces=False), ensure_ascii=False)
 
 def map_line_with_token_type(lin, processor):
 
@@ -39,5 +41,9 @@ def map_file_with_token_type(fsrc, frsi, frst, processor=None, process_func=map_
 				fwrtt.write(ens)
 
 def map_back_file(fsrc, frs, processor=None, process_func=detokenize_line):
+
+	return loop_file_so(fsrc, frs, process_func=process_func, processor=processor)
+
+def map_back_file_jdumps(fsrc, frs, processor=None, process_func=detokenize_line_jdumps):
 
 	return loop_file_so(fsrc, frs, process_func=process_func, processor=processor)

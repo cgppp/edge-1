@@ -23,8 +23,15 @@
 # <|repo_name|>: 151663
 # <|file_sep|>: 151664
 
-# template: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n%s<|im_end|>" % (system, user, assistant,)
+# instruction template: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n%s<|im_end|>" % (system, user, assistant,)
+# pure language modeling do not have either <sos> or <eos> tokens with template: "%s" % user
 
 # pad_id: <|finetune_right_pad_id|>, sos_id: <|im_start|>, eos_id: <|im_end|>
 pad_id, sos_id, eos_id, unk_id = None, 151644, 151645, None
 vocab_size = 151936# 151936 for 0.5B
+
+instruct_template = lambda system, user: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n" % (system, user,)
+instruct_lm_template = lambda system, user, assistant: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n%s<|im_end|>" % (system, user, assistant,)
+assistant_template = lambda system, assistant: "%s<|im_end|>" % assistant
+lm_template = lambda system, user: user
+templated = {"instruct": instruct_template, "instruct_lm": instruct_lm_template, "assistant": assistant_template, "lm": lm_template}

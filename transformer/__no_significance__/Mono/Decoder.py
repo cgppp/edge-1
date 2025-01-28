@@ -76,7 +76,7 @@ class Decoder(DecoderBase):
 
 	def decode(self, inpute, src_pad_mask, beam_size=1, max_len=512, length_penalty=0.0, lang_id=0, fill_pad=False, **kwargs):
 
-		return self.beam_decode(inpute, src_pad_mask, beam_size, max_len, length_penalty, lang_id, fill_pad=fill_pad, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, src_pad_mask, max_len, lang_id, fill_pad=fill_pad, **kwargs)
+		return self.beam_decode(inpute, src_pad_mask=src_pad_mask, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, lang_id=lang_id, fill_pad=fill_pad, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, src_pad_mask=src_pad_mask, max_len=max_len, lang_id=lang_id, fill_pad=fill_pad, **kwargs)
 
 	def greedy_decode(self, inpute, src_pad_mask=None, max_len=512, lang_id=0, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, **kwargs):
 
@@ -133,7 +133,7 @@ class Decoder(DecoderBase):
 			wds.masked_fill_(done_trans, 0)
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 
-			done_trans = done_trans | wds.eq(eos_id)
+			done_trans |= wds.eq(eos_id)
 			if all_done(done_trans, bsize):
 				break
 

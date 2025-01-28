@@ -21,7 +21,7 @@ class Decoder(DecoderBase):
 		else:
 			_cons_inds = cons_inds.view(1, 1, -1).expand(inpute.size(0), 1, -1) if cons_inds.dim() == 1 else cons_inds.unsqueeze(1)
 
-		return self.beam_decode(inpute, src_pad_mask, beam_size, max_len, length_penalty, fill_pad=fill_pad, cons_inds=_cons_inds, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, src_pad_mask, max_len, fill_pad=fill_pad, cons_inds=_cons_inds, **kwargs)
+		return self.beam_decode(inpute, src_pad_mask=src_pad_mask, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, fill_pad=fill_pad, cons_inds=_cons_inds, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, src_pad_mask=src_pad_mask, max_len=max_len, fill_pad=fill_pad, cons_inds=_cons_inds, **kwargs)
 
 	def greedy_decode(self, inpute, src_pad_mask=None, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, cons_inds=None, **kwargs):
 
@@ -75,7 +75,7 @@ class Decoder(DecoderBase):
 
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 
-			done_trans = done_trans | wds.eq(eos_id)
+			done_trans |= wds.eq(eos_id)
 			if all_done(done_trans, bsize):
 				break
 
