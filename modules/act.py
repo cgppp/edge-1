@@ -165,7 +165,7 @@ class TMix_Act(GLU_Act):
 
 		return torch.cat((_a * _b, _b * _c, _a * _c,), dim=self.dim)
 
-act_dict = {"swish": Swish, "normswish": Swish, "sigmoid": nn.Sigmoid, "glu": nn.GLU(), "geglu": GEGLU, "swiglu": SwiGLU, "srelu": SReLU, "mish": Mish, "clamp": Clamp}
+act_dict = {"swish": Swish, "normswish": Swish, "sigmoid": nn.Sigmoid, "glu": nn.GLU, "geglu": GEGLU, "swiglu": SwiGLU, "srelu": SReLU, "mish": Mish, "clamp": Clamp}
 
 def get_act(strin, value=GELU, act_dict=act_dict):
 
