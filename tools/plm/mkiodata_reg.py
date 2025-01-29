@@ -9,8 +9,9 @@ from utils.fmt.plm.roberta.dual_reg import batch_padder
 from utils.h5serial import h5File
 
 from cnfg.ihyp import *
+from cnfg.vocab.plm.roberta import pad_id
 
-def handle(finput, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False):
+def handle(finput, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False, pad_id=pad_id):
 
 	if expand_for_mulgpu:
 		_bsize = bsize * minbsize
@@ -22,7 +23,7 @@ def handle(finput, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_s
 		src_grp = rsf.create_group("src")
 		tgt_grp = rsf.create_group("tgt")
 		curd = 0
-		for i_d, td in batch_padder(finput, ftarget, _bsize, maxpad, maxpart, _maxtoken, minbsize):
+		for i_d, td in batch_padder(finput, ftarget, _bsize, maxpad, maxpart, _maxtoken, minbsize, pad_id=pad_id):
 			rid = np_array(i_d, dtype=np_int32)
 			rtd = np_array(td, dtype=np_float32)
 			wid = str(curd)

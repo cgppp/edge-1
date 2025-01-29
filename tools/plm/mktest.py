@@ -3,13 +3,14 @@
 import sys
 from numpy import array as np_array, int32 as np_int32
 
-# import batch_padder of the corresponding model for different padding indices.
+# import batch_padder and pad_id of the corresponding model for different padding indices.
 from utils.fmt.plm.roberta.single import batch_padder
 from utils.h5serial import h5File
 
 from cnfg.ihyp import *
+from cnfg.vocab.plm.roberta import pad_id
 
-def handle(finput, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False):
+def handle(finput, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False, pad_id=pad_id):
 
 	if expand_for_mulgpu:
 		_bsize = bsize * minbsize
@@ -20,7 +21,7 @@ def handle(finput, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_
 	with h5File(frs, "w", **h5_fileargs) as rsf:
 		src_grp = rsf.create_group("src")
 		curd = 0
-		for i_d in batch_padder(finput, _bsize, maxpad, maxpart, _maxtoken, minbsize):
+		for i_d in batch_padder(finput, _bsize, maxpad, maxpart, _maxtoken, minbsize, pad_id=pad_id):
 			rid = np_array(i_d, dtype=np_int32)
 			src_grp.create_dataset(str(curd), data=rid, **h5datawargs)
 			curd += 1

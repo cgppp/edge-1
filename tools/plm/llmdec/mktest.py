@@ -4,13 +4,13 @@ import sys
 from numpy import array as np_array, int32 as np_int32
 
 # import batch_padder and pad_id of the corresponding model for different padding indices.
-from utils.fmt.plm.roberta.dual import batch_padder
+from utils.fmt.plm.llmdec.single import batch_padder
 from utils.h5serial import h5File
 
 from cnfg.ihyp import *
-from cnfg.vocab.plm.roberta import pad_id
+from cnfg.vocab.plm.qwen.v2d5 import pad_id
 
-def handle(finput, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False, pad_id=pad_id):
+def handle(finput, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False, pad_id=pad_id):
 
 	if expand_for_mulgpu:
 		_bsize = bsize * minbsize
@@ -22,7 +22,7 @@ def handle(finput, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_s
 		src_grp = rsf.create_group("src")
 		tgt_grp = rsf.create_group("tgt")
 		curd = 0
-		for i_d, td in batch_padder(finput, ftarget, _bsize, maxpad, maxpart, _maxtoken, minbsize, pad_id=pad_id):
+		for i_d, td in batch_padder(finput, _bsize, maxpad, maxpart, _maxtoken, minbsize, pad_id=pad_id):
 			rid = np_array(i_d, dtype=np_int32)
 			rtd = np_array(td, dtype=np_int32)
 			wid = str(curd)
@@ -33,4 +33,4 @@ def handle(finput, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_s
 	print("Number of batches: %d" % curd)
 
 if __name__ == "__main__":
-	handle(sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]))
+	handle(sys.argv[1], sys.argv[2], int(sys.argv[3]))

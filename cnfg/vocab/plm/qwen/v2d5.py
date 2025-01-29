@@ -26,8 +26,8 @@
 # instruction template: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n%s<|im_end|>" % (system, user, assistant,)
 # pure language modeling do not have either <sos> or <eos> tokens with template: "%s" % user
 
-# pad_id: <|finetune_right_pad_id|>, sos_id: <|im_start|>, eos_id: <|im_end|>
-pad_id, sos_id, eos_id, unk_id = None, 151644, 151645, None
+# pad_id: using <|endoftext|> for padding, sos_id: <|im_start|>, eos_id: <|im_end|>
+pad_id, sos_id, eos_id, unk_id = 151643, 151644, 151645, None
 vocab_size = 151936# 151936 for 0.5B
 
 instruct_template = lambda system, user: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n" % (system, user,)
