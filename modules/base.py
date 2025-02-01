@@ -131,12 +131,11 @@ class PositionalEmb(nn.Module):
 		self.reset_parameters()
 
 	# x: input (bsize, seql)
-
 	def forward(self, x, expand=True, **kwargs):
 
 		bsize, seql = x.size()
 
-		rs = self.w[:seql].unsqueeze(0) if seql <= self.num_pos else torch.cat((self.w, self.get_ext(seql, step_pick=False)), 0).unsqueeze(0)
+		rs = self.w.narrow(0, 0, seql).unsqueeze(0) if seql <= self.num_pos else torch.cat((self.w, self.get_ext(seql, step_pick=False)), 0).unsqueeze(0)
 
 		return rs.expand(bsize, seql, self.num_dim) if expand else rs
 
@@ -150,7 +149,7 @@ class PositionalEmb(nn.Module):
 			_tmp.mul_(self.alpha)
 		self.w[:, 0::2], self.w[:, 1::2] = _tmp.sin(), (_tmp.narrow(-1, 0, _tmp.size(-1) - 1).cos() if self.num_dim % 2 == 1 else _tmp.cos())
 
-	def get_ext(self, length, step_pick=False):
+	def get_ext(self, length, step_pick=False, sid=None):
 
 		poff, doff = self.poff, self.doff
 
@@ -158,7 +157,7 @@ class PositionalEmb(nn.Module):
 			pos = torch.as_tensor([length + poff], dtype=self.w.dtype, device=self.w.device).unsqueeze(1)
 			ed = self.w.new_empty(1, self.num_dim)
 		else:
-			npos = self.num_pos
+			npos = self.num_pos if sid is None else sid
 			pos = torch.arange(npos + poff, length + poff, dtype=self.w.dtype, device=self.w.device).unsqueeze(1)
 			ed = self.w.new_empty(length - npos, self.num_dim)
 		rdiv_term = (torch.arange(doff, self.num_dim + doff, 2, dtype=self.w.dtype, device=self.w.device) * -(log(self.sinusoid_base_frequency) / self.num_dim)).exp()
@@ -170,10 +169,19 @@ class PositionalEmb(nn.Module):
 		return ed
 
 	# step of weight to retrieve, start from 0
-
 	def get_pos(self, step):
 
 		return self.w[step] if step < self.num_pos else self.get_ext(step, step_pick=True).squeeze(0)
+
+	def get_range(self, seql, sid=0):
+
+		return self.w.narrow(0, sid, seql - sid) if seql <= self.num_pos else (torch.cat((self.w.narrow(0, sid, self.num_pos - sid), self.get_ext(seql, step_pick=False)), 0) if sid < self.num_pos else self.get_ext(seql, step_pick=False, sid=sid))
+
+	def index(self, x):
+
+		_ = self.get_range(x.max().item() + 1)
+
+		return _.index_select(0, x.view(-1)).view(*x.size(), self.num_dim) if _.dim() > 1 else _.index_select(0, x)
 
 class MultiHeadAttn(nn.Module):
 

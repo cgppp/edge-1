@@ -92,14 +92,6 @@ class Decoder(DecoderBase):
 	def build_states(self, inpute, states=None, return_last_hidden=False, block_size=0, slen=None, sliding_window_khead=None, **kwargs):
 
 		_states = {} if states is None else states
-		out = self.wemb(inpute)
-
-		if self.pemb is not None:
-			sqrt_isize = sqrt(out.size(-1))
-			out = self.pemb.get_pos(0).add(out, alpha=sqrt_isize)
-		if self.drop is not None:
-			out = self.drop(out)
-
 		nquery = inpute.size(-1)
 		_sliding_window_khead = None if sliding_window_khead is None else (sliding_window_khead if isinstance(sliding_window_khead, Integral) else nquery)
 		if slen is None:
@@ -107,11 +99,20 @@ class Decoder(DecoderBase):
 			_slen = 0 if _ is None else _.size(-1)
 		else:
 			_slen = slen
+		_rslen = _slen + nquery
+
+		out = self.wemb(inpute)
+
+		if self.pemb is not None:
+			sqrt_isize = sqrt(out.size(-1))
+			out = self.pemb.get_range(_rslen, sid=_slen).add(out, alpha=sqrt_isize)
+		if self.drop is not None:
+			out = self.drop(out)
+
 		if (block_size > 0) and (nquery > block_size):
 			_sid = _slen
-			_tid = _sid + nquery
-			while _sid < _tid:
-				_eid = min(_sid + block_size, _tid)
+			while _sid < _rslen:
+				_eid = min(_sid + block_size, _rslen)
 				_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=(_sid - (0 if (_states.get(0, (None, None,))[0] is None) else (_states.get(0, (None, None,))[0].size(-1)))) if self.sliding_window > 0 else 0)
 				_out = out.narrow(1, _sid - _slen, _eid - _sid)
 				for _tmp, net in enumerate(self.nets):
@@ -120,7 +121,7 @@ class Decoder(DecoderBase):
 				_sid = _eid
 			out = _out
 		else:
-			_mask = self._get_subsequent_mask(_slen + nquery, sid=_slen)
+			_mask = self._get_subsequent_mask(_rslen, sid=_slen)
 			for _tmp, net in enumerate(self.nets):
 				out, _state = net(_states.get(_tmp, (None, None,)), _mask, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
