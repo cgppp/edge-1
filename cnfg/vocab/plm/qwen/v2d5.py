@@ -28,7 +28,7 @@
 
 # pad_id: using <|endoftext|> for padding, sos_id: <|im_start|>, eos_id: <|im_end|>
 pad_id, sos_id, eos_id, unk_id = 151643, 151644, 151645, None
-vocab_size = 151936# 151936 for 0.5B
+vocab_size = 151936# 151936 for 0.5/1.5/3B, 152064 for 7B
 
 instruct_template = lambda system, user: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n" % (system, user,)
 instruct_lm_template = lambda system, user, assistant: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n%s<|im_end|>" % (system, user, assistant,)

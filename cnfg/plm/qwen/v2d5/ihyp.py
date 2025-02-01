@@ -4,6 +4,7 @@ from math import inf
 
 from utils.fmt.parser import parse_double_value_tuple, parse_none
 
+from cnfg.ihyp import *
 from cnfg.plm.qwen.v2d5.hyp import *
 
 # biases
