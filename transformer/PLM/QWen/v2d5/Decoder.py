@@ -12,13 +12,14 @@ from transformer.Decoder import DecoderLayer as DecoderLayerBase
 from transformer.PLM.LLMDecoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
+from utils.decode.repan import Penalty as RePan
 from utils.fmt.parser import parse_none
 from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_any_wodim, torch_no_grad
 
 from cnfg.plm.qwen.v2d5.ihyp import *
-from cnfg.vocab.plm.qwen.v2d5 import eos_id, pad_id
+from cnfg.vocab.plm.qwen.v2d5 import eos_id, pad_id, sos_id
 
 class DecoderLayer(DecoderLayerBase):
 
@@ -134,7 +135,7 @@ class Decoder(DecoderBase):
 
 		return _states
 
-	def greedy_decode(self, inpute, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, ilen=None, post_ilen_rs=True, states=None, slen=None, sliding_window_khead=None, **kwargs):
+	def greedy_decode(self, inpute, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, repetition_penalty=1.0, ilen=None, post_ilen_rs=True, states=None, slen=None, sliding_window_khead=None, **kwargs):
 
 		bsize, nquery = inpute.size()
 		_states = {} if states is None else states
@@ -155,10 +156,15 @@ class Decoder(DecoderBase):
 		out = self.classifier(out)
 		wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 		done_trans = wds.eq(eos_id)
-		if ilen is not None:
+		_repan = RePan(penalty=repetition_penalty, dim=-1, inplace=True, ind_unsqueeze_dim=1)
+		_use_repan = _repan.act()
+		if ilen is None:
+			_repan.record(wds)
+		else:
 			_ = ilen.gt(_nquery).unsqueeze(-1)
 			wds[_] = inpute.narrow(-1, _nquery, 1)[_]
 			done_trans &= ~_
+			_repan.record(wds.masked_fill(_, sos_id) if _use_repan else None)
 		trans = [wds]
 
 		for i in range(_nquery, nquery + max_len):
@@ -176,7 +182,7 @@ class Decoder(DecoderBase):
 			if self.out_normer is not None:
 				out = self.out_normer(out)
 
-			out = self.classifier(out)
+			out = _repan(self.classifier(out))
 			wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 			_done_trans = wds.eq(eos_id)
 
@@ -185,6 +191,9 @@ class Decoder(DecoderBase):
 				_ = ilen.gt(_ni).unsqueeze(-1)
 				wds[_] = inpute.narrow(-1, _ni, 1)[_]
 				_done_trans &= ~_
+				_repan.record(wds.masked_fill(_, sos_id) if _use_repan else None)
+			else:
+				_repan.record(wds)
 
 			_slen += 1
 			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
