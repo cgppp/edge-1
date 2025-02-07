@@ -5,6 +5,8 @@ import torch
 from utils.fmt.parser import parse_none
 from utils.torch.comp import torch_any_wodim
 
+is_penalty_enabled = lambda _: _ != 1.0
+
 def penalty(x, inds, penalty=1.0, dim=-1, inplace=False):
 
 	_x = x

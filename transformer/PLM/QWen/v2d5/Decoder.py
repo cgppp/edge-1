@@ -12,7 +12,7 @@ from transformer.Decoder import DecoderLayer as DecoderLayerBase
 from transformer.PLM.LLMDecoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
-from utils.decode.repan import Penalty as RePan
+from utils.decode.repan import is_penalty_enabled as is_repenalty_enabled, penalty as repenalty
 from utils.fmt.parser import parse_none
 from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.sampler import SampleMax
@@ -156,16 +156,14 @@ class Decoder(DecoderBase):
 		out = self.classifier(out)
 		wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 		done_trans = wds.eq(eos_id)
-		_repan = RePan(penalty=repetition_penalty, dim=-1, inplace=True, ind_unsqueeze_dim=1)
-		_use_repan = _repan.act()
+		_use_repan = is_repenalty_enabled(repetition_penalty)
 		if ilen is None:
-			_repan.record(wds)
+			trans = wds if _use_repan else [wds]
 		else:
 			_ = ilen.gt(_nquery).unsqueeze(-1)
 			wds[_] = inpute.narrow(-1, _nquery, 1)[_]
 			done_trans &= ~_
-			_repan.record(wds.masked_fill(_, sos_id) if _use_repan else None)
-		trans = [wds]
+			trans = wds.masked_fill(_, sos_id) if _use_repan else [wds]
 
 		for i in range(_nquery, nquery + max_len):
 
@@ -182,7 +180,7 @@ class Decoder(DecoderBase):
 			if self.out_normer is not None:
 				out = self.out_normer(out)
 
-			out = _repan(self.classifier(out))
+			out = repenalty(self.classifier(out), trans.unsqueeze(1), penalty=repetition_penalty, dim=-1, inplace=True)
 			wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 			_done_trans = wds.eq(eos_id)
 
@@ -191,24 +189,34 @@ class Decoder(DecoderBase):
 				_ = ilen.gt(_ni).unsqueeze(-1)
 				wds[_] = inpute.narrow(-1, _ni, 1)[_]
 				_done_trans &= ~_
-				_repan.record(wds.masked_fill(_, sos_id) if _use_repan else None)
+				if _use_repan:
+					_ = wds.masked_fill(_, sos_id)
+					if fill_pad:
+						_.masked_fill_(done_trans, pad_id)
+					trans = torch.cat((trans, _,), 1)
+				else:
+					trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 			else:
-				_repan.record(wds)
+				_ = wds.masked_fill(done_trans, pad_id) if fill_pad else wds
+				if _use_repan:
+					trans = torch.cat((trans, _,), 1)
+				else:
+					trans.append(_)
 
 			_slen += 1
-			trans.append(wds.masked_fill(done_trans, pad_id) if fill_pad else wds)
 
 			done_trans |= _done_trans
 			if all_done(done_trans, bsize):
 				break
 
-		trans = torch.cat(trans, 1)
+		if not _use_repan:
+			trans = torch.cat(trans, 1)
 		if post_ilen_rs and (ilen is not None):
 			trans = [_t[_:] for _t, _ in zip(trans.tolist(), (ilen - _nquery).tolist())]
 
 		return trans
 
-	def beam_decode(self, inpute, beam_size=8, max_len=512, length_penalty=0.0, return_all=False, clip_beam=clip_beam_with_lp, fill_pad=False, ilen=None, post_ilen_rs=True, states=None, slen=None, sliding_window_khead=None, **kwargs):
+	def beam_decode(self, inpute, beam_size=8, max_len=512, length_penalty=0.0, return_all=False, clip_beam=clip_beam_with_lp, fill_pad=False, repetition_penalty=1.0, ilen=None, post_ilen_rs=True, states=None, slen=None, sliding_window_khead=None, **kwargs):
 
 		bsize, nquery = inpute.size()
 		_states = {} if states is None else states
@@ -240,16 +248,21 @@ class Decoder(DecoderBase):
 
 		scores, wds = out.topk(beam_size, dim=-1)
 		done_trans = wds.view(bsize, beam_size).eq(eos_id)
-		if ilen is not None:
+		_use_repan = is_repenalty_enabled(repetition_penalty)
+		if ilen is None:
+			trans = wds = wds.view(real_bsize, 1)
+		else:
 			_ = ilen.gt(_nquery).view(bsize, 1, 1)
 			scores.masked_fill_(_, 0.0)
 			done_trans &= ~(_.squeeze(-1))
 			_ = _.expand(-1, -1, beam_size)
 			wds[_] = inpute.narrow(-1, _nquery, 1).unsqueeze(-1).expand(-1, -1, beam_size)[_]
+			if _use_repan:
+				trans, wds = wds.masked_fill(_, sos_id).view(real_bsize, 1), wds.view(real_bsize, 1)
+			else:
+				trans = wds = wds.view(real_bsize, 1)
 		scores = scores.squeeze(1)
 		sum_scores = scores
-		wds = wds.view(real_bsize, 1)
-		trans = wds
 		_inds_add_beam2 = torch.arange(0, bsizeb2, beam_size2, dtype=wds.dtype, device=wds.device).unsqueeze(1).expand(bsize, beam_size)
 		_inds_add_beam = torch.arange(0, real_bsize, beam_size, dtype=wds.dtype, device=wds.device).unsqueeze(1).expand(bsize, beam_size)
 
@@ -271,7 +284,7 @@ class Decoder(DecoderBase):
 			if self.out_normer is not None:
 				out = self.out_normer(out)
 
-			out = self.lsm(self.classifier(out)).view(bsize, beam_size, -1)
+			out = self.lsm(repenalty(self.classifier(out), trans.unsqueeze(1), penalty=repetition_penalty, dim=-1, inplace=True)).view(bsize, beam_size, -1)
 			_slen += 1
 
 			_scores, _wds = out.topk(beam_size, dim=-1)
@@ -297,21 +310,32 @@ class Decoder(DecoderBase):
 			wds = _wds.view(bsizeb2).index_select(0, _tinds).view(real_bsize, 1)
 			_done_trans = wds.eq(eos_id).squeeze(1)
 
+			_inds = (_inds // beam_size + _inds_add_beam).view(real_bsize)
+			trans = trans.index_select(0, _inds)
+
 			_nstep = step + 1
 			if _nstep <= nquery:
 				if _nstep < nquery:
 					_ = ilen.gt(_nstep).unsqueeze(-1)
 					sum_scores.masked_fill_(_, 0.0)
-					wds.masked_scatter_(_.repeat(1, beam_size).view(real_bsize, 1), inpute.narrow(-1, _nstep, 1)[_].unsqueeze(-1).expand(-1, beam_size))
+					_rbm = _.repeat(1, beam_size).view(real_bsize, 1)
+					wds.masked_scatter_(_rbm, inpute.narrow(-1, _nstep, 1)[_].unsqueeze(-1).expand(-1, beam_size))
 					_done_trans &= (~_).repeat(1, beam_size).view(real_bsize)
+				else:
+					_rbm = None
 				_ = ilen.eq(_nstep)
 				if torch_any_wodim(_):
 					wds.view(bsize, beam_size)[_] = _wds[_].select(1, 0)
 					sum_scores[_] = _scores[_].select(1, 0)
-
-			_inds = (_inds // beam_size + _inds_add_beam).view(real_bsize)
-
-			trans = torch.cat((trans.index_select(0, _inds), wds.masked_fill(done_trans.view(real_bsize, 1), pad_id) if fill_pad else wds), 1)
+				if _use_repan:
+					_ = wds if _rbm is None else wds.masked_fill(_rbm, sos_id)
+					if fill_pad:
+						_ = _.masked_fill(done_trans.view(real_bsize, 1), pad_id)
+					trans = torch.cat((trans, _,), 1)
+				else:
+					trans = torch.cat((trans, wds.masked_fill(done_trans.view(real_bsize, 1), pad_id) if fill_pad else wds), 1)
+			else:
+				trans = torch.cat((trans, wds.masked_fill(done_trans.view(real_bsize, 1), pad_id) if fill_pad else wds), 1)
 
 			done_trans = (done_trans.view(real_bsize).index_select(0, _inds) | _done_trans).view(bsize, beam_size)
 
