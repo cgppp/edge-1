@@ -180,7 +180,9 @@ class Decoder(DecoderBase):
 			if self.out_normer is not None:
 				out = self.out_normer(out)
 
-			out = repenalty(self.classifier(out), trans.unsqueeze(1), penalty=repetition_penalty, dim=-1, inplace=True)
+			out = self.classifier(out)
+			if _use_repan:
+				out = repenalty(out, trans.unsqueeze(1), penalty=repetition_penalty, dim=-1, inplace=True)
 			wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
 			_done_trans = wds.eq(eos_id)
 
