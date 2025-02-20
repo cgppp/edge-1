@@ -5,11 +5,11 @@ from torch import nn
 from modules.lora import Linear
 from utils.base import add_module
 
-def linear2lora(modin, lora_features=None, update_bias=True):
+def linear2lora(modin, lora_features=None, update_bias=True, name_cfunc=lambda _: True):
 
 	_l_d = {}
 	for _name, _module in modin.named_modules():
-		if isinstance(_module, nn.Linear):
+		if isinstance(_module, nn.Linear) and name_cfunc(_name):
 			_l_d[_name] = _module
 			out_features, in_features = _module.weight.size()
 			_lora_m = Linear(in_features, out_features, bias=_module.bias is not None, lora_features=lora_features, update_bias=update_bias)
