@@ -1,6 +1,6 @@
 #encoding: utf-8
 
-# portal from fairseq: https://github.com/pytorch/fairseq/blob/master/scripts/spm_encode.py
+# portal from fairseq: https://github.com/pytorch/fairseq/blob/master/scripts/spm_decode.py
 
 import sys
 from argparse import ArgumentParser

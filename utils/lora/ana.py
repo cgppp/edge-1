@@ -4,13 +4,14 @@ from json import dumps
 from math import sqrt
 
 from modules.lora import Linear
+from utils.fmt.base import sys_open
 from utils.fmt.parser import parse_none
 
 class GNormAna:
 
 	def __init__(self, logf, model=None):
 
-		self.logf, self.model = logf, model
+		self.logf, self.model = sys_open(logf, "wb"), model
 
 	def compute_model_lora_norm(self, model=None):
 
@@ -28,7 +29,9 @@ class GNormAna:
 
 	def __call__(self, model=None):
 
-		_ = dumps(self.compute_model_lora_norm(model=model), ensure_ascii=False)
-		with open(self.logf, "ab") as f:
-			f.write(_.encode("utf-8"))
-			f.write("\n".encode("utf-8"))
+		self.logf.write(dumps(self.compute_model_lora_norm(model=model), ensure_ascii=False).encode("utf-8"))
+		self.logf.write("\n".encode("utf-8"))
+
+	def close(self):
+
+		self.logf.close()
