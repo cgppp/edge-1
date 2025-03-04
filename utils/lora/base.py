@@ -2,37 +2,106 @@
 
 from torch import nn
 
-from modules.lora import Linear
+from modules.lora import Embedding, Linear
 from utils.base import add_module
+from utils.torch.comp import torch_no_grad
 
-def linear2lora(modin, lora_features=None, update_bias=True, name_cfunc=lambda _: True):
+def lora_get_linear(modin, lora_features=None, lora_alpha=None, scaling=1.0, update_bias=True, **kwargs):
+
+	out_features, in_features = modin.weight.size()
+	_lora_m = Linear(in_features, out_features, bias=modin.bias is not None, lora_features=lora_features, lora_alpha=lora_alpha, scaling=scaling, update_bias=update_bias)
+	_lora_m.from_std(modin)
+
+	return _lora_m
+
+def lora_get_embedding(modin, lora_features=None, lora_alpha=None, scaling=1.0, **kwargs):
+
+	num_embeddings, embedding_dim = modin.weight.size()
+	_lora_m = Embedding(num_embeddings, embedding_dim, padding_idx=modin.padding_idx, max_norm=modin.max_norm, norm_type=modin.norm_type, scale_grad_by_freq=modin.scale_grad_by_freq, sparse=modin.sparse, _weight=modin.weight, lora_features=lora_features, lora_alpha=lora_alpha, scaling=scaling)
+	_lora_m.from_std(modin)
+
+	return _lora_m
+
+def std2lora(modin, lora_features=None, lora_alpha=None, scaling=1.0, update_bias=True, name_cfunc=lambda _: True):
+
+	if isinstance(modin, nn.Linear):
+		return lora_get_linear(modin, lora_features=lora_features, lora_alpha=lora_alpha, scaling=scaling, update_bias=update_bias), {".": modin}
+	if isinstance(modin, nn.Embedding):
+		return lora_get_embedding(modin, lora_features=lora_features, lora_alpha=lora_alpha, scaling=scaling), {".": modin}
 
 	_l_d = {}
 	for _name, _module in modin.named_modules():
-		if isinstance(_module, nn.Linear) and name_cfunc(_name):
-			_l_d[_name] = _module
-			out_features, in_features = _module.weight.size()
-			_lora_m = Linear(in_features, out_features, bias=_module.bias is not None, lora_features=lora_features, update_bias=update_bias)
-			_lora_m.to(device=_module.weight.device, dtype=_module.weight.dtype, non_blocking=True)
-			_lora_m.from_linear(_module)
-			add_module(modin, _name, _lora_m)
+		if name_cfunc(_name):
+			if isinstance(_module, nn.Linear):
+				_l_d[_name] = _module
+				add_module(modin, _name, lora_get_linear(_module, lora_features=lora_features, lora_alpha=lora_alpha, scaling=scaling, update_bias=update_bias))
+			elif isinstance(_module, nn.Embedding):
+				_l_d[_name] = _module
+				add_module(modin, _name, lora_get_embedding(_module, lora_features=lora_features, lora_alpha=lora_alpha, scaling=scaling))
 
 	return modin, _l_d
 
-def lora2linear(modin):
+def lora2std(modin):
+
+	if isinstance(modin, (Linear, Embedding,)):
+		return modin.to_std(), {".": modin}
 
 	_lora_d = {}
 	for _name, _module in modin.named_modules():
-		if isinstance(_module, Linear):
+		if isinstance(_module, (Linear, Embedding,)):
 			_lora_d[_name] = _module
-			_linear_m = _module.to_linear()
-			add_module(modin, _name, _linear_m)
+			_std_m = _module.to_std()
+			add_module(modin, _name, _std_m)
 
 	return modin, _lora_d
 
 def restore_md(modin, md):
 
+	if "." in md:
+		return md["."]
+
 	for _name, _module in md.items():
 		add_module(modin, _name, _module)
 
 	return modin
+
+def lora_filter(pd, lwset=set(["lora_wa", "lora_wb"])):
+
+	return {k: v for k, v in pd.items() if k.endswith(".lora_wa") or k.endswith(".lora_wb") or (k in lwset)}
+
+def merge_lora(pd, inplace=False, transpose=True, name_cfunc=lambda _: True):
+
+	rs = {}
+	_exs = set()
+	with torch_no_grad():
+		for n, p in pd.items():
+			if (n.endswith(".weight") or (n == "weight")) and name_cfunc(n):
+				_ = n[:-6]
+				_lan, _lbn = "%slora_wa" % _, "%slora_wb" % _
+				if (_lan in pd) and (_lbn in pd):
+					_wa, _wb = pd[_lan], pd[_lbn]
+					_ = _wa.mm(_wb)
+					if transpose:
+						_t = _.t()
+						if _t.size() == p.size():
+							_ = _t
+						_t = None
+					if _.size() == p.size():
+						rs[n] = p.add_(_) if inplace else p.add(_)
+						_exs.add(_lan)
+						_exs.add(_lbn)
+					else:
+						rs[n] = p
+					_ = None
+					_wa = _wb = None
+				else:
+					rs[n] = p
+			else:
+				if n in _exs:
+					_exs.remove(n)
+				else:
+					rs[n] = p
+	if _exs:
+		rs = {k: v for k, v in rs.items() if k not in _exs}
+
+	return rs
