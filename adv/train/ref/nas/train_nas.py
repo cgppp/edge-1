@@ -8,6 +8,7 @@ from torch.optim import Adam as Optimizer
 
 from loss.base import LabelSmoothingLoss
 from lrsch import GoogleLR as LRScheduler
+from optm.agent import fp32_optm_agent_wrapper as mp_optm_agent_wrapper
 from parallel.base import DataParallelCriterion
 from parallel.parallelNAS import DataParallelMT
 from transformer.NAS.ENMT import NMT
@@ -17,6 +18,7 @@ from utils.fmt.base4torch import load_emb, parse_cuda
 from utils.h5serial import h5File
 from utils.init.base import init_model_params
 from utils.io import load_model_cpu, save_model, save_states
+from utils.norm.mp.f import convert as make_mp_model
 from utils.state.holder import Holder
 from utils.state.pyrand import PyRandomState
 from utils.state.thrand import THRandomState
@@ -272,7 +274,8 @@ if cnfg.save_train_state:
 
 logger = get_logger(wkdir + "train.log")
 
-use_cuda, cuda_device, cuda_devices, multi_gpu = parse_cuda(cnfg.use_cuda, cnfg.gpuid)
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+set_random_seed(cnfg.seed, use_cuda)
 
 if use_cuda and cnfg.amp_opt:
 	try:
@@ -286,8 +289,6 @@ if use_cuda and cnfg.amp_opt:
 else:
 	use_amp = False
 
-set_random_seed(cnfg.seed, use_cuda)
-
 td = h5File(cnfg.train_data, "r", **h5_fileargs)
 vd = h5File(cnfg.dev_data, "r", **h5_fileargs)
 
@@ -300,6 +301,9 @@ tl = [str(i) for i in range(ntrain)]
 
 logger.info("Design models with seed: %d" % torch.initial_seed())
 mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
+if use_cuda_bfmp:
+	make_mp_model(mymodel)
+	Optimizer = mp_optm_agent_wrapper(Optimizer)
 
 fine_tune_m = cnfg.fine_tune_m
 

@@ -191,9 +191,10 @@ else:
 	flip_mask = flip_mask_byte
 
 # handling default type for fp16
-_torch_support_bf16 = hasattr(torch, "bfloat16")
-fp16_default_tensor_type = torch.bfloat16 if use_bf4fp16 and _torch_support_bf16 else torch.float16
-if _torch_support_bf16:
+torch_support_bf16 = hasattr(torch, "bfloat16")
+cuda_support_bf16 = torch_support_bf16 and hasattr(torch, "cuda") and hasattr(torch.cuda, "is_available") and torch.cuda.is_available() and hasattr(torch.cuda, "is_bf16_supported") and torch.cuda.is_bf16_supported()
+fp16_default_tensor_type = torch.bfloat16 if use_bf4fp16 and cuda_support_bf16 else torch.float16
+if torch_support_bf16:
 	secure_type_map[torch.bfloat16] = torch.float64
 	tensor_numpy_map[torch.bfloat16] = torch.float32
 

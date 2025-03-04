@@ -60,6 +60,8 @@ gpuid = 'cuda:0'
 use_amp = False
 # use multi-gpu optimizer, may help bring slight acceleration for the training of large models (e.g. deep/big Transformers) with complex optimizers (e.g. Adam).
 multi_gpu_optimizer = True
+# use bfloat16 mixed precision (training/prediction).
+use_cuda_bfmp = True
 
 # bind the embedding matrix with the classifer weight in decoder
 bindDecoderEmb = True

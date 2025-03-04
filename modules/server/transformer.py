@@ -5,12 +5,14 @@ import torch
 from parallel.parallelMT import DataParallelMT
 from transformer.EnsembleNMT import NMT as Ensemble
 from transformer.NMT import NMT
+from utils.base import set_random_seed
 from utils.fmt.base import clean_str, dict_insert_set, iter_dict_sort
 from utils.fmt.base4torch import parse_cuda_decode
 from utils.fmt.single import batch_padder
 from utils.fmt.vocab.base import reverse_dict
 from utils.fmt.vocab.token import ldvocab
 from utils.io import load_model_cpu
+from utils.norm.mp.f import convert as make_mp_model
 from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
 
 from cnfg.ihyp import *
@@ -51,6 +53,9 @@ class TranslatorCore:
 
 	def __init__(self, modelfs, fvocab_i, fvocab_t, cnfg, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False, **kwargs):
 
+		self.use_cuda, self.cuda_device, cuda_devices, self.multi_gpu, self.use_amp, use_cuda_bfmp = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+		set_random_seed(cnfg.seed, use_cuda)
+
 		vcbi, nwordi = ldvocab(fvocab_i, minf=minfreq, omit_vsize=vsize, vanilla=False)
 		vcbt, nwordt = ldvocab(fvocab_t, minf=minfreq, omit_vsize=vsize, vanilla=False)
 		self.vcbi, self.vcbt = vcbi, reverse_dict(vcbt)
@@ -69,6 +74,8 @@ class TranslatorCore:
 			models = []
 			for modelf in modelfs:
 				tmp = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
+				if use_cuda_bfmp:
+					make_mp_model(tmp)
 
 				tmp = load_model_cpu(modelf, tmp)
 				tmp.apply(load_fixing)
@@ -78,20 +85,19 @@ class TranslatorCore:
 
 		else:
 			model = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
+			if use_cuda_bfmp:
+				make_mp_model(model)
 
 			model = load_model_cpu(modelfs, model)
 			model.apply(load_fixing)
 
 		model.eval()
 
-		self.use_cuda, self.cuda_device, cuda_devices, self.multi_gpu = parse_cuda_decode(cnfg.use_cuda, cnfg.gpuid, cnfg.multi_gpu_decoding)
-
 		if self.use_cuda:
 			model.to(self.cuda_device, non_blocking=True)
 			if self.multi_gpu:
 				model = DataParallelMT(model, device_ids=cuda_devices, output_device=self.cuda_device.index, host_replicate=True, gather_output=False)
 		model = torch_compile(model, *torch_compile_args, **torch_compile_kwargs)
-		self.use_amp = cnfg.use_amp and self.use_cuda
 		self.beam_size = cnfg.beam_size
 		self.length_penalty = cnfg.length_penalty
 		self.net = model

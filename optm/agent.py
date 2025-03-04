@@ -3,6 +3,7 @@
 import torch
 from torch.optim.optimizer import Optimizer
 
+from optm.wrapper import wrap
 from utils.torch.comp import torch_no_grad
 
 cpu_device = torch.device("cpu")
@@ -59,3 +60,6 @@ class CPUFP32OptmAgent(OptmAgentCore):
 	def __init__(self, Optm, params, *args, **kwargs):
 
 		super(CPUFP32OptmAgent, self).__init__(Optm, params, *args, cfunc=lambda x: x.to(device=cpu_device, dtype=torch.float32, non_blocking=True), **kwargs)
+
+fp32_optm_agent_wrapper = wrap(FP32OptmAgent)
+cpu_fp32_optm_agent_wrapper = wrap(CPUFP32OptmAgent)

@@ -12,6 +12,7 @@ from utils.fmt.base4torch import parse_cuda
 from utils.fmt.plm.base import fix_parameter_name
 from utils.h5serial import h5File
 from utils.io import load_model_cpu
+from utils.norm.mp.f import convert as make_mp_model
 from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
 from utils.tqdm import tqdm
 
@@ -53,9 +54,14 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 	w = float(w)
 	return sum_loss / w, (w - r) / w * 100.0
 
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+set_random_seed(cnfg.seed, use_cuda)
+
 nwordi = nwordt = vocab_size
 
 mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, model_name=cnfg.model_name)
+if use_cuda_bfmp:
+	make_mp_model(mymodel)
 
 # important to load the pre-trained model, as the load_plm function not only load parameters, but also may introduce new parameters, which affects the parameter alignment.
 pre_trained_m = cnfg.pre_trained_m
@@ -74,13 +80,6 @@ mymodel.eval()
 
 lossf = NLLLoss(reduction="sum")
 
-use_cuda = cnfg.use_cuda
-gpuid = cnfg.gpuid
-
-use_cuda, cuda_device, cuda_devices, multi_gpu = parse_cuda(cnfg.use_cuda, cnfg.gpuid)
-
-set_random_seed(cnfg.seed, use_cuda)
-
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 	lossf.to(cuda_device, non_blocking=True)
@@ -90,8 +89,6 @@ if cuda_device:
 
 mymodel = torch_compile(mymodel, *torch_compile_args, **torch_compile_kwargs)
 lossf = torch_compile(lossf, *torch_compile_args, **torch_compile_kwargs)
-
-use_amp = cnfg.use_amp and use_cuda
 
 with h5File(sys.argv[1], "r", **h5_fileargs) as td:
 	vloss, vprec = eva(td, td["ndata"][()].item(), mymodel, lossf, cuda_device, multi_gpu, use_amp)

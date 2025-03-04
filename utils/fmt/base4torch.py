@@ -5,12 +5,14 @@ from math import sqrt
 
 from utils.fmt.base import list_reader
 from utils.h5serial import h5load
-from utils.torch.comp import torch_no_grad
+from utils.torch.comp import cuda_support_bf16, torch_no_grad
 
-def parse_cuda(use_cuda_arg, gpuid=None):
+def parse_cuda(use_cuda_arg, gpuid=None, use_amp=False, use_cuda_bfmp=True):
 
 	if use_cuda_arg and torch.cuda.is_available():
 		use_cuda = True
+		_use_cuda_bfmp = use_cuda_bfmp and cuda_support_bf16
+		_use_amp = use_amp and (not _use_cuda_bfmp)
 		ngpus = torch.cuda.device_count()
 		if gpuid is None:
 			cuda_devices = tuple(torch.device("cuda", i) for i in range(ngpus))
@@ -25,14 +27,16 @@ def parse_cuda(use_cuda_arg, gpuid=None):
 			multi_gpu = False
 		torch.cuda.set_device(cuda_device.index)
 	else:
-		use_cuda, cuda_device, cuda_devices, multi_gpu = False, None, None, False
+		use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp = False, None, None, False, False, False
 
-	return use_cuda, cuda_device, cuda_devices, multi_gpu
+	return use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp
 
-def parse_cuda_decode(use_cuda_arg, gpuid=None, multi_gpu_decoding=False):
+def parse_cuda_decode(use_cuda_arg, gpuid=None, multi_gpu_decoding=False, use_amp=False, use_cuda_bfmp=True):
 
 	if use_cuda_arg and torch.cuda.is_available():
 		use_cuda = True
+		_use_cuda_bfmp = use_cuda_bfmp and cuda_support_bf16
+		_use_amp = use_amp and (not _use_cuda_bfmp)
 		ngpus = torch.cuda.device_count()
 		if gpuid is None:
 			cuda_devices = tuple(torch.device("cuda", i) for i in range(ngpus))
@@ -48,9 +52,9 @@ def parse_cuda_decode(use_cuda_arg, gpuid=None, multi_gpu_decoding=False):
 			multi_gpu = False
 		torch.cuda.set_device(cuda_device.index)
 	else:
-		use_cuda, cuda_device, cuda_devices, multi_gpu = False, None, None, False
+		use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp = False, None, None, False, False, False
 
-	return use_cuda, cuda_device, cuda_devices, multi_gpu
+	return use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp
 
 def load_emb_txt(vcb, embf):
 

@@ -8,6 +8,7 @@ from transformer.MuLang.NMT import NMT
 from utils.base import set_random_seed
 from utils.fmt.base4torch import parse_cuda_decode
 from utils.h5serial import h5File
+from utils.norm.mp.f import convert as make_mp_model
 from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
 from utils.tqdm import tqdm
 
@@ -22,9 +23,7 @@ def load_fixing(module):
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
-use_cuda, cuda_device, cuda_devices, multi_gpu = parse_cuda_decode(cnfg.use_cuda, cnfg.gpuid, cnfg.multi_gpu_decoding)
-use_amp = cnfg.use_amp and use_cuda
-
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 
 td = h5File(cnfg.dev_data, "r", **h5_fileargs)
@@ -34,6 +33,8 @@ nword = td["nword"][()].tolist()
 nwordi, ntask, nwordt = nword[0], nword[1], nword[-1]
 
 mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes, ntask=ntask, ngroup=cnfg.ngroup)
+if use_cuda_bfmp:
+	make_mp_model(mymodel)
 
 mymodel.apply(load_fixing)
 

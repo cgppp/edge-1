@@ -8,6 +8,7 @@ from utils.fmt.vocab.base import reverse_dict
 from utils.fmt.vocab.token import ldvocab
 from utils.h5serial import h5File
 from utils.io import load_model_cpu
+from utils.norm.mp.f import convert as make_mp_model
 from utils.tqdm import tqdm
 
 import cnfg.base as cnfg
@@ -36,6 +37,8 @@ vcbt, nwordt = ldvocab(sys.argv[2])
 vcbt = reverse_dict(vcbt)
 
 mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, cnfg.ff_hsize, cnfg.drop, cnfg.attn_drop, cnfg.act_drop, cnfg.share_emb, cnfg.nhead, cache_len_default, cnfg.attn_hsize)
+if use_cuda_bfmp:
+	make_mp_model(mymodel)
 
 load_model_cpu(sys.argv[1], mymodel)
 

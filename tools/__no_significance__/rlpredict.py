@@ -14,6 +14,7 @@ from utils.fmt.vocab.base import reverse_dict
 from utils.fmt.vocab.token import ldvocab
 from utils.h5serial import h5File
 from utils.io import load_model_cpu
+from utils.norm.mp.f import convert as make_mp_model
 from utils.torch.comp import torch_compile, torch_inference_mode
 from utils.tqdm import tqdm
 
@@ -35,6 +36,8 @@ vcbt = reverse_dict(vcbt)
 
 if len(sys.argv) == 4:
 	mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
+	if use_cuda_bfmp:
+		make_mp_model(mymodel)
 
 	mymodel = load_model_cpu(sys.argv[3], mymodel)
 	mymodel.apply(load_fixing)
@@ -43,6 +46,8 @@ else:
 	models = []
 	for modelf in sys.argv[3:]:
 		tmp = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
+		if use_cuda_bfmp:
+			make_mp_model(tmp)
 
 		tmp = load_model_cpu(modelf, tmp)
 		tmp.apply(load_fixing)
@@ -52,9 +57,7 @@ else:
 
 mymodel.eval()
 
-use_cuda, cuda_device, cuda_devices, multi_gpu = parse_cuda_decode(cnfg.use_cuda, cnfg.gpuid, cnfg.multi_gpu_decoding)
-
-# Important to make cudnn methods deterministic
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 
 if cuda_device:

@@ -44,6 +44,7 @@ use_cuda = True
 gpuid = "cuda:0"
 use_amp = False
 multi_gpu_optimizer = True
+use_cuda_bfmp = True
 
 bindDecoderEmb = True
 share_emb = True
