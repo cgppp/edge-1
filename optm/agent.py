@@ -13,7 +13,8 @@ class OptmAgentCore(Optimizer):
 	def __init__(self, Optm, params, *args, cfunc=lambda x: x.to(torch.float32, non_blocking=True), filter_by_rgrad=True, **kwargs):
 
 		self.params = [_ for _ in params if _.requires_grad] if filter_by_rgrad else params
-		self.c_params = [cfunc(_).detach() for _ in self.params]
+		with torch_no_grad():
+			self.c_params = [cfunc(_) for _ in self.params]
 		self.optm = Optm(self.params, *args, **kwargs)
 		self.c_optm = Optm(self.c_params, *args, **kwargs)
 		for _ in ["state_dict", "load_state_dict", "register_state_dict_pre_hook", "register_state_dict_post_hook", "register_load_state_dict_pre_hook", "register_load_state_dict_post_hook", "register_step_pre_hook", "register_step_post_hook"]:
@@ -23,18 +24,20 @@ class OptmAgentCore(Optimizer):
 	def step(self, *args, **kwargs):
 
 		for _p, _cp in zip(self.params, self.c_params):
-			if _p.grad is None:
-				_cp.grad = None
-			else:
-				if _cp.grad is None:
-					_cp.grad = _p.grad.to(device=_cp.data.device, dtype=_cp.data.dtype, non_blocking=True)
+			if not _p.is_set_to(_cp):
+				if _p.grad is None:
+					_cp.grad = None
 				else:
-					_cp.grad.copy_(_p.grad)
+					if _cp.grad is None:
+						_cp.grad = _p.grad.to(device=_cp.data.device, dtype=_cp.data.dtype, non_blocking=True)
+					else:
+						_cp.grad.copy_(_p.grad)
 		self.c_optm.step(*args, **kwargs)
 		with torch_no_grad():
 			for _p, _cp in zip(self.params, self.c_params):
-				if _p.grad is not None:
-					_p.copy_(_cp)
+				if not _p.is_set_to(_cp):
+					if _cp.grad is not None:
+						_p.copy_(_cp)
 
 	def zero_grad(self, *args, **kwargs):
 

@@ -4,6 +4,7 @@ from torch import nn
 
 from modules.lora import Embedding, Linear
 from utils.base import add_module
+from utils.func import always_true as name_cfunc_full
 from utils.torch.comp import torch_no_grad
 
 def lora_get_linear(modin, lora_features=None, lora_alpha=None, scaling=1.0, update_bias=True, **kwargs):
@@ -22,7 +23,7 @@ def lora_get_embedding(modin, lora_features=None, lora_alpha=None, scaling=1.0, 
 
 	return _lora_m
 
-def std2lora(modin, lora_features=None, lora_alpha=None, scaling=1.0, update_bias=True, name_cfunc=lambda _: True):
+def std2lora(modin, lora_features=None, lora_alpha=None, scaling=1.0, update_bias=True, name_cfunc=name_cfunc_full):
 
 	if isinstance(modin, nn.Linear):
 		return lora_get_linear(modin, lora_features=lora_features, lora_alpha=lora_alpha, scaling=scaling, update_bias=update_bias), {".": modin}
@@ -69,7 +70,7 @@ def lora_filter(pd, lwset=set(["lora_wa", "lora_wb"])):
 
 	return {k: v for k, v in pd.items() if k.endswith(".lora_wa") or k.endswith(".lora_wb") or (k in lwset)}
 
-def merge_lora(pd, inplace=False, transpose=True, name_cfunc=lambda _: True):
+def merge_lora(pd, inplace=False, transpose=True, name_cfunc=name_cfunc_full):
 
 	rs = {}
 	_exs = set()
