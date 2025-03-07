@@ -1,5 +1,7 @@
 #encoding: utf-8
 
+import torch
+
 from utils.torch.ext import multinomial
 
 def SampleMax(x, dim=-1, keepdim=False, sample=False, top_k=1, top_p=0.0, temp=1.0):
@@ -16,7 +18,7 @@ def SampleMax(x, dim=-1, keepdim=False, sample=False, top_k=1, top_p=0.0, temp=1
 		if _legal_top_p:
 			if inds is None:
 				out, inds = out.sort(dim=dim, descending=True)
-			out = out.masked_fill(out.cumsum(dim).ge(top_p).int().cumsum(dim).gt(1), 0.0)
+			out = out.masked_fill(out.cumsum(dim).ge(top_p).to(torch.int32, non_blocking=True).cumsum(dim).gt(1), 0.0)
 		out = multinomial(out, 1, replacement=True, dim=dim)
 		if inds is not None:
 			out = inds.gather(dim, out)

@@ -4,7 +4,6 @@ import torch
 from math import exp, log, sqrt
 from torch import nn
 from torch.autograd import Function
-from torch.utils.cpp_extension import load
 
 from modules.act import Custom_Act, get_act, reduce_model as reduce_model_act
 from modules.dropout import Dropout, reduce_model as reduce_model_drop
@@ -14,7 +13,6 @@ from utils.fmt.parser import parse_none
 from utils.relpos.bucket import build_rel_pos_bucket, build_rel_pos_bucket_map
 from utils.relpos.rope import apply_rope
 from utils.torch.comp import torch_no_grad
-from utils.torch.pyc import transfer_CNone_tuple
 
 from cnfg.ihyp import *
 
@@ -52,9 +50,6 @@ class PositionwiseFF(nn.Module):
 
 		self.norm_residual = norm_residual
 
-		if self.c_available() and (use_glu is None):
-			self.c_init()
-
 	def forward(self, x, **kwargs):
 
 		_out = self.normer(x)
@@ -64,56 +59,6 @@ class PositionwiseFF(nn.Module):
 		out = out + (_out if self.norm_residual else x)
 
 		return out
-
-	def c_available(self):
-
-		return use_c_backend_pff and (type(self) == PositionwiseFF)
-
-	def c_init(self, bind=bind_c_forward):
-
-		try:
-			import pff_cpp
-		except Exception as e:
-			pff_cpp = load(name="pff_cpp", sources=["modules/cpp/base/ffn/pff.cpp", "modules/cpp/base/ffn/pff_func.cpp", "modules/cpp/act/act_func.cpp"], extra_cflags=extra_compile_args)
-		try:
-			import act_cpp
-		except Exception as e:
-			act_cpp = load(name="act_cpp", sources=["modules/cpp/act/act.cpp", "modules/cpp/act/act_func.cpp"], extra_cflags=extra_compile_args)
-		self.c_forward_func = pff_cpp.forward
-		self.c_act_func = act_cpp.get_func(adv_act if use_adv_act_default else "relu")
-		self.c_build_cache()
-		if bind:
-			PositionwiseFF.forward = PositionwiseFF.c_forward
-
-	def c_forward(self, x):
-
-		return self.c_forward_func(*self.c_build_inputs(x))
-
-	def c_build_cache(self):
-
-		self.bargs = {"net.1.inplace": (self.net[1].inplace if hasattr(self.net[1], "inplace") else False), "norm_residual": self.norm_residual}
-		dargs = {"normer.eps": self.normer.eps}
-		if len(self.net) > 3:
-			self.bargs["net.2.inplace"] = self.net[2].inplace
-			self.bargs["net.4.inplace"] = self.net[4].inplace
-			dargs["net.2.p"] = self.net[2].p
-		else:
-			dargs["net.2.p"] = 0.0
-		self.aargs = (self.c_act_func, dargs, self.normer.normalized_shape)
-		self.targs = dict(self.named_parameters())
-
-	def c_build_inputs(self, x):
-
-		i_d = self.targs.copy()
-		i_d["x"] = x
-		if len(self.net) > 3:
-			bargs = self.bargs.copy()
-			bargs["net.2.training"] = self.net[2].training
-			bargs["net.4.training"] = self.net[4].training
-		else:
-			bargs = self.bargs
-
-		return i_d, bargs, *self.aargs
 
 class PositionalEmb(nn.Module):
 
@@ -280,9 +225,6 @@ class MultiHeadAttn(nn.Module):
 		self.register_buffer("iK", None, persistent=False)
 		self.register_buffer("iV", None, persistent=False)
 		self.is_decoding = is_decoding
-
-		if self.c_available():
-			self.c_init()
 
 	# iQ: query (bsize, num_query, vsize)
 	# iK: keys (bsize, seql, vsize)
@@ -463,64 +405,6 @@ class MultiHeadAttn(nn.Module):
 			else:
 				return self.rope_build(length, sid=sid, dtype=self.rope_sin.dtype, device=self.rope_sin.device)
 
-	def c_available(self):
-
-		return use_c_backend_mhattn and (type(self) == MultiHeadAttn) and (type(self.normer) == nn.Softmax) and ((self.rel_pos is None) or (self.rel_pos_map is None))
-
-	def c_init(self, bind=bind_c_forward):
-
-		try:
-			import attn_cpp
-		except Exception as e:
-			attn_cpp = load(name="attn_cpp", sources=["modules/cpp/base/attn/attn.cpp"], extra_cflags=extra_compile_args)
-		self.c_forward_func = attn_cpp.forward
-		self.c_build_cache()
-		if bind:
-			MultiHeadAttn.forward = MultiHeadAttn.c_forward
-
-	def c_forward(self, iQ, iK, iV, mask=None, states=None):
-
-		return self.c_process_output(self.c_forward_func(*self.c_build_inputs(iQ, iK, iV, mask=mask, states=states)), iK, iV, states=states)
-
-	def c_build_cache(self):
-
-		iargs = {"num_head": self.num_head, "attn_dim": self.attn_dim}
-		if self.rel_pemb is not None:
-			iargs.update({"rel_pemb.padding_idx": self.rel_pemb.padding_idx, "clamp_min": self.clamp_min, "clamp_max": self.clamp_max, "rel_shift": self.rel_shift})
-		self.aargs = (iargs, 0.0 if self.drop is None else self.drop.p, inf_default,)
-		self.targs = dict(self.named_parameters())
-
-	def c_build_inputs(self, iQ, iK, iV, mask=None, states=None):
-
-		i_d = self.targs.copy()
-		i_d.update({"iQ": iQ, "iK":iK, "iV": iV})
-		if mask is not None:
-			i_d["mask"] = mask
-		_buf_d = dict(self.named_buffers())
-		if "iK" in _buf_d:
-			_buf_d["buf_iK"] = _buf_d.pop("iK")
-		if "iV" in _buf_d:
-			_buf_d["buf_iV"] = _buf_d.pop("iV")
-		i_d.update(_buf_d)
-		if self.rel_pemb is not None:
-			if self.ref_rel_posm is not None:
-				i_d["rel_pos_cache"] = self.ref_rel_posm.rel_pos_cache
-
-		return i_d, [] if states is None else transfer_CNone_tuple(states), *self.aargs, {"drop.inplace": False if self.drop is None else self.drop.inplace, "training": self.training, "drop.training": self.training if self.drop is None else self.drop.training}
-
-	def c_process_output(self, rs, iK, iV, states=None):
-
-		if self.rel_pemb is not None:
-			self.rel_pos_cache = rs["rel_pos_cache"]
-
-		evaluation = not self.training
-		if (states is not None) or evaluation:
-			real_iK, real_iV = rs["real_iK"], rs["real_iV"]
-			if evaluation:
-				self.iK, self.real_iK, self.iV, self.real_iV = iK, real_iK, iV, real_iV
-
-		return rs["out"] if states is None else (rs["out"], (real_iK, real_iV,),)
-
 # Accelerated MultiHeadAttn for self attention, use when Q == K == V
 class SelfAttn(nn.Module):
 
@@ -598,9 +482,6 @@ class SelfAttn(nn.Module):
 			self.register_buffer("alibi_cache", None, persistent=False)
 		else:
 			self.register_buffer("alibi", None, persistent=False)
-
-		if self.c_available():
-			self.c_init()
 
 	def forward(self, iQ, mask=None, states=None, **kwargs):
 
@@ -717,56 +598,6 @@ class SelfAttn(nn.Module):
 			else:
 				return self.rope_build(length, sid=sid, dtype=self.rope_sin.dtype, device=self.rope_sin.device)
 
-	def c_available(self):
-
-		return use_c_backend_selfattn and (type(self) == SelfAttn) and (type(self.normer) == nn.Softmax) and ((self.rel_pos is None) or (self.rel_pos_map is None))
-
-	def c_init(self, bind=bind_c_forward):
-
-		try:
-			import self_attn_cpp
-		except Exception as e:
-			self_attn_cpp = load(name="self_attn_cpp", sources=["modules/cpp/base/attn/self/attn.cpp"], extra_cflags=extra_compile_args)
-		self.c_forward_func = self_attn_cpp.forward
-		self.c_build_cache()
-		if bind:
-			SelfAttn.forward = SelfAttn.c_forward
-
-	def c_forward(self, iQ, mask=None, states=None):
-
-		return self.c_process_output(self.c_forward_func(*self.c_build_inputs(iQ, mask=mask, states=states)), states=states)
-
-	def c_build_cache(self):
-
-		iargs = {"num_head": self.num_head, "attn_dim": self.attn_dim}
-		if self.rel_pemb is not None:
-			iargs.update({"rel_pemb.padding_idx": self.rel_pemb.padding_idx, "clamp_min": self.clamp_min, "clamp_max": self.clamp_max, "rel_shift": self.rel_shift})
-		self.aargs = (iargs, 0.0 if self.drop is None else self.drop.p, inf_default,)
-		self.targs = dict(self.named_parameters())
-		self.targs.update(self.named_buffers())
-
-	def c_build_inputs(self, iQ, mask=None, states=None):
-
-		i_d = self.targs.copy()
-		i_d["iQ"] = iQ
-		if mask is not None:
-			i_d["mask"] = mask
-		if self.rel_pemb is not None:
-			if self.ref_rel_posm is not None:
-				i_d["rel_pos_cache"] = self.ref_rel_posm.rel_pos_cache
-
-		return i_d, [] if states is None else transfer_CNone_tuple(states), *self.aargs, {"drop.inplace": False if self.drop is None else self.drop.inplace, "drop.training": self.training if self.drop is None else self.drop.training}
-
-	def c_process_output(self, rs, states=None):
-
-		if self.rel_pemb is not None:
-			self.rel_pos_cache = rs["rel_pos_cache"]
-
-		if states is None:
-			return rs["out"]
-		else:
-			return rs["out"], (rs["real_iK"], rs["real_iV"],)
-
 # Accelerated MultiHeadAttn for cross attention, use when K == V
 class CrossAttn(nn.Module):
 
@@ -793,9 +624,6 @@ class CrossAttn(nn.Module):
 		self.register_buffer("real_iV", None, persistent=False)
 		self.register_buffer("iK", None, persistent=False)
 		self.is_decoding = is_decoding
-
-		if self.c_available():
-			self.c_init()
 
 	def forward(self, iQ, iK, mask=None, **kwargs):
 
@@ -849,52 +677,6 @@ class CrossAttn(nn.Module):
 		if self.real_iK is not None:
 			self.real_iK, self.real_iV = self.real_iK.index_select(dim, indices), self.real_iV.index_select(dim, indices)
 
-	def c_available(self):
-
-		return use_c_backend_crossattn and (type(self) == CrossAttn) and (type(self.normer) == nn.Softmax)
-
-	def c_init(self, bind=bind_c_forward):
-
-		try:
-			import cross_attn_cpp
-		except Exception as e:
-			cross_attn_cpp = load(name="cross_attn_cpp", sources=["modules/cpp/base/attn/cross/attn.cpp"], extra_cflags=extra_compile_args)
-		self.c_forward_func = cross_attn_cpp.forward
-		self.c_build_cache()
-		if bind:
-			CrossAttn.forward = CrossAttn.c_forward
-
-	def c_forward(self, iQ, iK, mask=None):
-
-		return self.c_process_output(self.c_forward_func(*self.c_build_inputs(iQ, iK, mask=mask)), iK)
-
-	def c_build_cache(self):
-
-		self.aargs = ({"num_head": self.num_head, "attn_dim": self.attn_dim}, 0.0 if self.drop is None else self.drop.p, inf_default,)
-		self.targs = dict(self.named_parameters())
-
-	def c_build_inputs(self, iQ, iK, mask=None):
-
-		i_d = self.targs.copy()
-		i_d["iQ"] = iQ
-		i_d["iK"] = iK
-		if mask is not None:
-			i_d["mask"] = mask
-		i_d.update(self.named_parameters())
-		_buf_d = dict(self.named_buffers())
-		if "iK" in _buf_d:
-			_buf_d["buf_iK"] = _buf_d.pop("iK")
-		i_d.update(_buf_d)
-
-		return i_d, *self.aargs, {"drop.inplace": False if self.drop is None else self.drop.inplace, "training": self.training, "drop.training": self.training if self.drop is None else self.drop.training}
-
-	def c_process_output(self, rs, iK):
-
-		if not self.training:
-			self.iK, self.real_iK, self.real_iV = iK, rs["real_iK"], rs["real_iV"]
-
-		return rs["out"]
-
 class ResMHAttn(nn.Module):
 
 	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
@@ -905,9 +687,6 @@ class ResMHAttn(nn.Module):
 		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 		self.norm_residual = norm_residual
-
-		if self.c_available():
-			self.c_init()
 
 	def forward(self, iQ, iK, iV, *inputs, **kwargs):
 
@@ -939,62 +718,6 @@ class ResMHAttn(nn.Module):
 		else:
 			self.net = base_module.net
 
-	def c_available(self):
-
-		return use_c_backend_mhattn and (type(self) == ResMHAttn) and self.net.c_available()
-
-	def c_init(self, bind=bind_c_forward):
-
-		try:
-			import res_attn_cpp
-		except Exception as e:
-			res_attn_cpp = load(name="res_attn_cpp", sources=["modules/cpp/base/resattn/attn.cpp"], extra_cflags=extra_compile_args)
-		self.c_forward_func = res_attn_cpp.forward
-		self.c_build_cache()
-		if bind:
-			ResMHAttn.forward = ResMHAttn.c_forward
-
-	def c_forward(self, iQ, iK, iV, mask=None, states=None):
-
-		return self.c_process_output(self.c_forward_func(*self.c_build_inputs(iQ, iK, iV, mask=mask, states=states)), iK, iV, states=states)
-
-	def c_build_cache(self):
-
-		iargs = {"net.num_head": self.net.num_head, "net.attn_dim": self.net.attn_dim}
-		if self.net.rel_pemb is not None:
-			iargs.update({"net.rel_pemb.padding_idx": self.net.rel_pemb.padding_idx, "net.clamp_min": self.net.clamp_min, "net.clamp_max": self.net.clamp_max, "net.rel_shift": self.net.rel_shift})
-		self.aargs = (iargs, {"normer.eps": self.normer.eps, "inf_value": inf_default, "net.drop.p": 0.0 if self.net.drop is None else self.net.drop.p, "drop.p": 0.0 if self.drop is None else self.drop.p}, self.normer.normalized_shape,)
-		self.bargs = {"net.drop.inplace": False if self.net.drop is None else self.net.drop.inplace, "drop.inplace": False if self.drop is None else self.drop.inplace, "norm_residual": self.norm_residual}
-		self.targs = dict(self.named_parameters())
-
-	def c_build_inputs(self, iQ, iK, iV, mask=None, states=None):
-
-		i_d = self.targs.copy()
-		i_d.update({"iQ": iQ, "iK":iK, "iV": iV})
-		if mask is not None:
-			i_d["mask"] = mask
-		i_d.update(self.named_buffers())
-		if self.net.rel_pemb is not None:
-			if self.net.ref_rel_posm is not None:
-				i_d["net.rel_pos_cache"] = self.net.ref_rel_posm.rel_pos_cache
-		bargs = self.bargs.copy()
-		bargs.update({"net.training": self.net.training, "net.drop.training": self.net.training if self.net.drop is None else self.net.drop.training, "drop.training": self.training if self.drop is None else self.drop.training})
-
-		return i_d, [] if states is None else transfer_CNone_tuple(states), *self.aargs, bargs
-
-	def c_process_output(self, rs, iK, iV, states=None):
-
-		if self.net.rel_pemb is not None:
-			self.net.rel_pos_cache = rs["net.rel_pos_cache"]
-
-		evaluation = not self.net.training
-		if (states is not None) or evaluation:
-			real_iK, real_iV = rs["net.real_iK"], rs["net.real_iV"]
-			if evaluation:
-				self.net.iK, self.net.real_iK, self.net.iV, self.net.real_iV = iK, real_iK, iV, real_iV
-
-		return rs["out"] if states is None else (rs["out"], (real_iK, real_iV,),)
-
 class ResSelfAttn(nn.Module):
 
 	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
@@ -1005,9 +728,6 @@ class ResSelfAttn(nn.Module):
 		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 		self.norm_residual = norm_residual
-
-		if self.c_available():
-			self.c_init()
 
 	def forward(self, iQ, *inputs, **kwargs):
 
@@ -1037,58 +757,6 @@ class ResSelfAttn(nn.Module):
 		else:
 			self.net = base_module.net
 
-	def c_available(self):
-
-		return use_c_backend_selfattn and (type(self) == ResSelfAttn) and self.net.c_available()
-
-	def c_init(self, bind=bind_c_forward):
-
-		try:
-			import res_self_attn_cpp
-		except Exception as e:
-			res_self_attn_cpp = load(name="res_self_attn_cpp", sources=["modules/cpp/base/resattn/self/attn.cpp"], extra_cflags=extra_compile_args)
-		self.c_forward_func = res_self_attn_cpp.forward
-		self.c_build_cache()
-		if bind:
-			ResSelfAttn.forward = ResSelfAttn.c_forward
-
-	def c_forward(self, iQ, mask=None, states=None):
-
-		return self.c_process_output(self.c_forward_func(*self.c_build_inputs(iQ, mask=mask, states=states)), states=states)
-
-	def c_build_cache(self):
-
-		iargs = {"net.num_head": self.net.num_head, "net.attn_dim": self.net.attn_dim}
-		if self.net.rel_pemb is not None:
-			iargs.update({"net.rel_pemb.padding_idx": self.net.rel_pemb.padding_idx, "net.clamp_min": self.net.clamp_min, "net.clamp_max": self.net.clamp_max, "net.rel_shift": self.net.rel_shift})
-		self.aargs = (iargs, {"normer.eps": self.normer.eps, "inf_value": inf_default, "net.drop.p": 0.0 if self.net.drop is None else self.net.drop.p, "drop.p": 0.0 if self.drop is None else self.drop.p}, self.normer.normalized_shape,)
-		self.bargs = {"net.drop.inplace": False if self.net.drop is None else self.net.drop.inplace, "drop.inplace": False if self.drop is None else self.drop.inplace, "norm_residual": self.norm_residual}
-		self.targs = dict(self.named_parameters())
-
-	def c_build_inputs(self, iQ, mask=None, states=None):
-
-		i_d = self.targs.copy()
-		i_d["iQ"] = iQ
-		if mask is not None:
-			i_d["mask"] = mask
-		if self.net.rel_pemb is not None:
-			if self.net.ref_rel_posm is not None:
-				i_d["net.rel_pos_cache"] = self.net.ref_rel_posm.rel_pos_cache
-		bargs = self.bargs.copy()
-		bargs.update({"net.training": self.net.training, "net.drop.training": self.net.training if self.net.drop is None else self.net.drop.training, "drop.training": self.training if self.drop is None else self.drop.training})
-
-		return i_d, [] if states is None else transfer_CNone_tuple(states), *self.aargs, bargs
-
-	def c_process_output(self, rs, states=None):
-
-		if self.net.rel_pemb is not None:
-			self.net.rel_pos_cache = rs["net.rel_pos_cache"]
-
-		if states is None:
-			return rs["out"]
-		else:
-			return rs["out"], (rs["net.real_iK"], rs["net.real_iV"],)
-
 class ResCrossAttn(nn.Module):
 
 	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):
@@ -1099,9 +767,6 @@ class ResCrossAttn(nn.Module):
 		self.normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 		self.norm_residual = norm_residual
-
-		if self.c_available():
-			self.c_init()
 
 	def forward(self, iQ, iK, *inputs, **kwargs):
 
@@ -1130,52 +795,6 @@ class ResCrossAttn(nn.Module):
 			self.net.load_base(base_module.net)
 		else:
 			self.net = base_module.net
-
-	def c_available(self):
-
-		return use_c_backend_crossattn and (type(self) == ResCrossAttn) and self.net.c_available()
-
-	def c_init(self, bind=bind_c_forward):
-
-		try:
-			import res_cross_attn_cpp
-		except Exception as e:
-			res_cross_attn_cpp = load(name="res_cross_attn_cpp", sources=["modules/cpp/base/resattn/cross/attn.cpp"], extra_cflags=extra_compile_args)
-		self.c_forward_func = res_cross_attn_cpp.forward
-		self.c_build_cache()
-		if bind:
-			ResCrossAttn.forward = ResCrossAttn.c_forward
-
-	def c_forward(self, iQ, iK, mask=None):
-
-		return self.c_process_output(self.c_forward_func(*self.c_build_inputs(iQ, iK, mask=mask)), iK)
-
-	def c_build_cache(self):
-
-		iargs = {"net.num_head": self.net.num_head, "net.attn_dim": self.net.attn_dim}
-		self.aargs = (iargs, {"normer.eps": self.normer.eps, "inf_value": inf_default, "net.drop.p": 0.0 if self.net.drop is None else self.net.drop.p, "drop.p": 0.0 if self.drop is None else self.drop.p}, self.normer.normalized_shape,)
-		self.bargs = {"net.drop.inplace": False if self.net.drop is None else self.net.drop.inplace, "drop.inplace": False if self.drop is None else self.drop.inplace, "norm_residual": self.norm_residual}
-		self.targs = dict(self.named_parameters())
-
-	def c_build_inputs(self, iQ, iK, mask=None):
-
-		i_d = self.targs.copy()
-		i_d["iQ"] = iQ
-		i_d["iK"] = iK
-		if mask is not None:
-			i_d["mask"] = mask
-		i_d.update(self.named_buffers())
-		bargs = self.bargs.copy()
-		bargs.update({"net.training": self.net.training, "net.drop.training": self.net.training if self.net.drop is None else self.net.drop.training, "drop.training": self.training if self.drop is None else self.drop.training})
-
-		return i_d, *self.aargs, bargs
-
-	def c_process_output(self, rs, iK):
-
-		if not self.net.training:
-			self.net.iK, self.net.real_iK, self.net.real_iV = iK, rs["net.real_iK"], rs["net.real_iV"]
-
-		return rs["out"]
 
 # Aggregation from: Exploiting Deep Representations for Neural Machine Translation
 class ResidueCombiner(nn.Module):

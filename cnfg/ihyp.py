@@ -8,15 +8,6 @@ from utils.fmt.parser import parse_double_value_tuple, parse_none
 
 from cnfg.hyp import *
 
-# C backend
-if use_c_backend is None:
-	use_c_backend_attn = use_c_backend_selfattn = use_c_backend_crossattn = use_c_backend_pff = use_c_backend_group = True
-	use_c_backend_act_func = False
-else:
-	use_c_backend_attn = use_c_backend_selfattn = use_c_backend_crossattn = use_c_backend_group = use_c_backend_pff = use_c_backend_act_func = use_c_backend
-use_c_backend_mhattn = use_c_backend_attn or use_c_backend_selfattn or use_c_backend_crossattn
-bind_c_forward = use_c_backend
-
 # the use of deterministic algorithms
 use_deterministic = not performance_over_reproduction
 allow_tf32 = allow_fp16_reduction = performance_over_reproduction

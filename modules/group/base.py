@@ -6,8 +6,6 @@ from torch import nn
 
 from utils.torch.comp import torch_no_grad
 
-from cnfg.ihyp import bind_c_forward, extra_compile_args, use_c_backend_group
-
 class GroupLinearCore(nn.Module):
 
 	# isize: input dimension (dimension per group * ngroup)
@@ -57,9 +55,6 @@ class GroupLinear(GroupLinearCore):
 		self.del_gdim = self.flatten_output and (not self.trans_input)
 		self.i_gdim = self.trans_input and (not self.flatten_output)
 
-		if self.c_available():
-			self.c_init()
-
 	# inputu: (..., isize)
 	def forward(self, inputu, weight=None, bias=None, **kwargs):
 
@@ -82,43 +77,3 @@ class GroupLinear(GroupLinearCore):
 			del _size[-2]
 
 		return out.contiguous().view(_size)
-
-	def c_available(self):
-
-		return use_c_backend_group and (type(self) == GroupLinear)
-
-	def c_init(self, bind=bind_c_forward):
-
-		try:
-			try:
-				import group_cpp
-			except Exception as e:
-				from torch.utils.cpp_extension import load
-				group_cpp = load(name="group_cpp", sources=["modules/cpp/group/group.cpp", "modules/cpp/group/group_func.cpp"], extra_cflags=extra_compile_args)
-			self.c_forward_func = group_cpp.forward
-		except:
-			self.c_forward_func = None
-		if self.c_forward_func is not None:
-			self.c_build_cache()
-			if bind:
-				GroupLinear.forward = GroupLinear.c_forward
-
-	def c_forward(self, inputu, weight=None, bias=None):
-
-		return self.c_forward_func(*self.c_build_inputs(inputu, weight=weight, bias=bias))
-
-	def c_build_cache(self):
-
-		self.aargs = ({"isize": self.isize, "ngroup": self.ngroup}, {"trans_input": self.trans_input, "shuffle": self.shuffle, "i_gdim": self.i_gdim, "del_gdim": self.del_gdim},)
-		self.targs = dict(self.named_parameters())
-
-	def c_build_inputs(self, inputu, weight=None, bias=None):
-
-		i_d = self.targs.copy()
-		i_d["inputu"] = inputu
-		if weight is not None:
-			i_d["weight"] = weight
-		if bias is not None:
-			i_d["bias"] = bias
-
-		return i_d, *self.aargs

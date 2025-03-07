@@ -24,11 +24,6 @@ from utils.torch.comp import torch_autocast, torch_inference_mode, torch_is_auto
 		>>> loss = criterion(y, target)
 """
 
-def replicate_fixing(module):
-
-	if hasattr(module, "c_available") and hasattr(module, "c_build_cache") and module.c_available():
-		module.c_build_cache()
-
 class DataParallelModel(DataParallel):
 
 	# host replicates should improve a little bit performance if there are additional calls to update_replicas and collect_gradients in the training scripts.
@@ -101,8 +96,8 @@ class DataParallelModel(DataParallel):
 	def make_replicas(self):
 
 		self.nets = nn.ModuleList(replicate(self.module, self.device_ids, True))
-		for net in self.nets[1:]:
-			net.apply(replicate_fixing)
+		#for net in self.nets[1:]:
+			#net.apply(replicate_fixing)
 		self.ngradev = 0
 
 	def collect_gradients(self):

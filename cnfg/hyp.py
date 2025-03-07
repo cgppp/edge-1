@@ -80,6 +80,3 @@ contiguous_parameters = False
 
 # the number of checkpoints kept for `cnfg.save_auto_clean`
 n_keep_best = 1
-
-# use C backend. Disabling it leads to better performance.
-use_c_backend = False

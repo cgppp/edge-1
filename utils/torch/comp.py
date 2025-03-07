@@ -8,6 +8,7 @@ from cnfg.ihyp import allow_fp16_reduction, allow_tf32, enable_torch_check, torc
 
 secure_type_map = {torch.float16: torch.float64, torch.float32: torch.float64, torch.uint8: torch.int64, torch.int8: torch.int64, torch.int16: torch.int64, torch.int32: torch.int64}
 tensor_numpy_map = {}
+low_precision_floats = set([torch.float16])
 
 try:
 	if hasattr(torch, "set_float32_matmul_precision"):
@@ -197,6 +198,18 @@ fp16_default_tensor_type = torch.bfloat16 if use_bf4fp16 and cuda_support_bf16 e
 if torch_support_bf16:
 	secure_type_map[torch.bfloat16] = torch.float64
 	tensor_numpy_map[torch.bfloat16] = torch.float32
+	low_precision_floats.add(torch.bfloat16)
+# handling default type for fp8
+torch_support_f8e4m3 = hasattr(torch, "float8_e4m3fn")
+if torch_support_f8e4m3:
+	secure_type_map[torch.float8_e4m3fn] = torch.float64
+	tensor_numpy_map[torch.float8_e4m3fn] = torch.float32
+	low_precision_floats.add(torch.float8_e4m3fn)
+torch_support_f8e5m2 = hasattr(torch, "float8_e5m2")
+if torch_support_f8e5m2:
+	secure_type_map[torch.float8_e5m2] = torch.float64
+	tensor_numpy_map[torch.float8_e5m2] = torch.float32
+	low_precision_floats.add(torch.float8_e5m2)
 
 # handling torch.cuda.amp, fp16 will NOT be really enabled if torch.amp or torch.cuda.amp does not exist (for early versions)
 _use_torch_amp_autocast = hasattr(torch, "amp") and hasattr(torch.amp, "autocast") and hasattr(torch.amp, "GradScaler")
