@@ -26,7 +26,7 @@ class Decoder(DecoderBase):
 		super(Decoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=forbidden_index, **kwargs)
 
 		self.pemb = PositionalEmb(isize, xseql, 0, 0)
-		self.lang_emb = nn.Parameter(torch.Tensor(2, isize).uniform_(- sqrt(2.0 / (isize + 2)), sqrt(2.0 / (isize + 2)))) if lang_emb is None else lang_emb
+		self.lang_emb = nn.Parameter(torch.empty(2, isize).uniform_(- sqrt(2.0 / (isize + 2)), sqrt(2.0 / (isize + 2)))) if lang_emb is None else lang_emb
 
 	def forward(self, inpute, inputo, src_pad_mask=None, lang_id=0, psind=None, **kwargs):
 

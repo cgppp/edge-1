@@ -39,6 +39,9 @@ if _config_cudnn_deterministic_variable:
 
 torch.backends.cudnn.benchmark = False
 
+if hasattr(torch, "utils") and hasattr(torch.utils, "deterministic") and hasattr(torch.utils.deterministic, "fill_uninitialized_memory"):
+	torch.utils.deterministic.fill_uninitialized_memory = False
+
 if hasattr(torch, "autograd") and hasattr(torch.autograd, "set_detect_anomaly"):
 	try:
 		torch.autograd.set_detect_anomaly(enable_torch_check)

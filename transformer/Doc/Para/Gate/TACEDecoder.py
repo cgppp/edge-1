@@ -22,7 +22,7 @@ class Decoder(DecoderBase):
 		super(Decoder, self).__init__(isize, nwd, num_layer, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=forbidden_index, nprev_context=nprev_context, num_layer_cross=num_layer_cross, drop_tok=drop_tok, **kwargs)
 
 		self.nlo = num_layer + 1
-		self.tattn_w = nn.Parameter(torch.Tensor(self.nlo).uniform_(- sqrt(1.0 / self.nlo), sqrt(1.0 / self.nlo)))
+		self.tattn_w = nn.Parameter(torch.empty(self.nlo).uniform_(- sqrt(1.0 / self.nlo), sqrt(1.0 / self.nlo)))
 		self.tattn_drop = Dropout(dropout) if dropout > 0.0 else None
 
 	# inpute: (bsize * nsent, seql, isize)

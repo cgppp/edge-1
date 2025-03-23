@@ -37,12 +37,12 @@ class Decoder(DecoderBase):
 
 		_num_weight = max(3, num_layer // 2) if num_weight is None else num_weight
 
-		self.sattnwb1 = nn.Parameter(torch.Tensor(_ahsize * 3, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
-		self.sattnwb2 = nn.Parameter(torch.Tensor(isize, _ahsize, _num_weight).uniform_(- 1.0 / sqrt(_ahsize), 1.0 / sqrt(_ahsize)))
-		self.cattnwb1 = nn.Parameter(torch.Tensor(_ahsize, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
-		self.cattnwb2 = nn.Parameter(torch.Tensor(_ahsize * 2, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
-		self.cattnwb3 = nn.Parameter(torch.Tensor(isize, _ahsize, _num_weight).uniform_(- 1.0 / sqrt(_ahsize), 1.0 / sqrt(_ahsize)))
-		self.ffnwb1 = nn.Parameter(torch.Tensor(_fhsize, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
-		self.ffnwb2 = nn.Parameter(torch.Tensor(isize, _fhsize, _num_weight).uniform_(- 1.0 / sqrt(_fhsize), 1.0 / sqrt(_fhsize)))
+		self.sattnwb1 = nn.Parameter(torch.empty(_ahsize * 3, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
+		self.sattnwb2 = nn.Parameter(torch.empty(isize, _ahsize, _num_weight).uniform_(- 1.0 / sqrt(_ahsize), 1.0 / sqrt(_ahsize)))
+		self.cattnwb1 = nn.Parameter(torch.empty(_ahsize, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
+		self.cattnwb2 = nn.Parameter(torch.empty(_ahsize * 2, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
+		self.cattnwb3 = nn.Parameter(torch.empty(isize, _ahsize, _num_weight).uniform_(- 1.0 / sqrt(_ahsize), 1.0 / sqrt(_ahsize)))
+		self.ffnwb1 = nn.Parameter(torch.empty(_fhsize, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
+		self.ffnwb2 = nn.Parameter(torch.empty(isize, _fhsize, _num_weight).uniform_(- 1.0 / sqrt(_fhsize), 1.0 / sqrt(_fhsize)))
 
 		self.nets = nn.ModuleList([DecoderLayer(isize, self.sattnwb1, self.sattnwb2, self.cattnwb1, self.cattnwb2, self.cattnwb3, self.ffnwb1, self.ffnwb2, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize) for i in range(num_layer)])

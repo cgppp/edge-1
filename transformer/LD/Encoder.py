@@ -51,7 +51,7 @@ class Encoder(EncoderBase):
 		else:
 			self.nets = nn.ModuleList([EncoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize) for i in range(num_layer)])
 
-		self.sc_tattn_w = nn.Parameter(torch.Tensor(num_layer + 1, num_layer_dec).uniform_(- sqrt(1.0 / (num_layer + 1)), sqrt(1.0 / (num_layer + 1))))
+		self.sc_tattn_w = nn.Parameter(torch.empty(num_layer + 1, num_layer_dec).uniform_(- sqrt(1.0 / (num_layer + 1)), sqrt(1.0 / (num_layer + 1))))
 		self.sc_tattn_drop = Dropout(dropout) if dropout > 0.0 else None
 
 		self.mxct = max_chunk_tokens

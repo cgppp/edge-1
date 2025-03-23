@@ -72,7 +72,7 @@ class Decoder(DecoderBase):
 
 		self.gdec = nn.ModuleList([DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize) for i in range(num_layer_cross)])
 		self.out_normer_ctx = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
-		self.sent_pemb = nn.Parameter(torch.Tensor(nprev_context, isize * 2).uniform_(- sqrt(2.0 / (isize * 2 + nprev_context)), sqrt(2.0 / (isize * 2 + nprev_context))))
+		self.sent_pemb = nn.Parameter(torch.empty(nprev_context, isize * 2).uniform_(- sqrt(2.0 / (isize * 2 + nprev_context)), sqrt(2.0 / (isize * 2 + nprev_context))))
 		self.nprev_context = nprev_context
 
 		# warning: if _dtok <= 0.0, noise should be introduced to inputot in the forward function

@@ -47,7 +47,7 @@ class Decoder(DecoderBase):
 		else:
 			self.nets = nn.ModuleList([DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize) for i in range(num_layer)])
 
-		self.tattn_w = nn.Parameter(torch.Tensor(num_layer * num_head).uniform_(- sqrt(1.0 / (num_layer * num_head)), sqrt(1.0 / (num_layer * num_head))))
+		self.tattn_w = nn.Parameter(torch.empty(num_layer * num_head).uniform_(- sqrt(1.0 / (num_layer * num_head)), sqrt(1.0 / (num_layer * num_head))))
 		self.mix_w = nn.Parameter(torch.zeros(num_mix)) if num_mix > 0 else None
 		self.tattn_drop = Dropout(dropout) if dropout > 0.0 else None
 

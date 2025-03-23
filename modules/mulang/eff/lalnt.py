@@ -18,7 +18,7 @@ class MWLinear(MBLinear):
 
 		super(MWLinear, self).__init__(in_features, out_features, nbias, bias=False)
 
-		self.weight = nn.Parameter(torch.Tensor(nbias, out_features, in_features).uniform_(- sqrt(1.0 / in_features), sqrt(1.0 / in_features)))
+		self.weight = nn.Parameter(torch.empty(nbias, out_features, in_features).uniform_(- sqrt(1.0 / in_features), sqrt(1.0 / in_features)))
 
 	def forward(self, x, taskid, **kwargs):
 

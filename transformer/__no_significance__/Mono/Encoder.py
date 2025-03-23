@@ -14,7 +14,7 @@ class Encoder(EncoderBase):
 
 		super(Encoder, self).__init__(isize, nwd, num_layer, fhsize=fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, xseql=xseql, ahsize=ahsize, norm_output=norm_output, **kwargs)
 
-		self.lang_emb = nn.Parameter(torch.Tensor(2, isize).uniform_(- sqrt(2.0 / (isize + 2)), sqrt(2.0 / (isize + 2))))
+		self.lang_emb = nn.Parameter(torch.empty(2, isize).uniform_(- sqrt(2.0 / (isize + 2)), sqrt(2.0 / (isize + 2))))
 
 	def forward(self, inputs, mask=None, lang_id=0, **kwargs):
 

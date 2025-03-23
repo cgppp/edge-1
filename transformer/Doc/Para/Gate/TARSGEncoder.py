@@ -47,7 +47,7 @@ class Encoder(EncoderBase):
 		self.enc = LOEncoder(isize, nwd, num_layer, _fhsize, dropout, attn_drop, act_drop, num_head, xseql, _ahsize, norm_output)
 
 		self.nlo = num_layer + 1
-		self.tattn_w = nn.Parameter(torch.Tensor(self.nlo).uniform_(- sqrt(1.0 / self.nlo), sqrt(1.0 / self.nlo)))
+		self.tattn_w = nn.Parameter(torch.empty(self.nlo).uniform_(- sqrt(1.0 / self.nlo), sqrt(1.0 / self.nlo)))
 		self.tattn_drop = Dropout(dropout) if dropout > 0.0 else None
 
 	# inputs: (bsize, nsent, seql), 0, ... , nsent - 1

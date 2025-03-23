@@ -47,7 +47,7 @@ class Decoder(DecoderBase):
 
 		self.model_name = model_name
 		self.wemb.padding_idx = pad_id
-		self.pemb = None if disable_pemb else nn.Parameter(torch.Tensor(xseql, isize).uniform_(- sqrt(2.0 / (isize + xseql)), sqrt(2.0 / (isize + xseql))))
+		self.pemb = None if disable_pemb else nn.Parameter(torch.empty(xseql, isize).uniform_(- sqrt(2.0 / (isize + xseql)), sqrt(2.0 / (isize + xseql))))
 		self.emb_normer = nn.LayerNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
 
 		if share_layer:

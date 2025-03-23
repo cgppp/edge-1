@@ -504,7 +504,7 @@ class Decoder(nn.Module):
 
 		if self.classifier.weight.is_set_to(self.wemb.weight):
 			_tmp = self.classifier.weight
-			_new_w = nn.Parameter(torch.Tensor(_tmp.size()))
+			_new_w = nn.Parameter(torch.empty(_tmp.size()))
 			with torch_no_grad():
 				_new_w.data.copy_(_tmp.data)
 			self.classifier.weight = _new_w

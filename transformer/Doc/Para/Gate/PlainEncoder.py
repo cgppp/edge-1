@@ -21,7 +21,7 @@ class Encoder(nn.Module):
 
 		self.enc = EncoderBase(isize, nwd, num_layer, _fhsize, dropout, attn_drop, act_drop, num_head, xseql, _ahsize, norm_output)
 
-		self.sent_pemb = nn.Parameter(torch.Tensor(nprev_context, isize).uniform_(- sqrt(2.0 / (isize + nprev_context)), sqrt(2.0 / (isize + nprev_context))))
+		self.sent_pemb = nn.Parameter(torch.empty(nprev_context, isize).uniform_(- sqrt(2.0 / (isize + nprev_context)), sqrt(2.0 / (isize + nprev_context))))
 		self.nprev_context = nprev_context
 
 	# inputs: (bsize, nsent, seql), 0, ... , nsent - 1

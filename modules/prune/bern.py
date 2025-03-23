@@ -102,9 +102,9 @@ class Linear(nn.Module):
 		super(Linear, self).__init__()
 		self.in_features = in_features
 		self.out_features = out_features
-		self.weight = BernoulliParameter(torch.Tensor(out_features, in_features))
+		self.weight = BernoulliParameter(torch.empty(out_features, in_features))
 		if bias:
-			self.bias = BernoulliParameter(torch.Tensor(out_features))
+			self.bias = BernoulliParameter(torch.empty(out_features))
 		else:
 			self.register_parameter("bias", None)
 		self.reset_parameters()
@@ -130,9 +130,9 @@ class LinearBn(nn.Module):
 		super(LinearBn, self).__init__()
 		self.in_features = in_features
 		self.out_features = out_features
-		self.weight = BernoulliParameter(torch.Tensor(out_features, in_features))
+		self.weight = BernoulliParameter(torch.empty(out_features, in_features))
 		if bias:
-			self.bias = nn.Parameter(torch.Tensor(out_features))
+			self.bias = nn.Parameter(torch.empty(out_features))
 		else:
 			self.register_parameter("bias", None)
 		self.reset_parameters()
@@ -169,7 +169,7 @@ class Embedding(nn.Module):
 		self.norm_type = norm_type
 		self.scale_grad_by_freq = scale_grad_by_freq
 		if _weight is None:
-			self.weight = BernoulliParameter(torch.Tensor(num_embeddings, embedding_dim))
+			self.weight = BernoulliParameter(torch.empty(num_embeddings, embedding_dim))
 			self.reset_parameters()
 		else:
 			assert list(_weight.shape) == [num_embeddings, embedding_dim], \
@@ -228,8 +228,8 @@ class LayerNorm(nn.Module):
 		self.eps = eps
 		self.elementwise_affine = elementwise_affine
 		if self.elementwise_affine:
-			self.weight = BernoulliParameter(torch.Tensor(*normalized_shape))
-			self.bias = BernoulliParameter(torch.Tensor(*normalized_shape))
+			self.weight = BernoulliParameter(torch.empty(*normalized_shape))
+			self.bias = BernoulliParameter(torch.empty(*normalized_shape))
 		else:
 			self.register_parameter("weight", None)
 			self.register_parameter("bias", None)

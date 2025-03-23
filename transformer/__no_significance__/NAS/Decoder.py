@@ -270,8 +270,8 @@ class Decoder(DecoderBase):
 		super(Decoder, self).__init__(isize, nwd, num_layer, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, emb_w=emb_w, num_head=num_head, xseql=xseql, ahsize=_ahsize, norm_output=norm_output, bindemb=bindemb, forbidden_index=forbidden_index, **kwargs)
 
 		num_edge = ((1 + num_nod) * num_nod // 2) if num_nod < max_prev_nodes + 1 else ((1 + max_prev_nodes) * max_prev_nodes // 2 + max_prev_nodes * (num_nod - max_prev_nodes))
-		self.node_p = nn.Parameter(torch.Tensor(num_nod, 8).uniform_(- sqrt(2.0 / (8 + num_nod)), sqrt(2.0 / (8 + num_nod))))
-		self.edge_p = nn.Parameter(torch.Tensor(3, num_edge, 5).uniform_(- sqrt(2.0 / (5 + num_edge)), sqrt(2.0 / (5 + num_edge))))
+		self.node_p = nn.Parameter(torch.empty(num_nod, 8).uniform_(- sqrt(2.0 / (8 + num_nod)), sqrt(2.0 / (8 + num_nod))))
+		self.edge_p = nn.Parameter(torch.empty(3, num_edge, 5).uniform_(- sqrt(2.0 / (5 + num_edge)), sqrt(2.0 / (5 + num_edge))))
 
 		self.nets = nn.ModuleList([DecoderLayer(isize, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize, False, num_nod, max_prev_nodes, self.node_p, self.edge_p) for i in range(num_layer)])
 

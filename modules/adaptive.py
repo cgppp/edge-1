@@ -28,14 +28,14 @@ class AdaptiveEmbedding(nn.Module):
 			self.emb_layers.append(nn.Embedding(n_token, d_embed, padding_idx=padding_idx, sparse=sample_softmax))
 			if _d_proj != d_embed:
 				_init_scale = 1.0 / sqrt(d_embed)
-				self.emb_projs.append(nn.Parameter(torch.Tensor(_d_proj, d_embed).uniform_(-_init_scale, _init_scale)))
+				self.emb_projs.append(nn.Parameter(torch.empty(_d_proj, d_embed).uniform_(-_init_scale, _init_scale)))
 		else:
 			for i in range(len(self.cutoffs)):
 				l_idx, r_idx = self.cutoff_ends[i], self.cutoff_ends[i + 1]
 				d_emb_i = d_embed // (div_val ** i)
 				self.emb_layers.append(nn.Embedding(r_idx - l_idx, d_emb_i, padding_idx=padding_idx))
 				_init_scale = 1.0 / sqrt(d_emb_i)
-				self.emb_projs.append(nn.Parameter(torch.Tensor(_d_proj, d_emb_i).uniform_(-_init_scale, _init_scale)))
+				self.emb_projs.append(nn.Parameter(torch.empty(_d_proj, d_emb_i).uniform_(-_init_scale, _init_scale)))
 
 	def forward(self, input, **kwargs):
 
@@ -92,7 +92,7 @@ class ProjectedAdaptiveLogSoftmax(nn.Module):
 			_init_scale = 1.0 / sqrt(d_embed)
 			for i in range(len(self.cutoffs)):
 				if _d_proj != d_embed:
-					self.out_projs.append(nn.Parameter(torch.Tensor(_d_proj, d_embed).uniform_(-_init_scale, _init_scale)))
+					self.out_projs.append(nn.Parameter(torch.empty(_d_proj, d_embed).uniform_(-_init_scale, _init_scale)))
 				else:
 					self.out_projs.append(None)
 
@@ -102,7 +102,7 @@ class ProjectedAdaptiveLogSoftmax(nn.Module):
 				l_idx, r_idx = self.cutoff_ends[i], self.cutoff_ends[i + 1]
 				d_emb_i = d_embed // (div_val ** i)
 				_init_scale = 1.0 / sqrt(d_emb_i)
-				self.out_projs.append(nn.Parameter(torch.Tensor(_d_proj, d_emb_i).uniform_(-_init_scale, _init_scale)))
+				self.out_projs.append(nn.Parameter(torch.empty(_d_proj, d_emb_i).uniform_(-_init_scale, _init_scale)))
 
 				self.out_layers.append(nn.Linear(d_emb_i, r_idx - l_idx))
 

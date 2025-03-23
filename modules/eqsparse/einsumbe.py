@@ -14,7 +14,7 @@ class EqsLinear(nn.Module):
 		super(EqsLinear, self).__init__()
 
 		self.in_features, self.out_features, self.num_conn = in_features, out_features, num_conn
-		self.weight = nn.Parameter(torch.Tensor(out_features, num_conn))
+		self.weight = nn.Parameter(torch.empty(out_features, num_conn))
 		self.bias = nn.Parameter(torch.zeros(out_features)) if bias else None
 		self.register_buffer("conn", torch.tensor(build_random_conn_inds(in_features, out_features, num_conn), dtype=torch.long), persistent=True)
 		self.reset_parameters()

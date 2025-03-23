@@ -34,9 +34,9 @@ class Encoder(EncoderBase):
 
 		_num_weight = max(3, num_layer // 2) if num_weight is None else num_weight
 
-		self.attnwb1 = nn.Parameter(torch.Tensor(_ahsize * 3, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
-		self.attnwb2 = nn.Parameter(torch.Tensor(isize, _ahsize, _num_weight).uniform_(- 1.0 / sqrt(_ahsize), 1.0 / sqrt(_ahsize)))
-		self.ffnwb1 = nn.Parameter(torch.Tensor(_fhsize, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
-		self.ffnwb2 = nn.Parameter(torch.Tensor(isize, _fhsize, _num_weight).uniform_(- 1.0 / sqrt(_fhsize), 1.0 / sqrt(_fhsize)))
+		self.attnwb1 = nn.Parameter(torch.empty(_ahsize * 3, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
+		self.attnwb2 = nn.Parameter(torch.empty(isize, _ahsize, _num_weight).uniform_(- 1.0 / sqrt(_ahsize), 1.0 / sqrt(_ahsize)))
+		self.ffnwb1 = nn.Parameter(torch.empty(_fhsize, isize, _num_weight).uniform_(- 1.0 / sqrt(isize), 1.0 / sqrt(isize)))
+		self.ffnwb2 = nn.Parameter(torch.empty(isize, _fhsize, _num_weight).uniform_(- 1.0 / sqrt(_fhsize), 1.0 / sqrt(_fhsize)))
 
 		self.nets = nn.ModuleList([EncoderLayer(isize, self.attnwb1, self.attnwb2, self.ffnwb1, self.ffnwb2, _fhsize, dropout, attn_drop, act_drop, num_head, _ahsize) for i in range(num_layer)])

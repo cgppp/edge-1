@@ -72,7 +72,7 @@ class PositionalEmb(nn.Module):
 		super(PositionalEmb, self).__init__()
 
 		self.num_pos, self.num_dim, self.poff, self.doff, self.alpha, self.sinusoid_base_frequency = num_pos, num_dim, pos_offset, dim_offset, alpha, sinusoid_base_frequency
-		self.register_buffer("w", torch.Tensor(num_pos, num_dim), persistent=False)
+		self.register_buffer("w", torch.empty(num_pos, num_dim), persistent=False)
 		self.reset_parameters()
 
 	# x: input (bsize, seql)
@@ -828,7 +828,7 @@ class Scorer(nn.Module):
 
 		super(Scorer, self).__init__()
 
-		self.w = nn.Parameter(torch.Tensor(isize).uniform_(- sqrt(1.0 / isize), sqrt(1.0 / isize)))
+		self.w = nn.Parameter(torch.empty(isize).uniform_(- sqrt(1.0 / isize), sqrt(1.0 / isize)))
 		self.bias = nn.Parameter(torch.zeros(1)) if bias else None
 
 	def forward(self, x, **kwargs):
@@ -993,7 +993,7 @@ class MHAttnSummer(nn.Module):
 
 		super(MHAttnSummer, self).__init__()
 
-		self.w = nn.Parameter(torch.Tensor(1, 1, isize).uniform_(- sqrt(1.0 / isize), sqrt(1.0 / isize)))
+		self.w = nn.Parameter(torch.empty(1, 1, isize).uniform_(- sqrt(1.0 / isize), sqrt(1.0 / isize)))
 		self.attn = CrossAttn(isize, isize if ahsize is None else ahsize, isize, num_head, dropout=attn_drop)
 
 	# x: (bsize, seql, isize)
@@ -1033,7 +1033,7 @@ class CoordinateEmb(nn.Module):
 		super(CoordinateEmb, self).__init__()
 
 		self.num_pos, self.num_steps, self.num_dim, self.poff, self.doff, self.alpha, self.sinusoid_base_frequency = num_pos, num_steps, num_dim, pos_offset, dim_offset, alpha, sinusoid_base_frequency
-		self.register_buffer("w", torch.Tensor(num_steps, num_pos, num_dim), persistent=False)
+		self.register_buffer("w", torch.empty(num_steps, num_pos, num_dim), persistent=False)
 		self.reset_parameters()
 
 	# x: input (bsize, seql)
@@ -1094,7 +1094,7 @@ class Temperature(nn.Module):
 
 		super(Temperature, self).__init__()
 
-		self.w = nn.Parameter(torch.Tensor(isize).uniform_(- sqrt(1.0 / isize), sqrt(1.0 / isize)))
+		self.w = nn.Parameter(torch.empty(isize).uniform_(- sqrt(1.0 / isize), sqrt(1.0 / isize)))
 		self.bias = nn.Parameter(torch.zeros(1))
 		self.act = nn.Tanh()
 		self.k = nn.Parameter(torch.ones(1))

@@ -20,7 +20,7 @@ class GroupLinearCore(nn.Module):
 		self.isize = isize // ngroup
 		self.osize = osize // ngroup
 
-		self.weight = nn.Parameter(torch.Tensor(ngroup, self.isize, self.osize).uniform_(- sqrt(1.0 / self.isize), sqrt(1.0 / self.isize)))
+		self.weight = nn.Parameter(torch.empty(ngroup, self.isize, self.osize).uniform_(- sqrt(1.0 / self.isize), sqrt(1.0 / self.isize)))
 		self.bias = nn.Parameter(torch.zeros(ngroup, 1, self.osize)) if bias else None
 
 	# inputu: (ngroup, bsize, isize)

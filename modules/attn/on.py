@@ -21,7 +21,7 @@ class SelfAttn(nn.Module):
 		self.num_head = num_head
 		self.num_anchor = self.attn_dim if num_anchor is None else num_anchor
 
-		self.anchors = nn.Parameter(torch.Tensor(1, self.num_head, self.num_anchor, self.attn_dim).uniform_(- sqrt(1.0 / self.attn_dim), sqrt(1.0 / self.attn_dim)))
+		self.anchors = nn.Parameter(torch.empty(1, self.num_head, self.num_anchor, self.attn_dim).uniform_(- sqrt(1.0 / self.attn_dim), sqrt(1.0 / self.attn_dim)))
 		self.adaptor = Linear(isize, self.hsize * 4, bias=enable_proj_bias)# input: iQ, output: a_k, q, a_v1, a_v2
 
 		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=enable_bias)
@@ -95,7 +95,7 @@ class Summer(nn.Module):
 		self.num_head = num_head
 		self.num_anchor = self.attn_dim if num_anchor is None else num_anchor
 
-		self.anchors = nn.Parameter(torch.Tensor(1, self.num_head, self.num_anchor, self.attn_dim).uniform_(- sqrt(1.0 / self.attn_dim), sqrt(1.0 / self.attn_dim)))
+		self.anchors = nn.Parameter(torch.empty(1, self.num_head, self.num_anchor, self.attn_dim).uniform_(- sqrt(1.0 / self.attn_dim), sqrt(1.0 / self.attn_dim)))
 		self.kv_adaptor = Linear(isize, self.hsize * 2, bias=enable_proj_bias)# input: iQ, output: a_k, q, a_v1, a_v2
 
 		self.outer = Linear(self.hsize, parse_none(osize, isize), bias=enable_bias)

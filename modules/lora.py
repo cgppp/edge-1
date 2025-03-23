@@ -17,7 +17,7 @@ class Linear(nn.Linear):
 		if self.bias is not None:
 			self.bias.requires_grad_(update_bias)
 		self.lora_features, self.scaling = lora_features, (scaling if lora_alpha is None else float(lora_alpha) / float(lora_features))
-		self.lora_wa = nn.Parameter(torch.Tensor(in_features, lora_features, dtype=self.weight.dtype, device=self.weight.device))
+		self.lora_wa = nn.Parameter(torch.empty(in_features, lora_features, dtype=self.weight.dtype, device=self.weight.device))
 		self.lora_wb = nn.Parameter(torch.zeros(lora_features, out_features, dtype=self.weight.dtype, device=self.weight.device))
 		self.fix_init = self.reset_parameters
 		self.reset_parameters()
@@ -90,7 +90,7 @@ class Embedding(nn.Embedding):
 		super(Embedding, self).__init__(num_embeddings, embedding_dim, padding_idx=padding_idx, max_norm=max_norm, norm_type=norm_type, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse, _weight=_weight, **kwargs)
 		self.weight.requires_grad_(False)
 		self.lora_features, self.scaling = lora_features, (scaling if lora_alpha is None else float(lora_alpha) / float(lora_features))
-		self.lora_wa = nn.Parameter(torch.Tensor(num_embeddings, lora_features, dtype=self.weight.dtype, device=self.weight.device))
+		self.lora_wa = nn.Parameter(torch.empty(num_embeddings, lora_features, dtype=self.weight.dtype, device=self.weight.device))
 		self.lora_wb = nn.Parameter(torch.zeros(lora_features, embedding_dim, dtype=self.weight.dtype, device=self.weight.device))
 		self.fix_init = self.reset_parameters
 		if _weight is None:

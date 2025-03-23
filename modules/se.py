@@ -18,7 +18,7 @@ class Squeezer(nn.Module):
 		super(Squeezer, self).__init__()
 
 		_ = 1.0 / sqrt(float(k))
-		self.weight = nn.Parameter(torch.Tensor(isize // k, k, 1).uniform_(-_, _))
+		self.weight = nn.Parameter(torch.empty(isize // k, k, 1).uniform_(-_, _))
 		self.drop = Dropout(dropout, inplace=False) if dropout > 0.0 else None
 		self.register_buffer("cache", None, persistent=False)
 
@@ -47,7 +47,7 @@ class Expander(nn.Module):
 		super(Expander, self).__init__()
 
 		_ = 1.0 / sqrt(float(k))
-		self.weight = nn.Parameter(torch.Tensor(isize, k).uniform_(-_, _))
+		self.weight = nn.Parameter(torch.empty(isize, k).uniform_(-_, _))
 		self.drop = Dropout(dropout, inplace=False) if dropout > 0.0 else None
 		self.register_buffer("cache", None, persistent=False)
 

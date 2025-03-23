@@ -71,13 +71,13 @@ class RLTLinear(nn.Module):
 		self.out_features = out_features
 		self.ngroup = ngroup
 		self.p = max(0.5, (1.0 - 1.0 / ngroup)) if p is None else p
-		self.weight = nn.Parameter(torch.Tensor(ngroup, out_features, in_features))
+		self.weight = nn.Parameter(torch.empty(ngroup, out_features, in_features))
 		if bias:
 			self.bias = nn.Parameter(torch.zeros(ngroup, out_features))
 		else:
 			self.register_parameter("bias", None)
-		self.drop_i = nn.Parameter(torch.Tensor(ngroup, 1, in_features))
-		self.drop_o = nn.Parameter(torch.Tensor(ngroup, out_features, 1))
+		self.drop_i = nn.Parameter(torch.empty(ngroup, 1, in_features))
+		self.drop_o = nn.Parameter(torch.empty(ngroup, out_features, 1))
 		self.fix_init()
 
 	def reset_parameters(self):
@@ -182,9 +182,9 @@ class BNLinear(nn.Module):
 		self.in_features = in_features
 		self.out_features = out_features
 		self.p = max(0.75, 1.0 - 1.0 / (ngroup * ngroup)) if p is None else p
-		self.weight = BernoulliParameter(torch.Tensor(ngroup, out_features, in_features), p=self.p)
+		self.weight = BernoulliParameter(torch.empty(ngroup, out_features, in_features), p=self.p)
 		if bias:
-			self.bias = BernoulliParameter(torch.Tensor(ngroup, out_features), p=self.p)
+			self.bias = BernoulliParameter(torch.empty(ngroup, out_features), p=self.p)
 		else:
 			self.register_parameter("bias", None)
 		self.reset_parameters()

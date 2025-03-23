@@ -64,11 +64,11 @@ class Linear(nn.Module):
 		self.in_features = in_features
 		self.out_features = out_features
 		self.hidden_features = min(in_features, out_features) if hidden_features is None else hidden_features
-		self.weight_h = nn.Parameter(torch.Tensor(self.hidden_features, in_features))
-		self.weight = nn.Parameter(torch.Tensor(out_features, self.hidden_features))
+		self.weight_h = nn.Parameter(torch.empty(self.hidden_features, in_features))
+		self.weight = nn.Parameter(torch.empty(out_features, self.hidden_features))
 		self.nbias = nbias
 		if bias:
-			self.bias = nn.Parameter(torch.Tensor(nbias, out_features)) if nbias > 1 else nn.Parameter(torch.Tensor(out_features))
+			self.bias = nn.Parameter(torch.empty(nbias, out_features)) if nbias > 1 else nn.Parameter(torch.empty(out_features))
 		else:
 			self.register_parameter("bias", None)
 		self.reset_parameters()

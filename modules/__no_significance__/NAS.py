@@ -57,7 +57,7 @@ class LNWC(nn.Module):
 
 		self.drop = Dropout(dropout, inplace=True) if dropout > 0.0 else None
 
-		self.w = nn.Parameter(torch.Tensor(3).uniform_(- sqrt(1.0 / 3), sqrt(1.0 / 3)))
+		self.w = nn.Parameter(torch.empty(3).uniform_(- sqrt(1.0 / 3), sqrt(1.0 / 3)))
 
 	def forward(self, q, k, v, mask=None, **kwargs):
 

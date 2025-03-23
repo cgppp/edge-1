@@ -22,7 +22,7 @@ class PropEmb(nn.Module):
 
 		_num_pos = parse_none(num_pos, isize)
 		self.scale = scale
-		self.weight = nn.Parameter(torch.Tensor(_num_pos, isize))
+		self.weight = nn.Parameter(torch.empty(_num_pos, isize))
 		self.reset_parameters()
 
 	# x: (bsize, seql, ...)

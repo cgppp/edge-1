@@ -34,7 +34,7 @@ class EncoderLayer(nn.Module):
 			_ += 1
 		_fhsize = _ * self.num_head * self.num_anchor
 
-		self.q_anchor = nn.Parameter(torch.Tensor(1, self.num_head, self.num_anchor, self.attn_dim).uniform_(- sqrt(1.0 / self.attn_dim), sqrt(1.0 / self.attn_dim)))
+		self.q_anchor = nn.Parameter(torch.empty(1, self.num_head, self.num_anchor, self.attn_dim).uniform_(- sqrt(1.0 / self.attn_dim), sqrt(1.0 / self.attn_dim)))
 		self.adaptor = Linear(isize, self.ahsize * 3, bias=enable_proj_bias)
 		if sparsenorm:
 			self.p1normer, self.p2normer = SparseNormer(dim=-1), SparseNormer(dim=-1)

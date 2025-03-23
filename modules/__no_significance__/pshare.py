@@ -20,7 +20,7 @@ class PShareLinear(nn.Module):
 		self.wb = weight_bank
 		osize, isize, nw = weight_bank.size()
 
-		self.weight = nn.Parameter(torch.Tensor(nw).uniform_(- 1.0 / sqrt(nw), 1.0 / sqrt(nw)))
+		self.weight = nn.Parameter(torch.empty(nw).uniform_(- 1.0 / sqrt(nw), 1.0 / sqrt(nw)))
 		if bias:
 			self.bias = nn.Parameter(torch.zeros(osize))
 		else:

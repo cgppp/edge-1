@@ -31,7 +31,7 @@ class Decoder(DecoderBase):
 
 		self.fbl = None if forbidden_index is None else (tuple(set(forbidden_index[0])), tuple(set(forbidden_index[1])),)
 
-		self.lang_emb = nn.Parameter(torch.Tensor(2, isize).uniform_(- sqrt(2.0 / (isize + 2)), sqrt(2.0 / (isize + 2)))) if lang_emb is None else lang_emb
+		self.lang_emb = nn.Parameter(torch.empty(2, isize).uniform_(- sqrt(2.0 / (isize + 2)), sqrt(2.0 / (isize + 2)))) if lang_emb is None else lang_emb
 
 	def forward(self, inpute, inputo, src_pad_mask=None, lang_id=0, psind=None, **kwargs):
 

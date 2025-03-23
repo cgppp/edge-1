@@ -14,7 +14,7 @@ class MWLinear(MBLinear):
 
 		super(MWLinear, self).__init__(in_features, out_features, nbias, bias=False)
 
-		self.weight = nn.Parameter(torch.Tensor(nbias, in_features, out_features).uniform_(- sqrt(1.0 / in_features), sqrt(1.0 / in_features)))
+		self.weight = nn.Parameter(torch.empty(nbias, in_features, out_features).uniform_(- sqrt(1.0 / in_features), sqrt(1.0 / in_features)))
 		if bias:
 			self.bias = nn.Parameter(torch.zeros(nbias, 1, out_features))
 
