@@ -4,7 +4,7 @@ import torch
 
 from utils.fmt.parser import parse_none
 
-non_tensor = torch.Tensor()
+non_tensor = torch.empty(0)
 
 def transfer_CNone_tuple(lin):
 
