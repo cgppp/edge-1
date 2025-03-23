@@ -20,8 +20,7 @@ class WSimAna(Ana):
 		if model is None:
 			self.wdict = {}
 		else:
-			with torch_no_grad():
-				self.wdict = {_name: [_module.lora_wa.clone(), _module.lora_wb.clone()] for _name, _module in model.named_modules() if isinstance(_module, Linear)}
+			self.update_ref(model=model)
 
 	def ana(self, model=None, ieps=ieps_default):
 
@@ -42,8 +41,15 @@ class WSimAna(Ana):
 								ons += _ons
 								os += _os
 								ns += _ns
-						self.wdict[_name] = [_module.lora_wa.clone(), _module.lora_wb.clone()]
 			if ons is not None:
 				rsd["."] = acos(min(max(-1.0, (ons / (sqrt(os * ns) + ieps))), 1.0)) * self.scale
 
 		return rsd
+
+	def update_ref(self, model=None):
+
+		_model = parse_none(model, self.model)
+		if _model is not None:
+			with torch_no_grad():
+				_ = {_name: [_module.lora_wa.clone(), _module.lora_wb.clone()] for _name, _module in model.named_modules() if isinstance(_module, Linear)}
+			self.wdict = _
