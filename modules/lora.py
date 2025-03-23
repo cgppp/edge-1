@@ -63,7 +63,7 @@ class Linear(nn.Linear):
 		else:
 			self.bias = m.bias
 			self.bias.requires_grad_(self.update_bias)
-		self.to(device=self.weight.device, dtype=self.weight.dtype, non_blocking=True)
+		self.to(device=m.weight.device, dtype=m.weight.dtype, non_blocking=True)
 
 	def to_std(self):
 
@@ -75,6 +75,7 @@ class Linear(nn.Linear):
 		if self.bias is not None:
 			rs.bias = self.bias
 			rs.bias.requires_grad_(True)
+		rs.to(device=self.weight.device, dtype=self.weight.dtype, non_blocking=True)
 
 		return rs
 
@@ -129,7 +130,7 @@ class Embedding(nn.Embedding):
 
 		self.weight = m.weight
 		self.weight.requires_grad_(False)
-		self.to(device=self.weight.device, dtype=self.weight.dtype, non_blocking=True)
+		self.to(device=m.weight.device, dtype=m.weight.dtype, non_blocking=True)
 
 	def to_std(self):
 
@@ -137,6 +138,7 @@ class Embedding(nn.Embedding):
 		num_embeddings, embedding_dim = self.weight.size()
 		rs = nn.Embedding(num_embeddings, embedding_dim, padding_idx=self.padding_idx, max_norm=self.max_norm, norm_type=self.norm_type, scale_grad_by_freq=self.scale_grad_by_freq, sparse=self.sparse, _weight=self.weight)
 		rs.weight.requires_grad_(True)
+		rs.to(device=self.weight.device, dtype=self.weight.dtype, non_blocking=True)
 
 		return rs
 
