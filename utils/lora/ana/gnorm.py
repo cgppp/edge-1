@@ -1,19 +1,14 @@
 #encoding: utf-8
 
-from json import dumps
 from math import sqrt
 
 from modules.lora import Linear
-from utils.fmt.base import sys_open
 from utils.fmt.parser import parse_none
+from utils.lora.ana.base import Ana
 
-class GNormAna:
+class GNormAna(Ana):
 
-	def __init__(self, logf, model=None):
-
-		self.logf, self.model = sys_open(logf, "wb"), model
-
-	def compute_model_lora_norm(self, model=None):
+	def ana(self, model=None):
 
 		rsd = {}
 		_an = 0.0
@@ -26,12 +21,3 @@ class GNormAna:
 		rsd["."] = sqrt(_an)
 
 		return rsd
-
-	def __call__(self, model=None):
-
-		self.logf.write(dumps(self.compute_model_lora_norm(model=model), ensure_ascii=False).encode("utf-8"))
-		self.logf.write("\n".encode("utf-8"))
-
-	def close(self):
-
-		self.logf.close()
