@@ -36,7 +36,7 @@ class Handler:
 	def __init__(self, modelfs, cnfg, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, norm_u8=False, **kwargs):
 
 		self.use_cuda, self.cuda_device, cuda_devices, self.multi_gpu, self.use_amp, use_cuda_bfmp = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
-		set_random_seed(cnfg.seed, use_cuda)
+		set_random_seed(cnfg.seed, self.use_cuda)
 
 		self.tokenizer = Tokenizer(cnfg.plm_vcb, norm_u8=norm_u8, post_norm_func=None, split=False)
 		self.vcbt = reverse_dict(self.tokenizer.vcb)
