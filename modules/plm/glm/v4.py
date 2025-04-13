@@ -1,14 +1,14 @@
 #encoding: utf-8
 
 import torch
-from math import log, sqrt
+from math import sqrt
 from torch import nn
 
 from modules.attn.gqa import SelfAttn as SelfAttnBase
 from modules.base import PositionwiseFF as PositionwiseFFBase, ResSelfAttn as ResSelfAttnBase
 from modules.norm.base import RMSNorm
 from utils.fmt.parser import parse_none
-from utils.relpos.rope import apply_rope
+from utils.relpos.rope import apply_rope_rot as apply_rope
 
 from cnfg.plm.glm.v4.ihyp import *
 
@@ -20,6 +20,69 @@ class SelfAttn(SelfAttnBase):
 
 		if add_attn_qkv_bias and (self.adaptor.bias is None):
 			self.adaptor.bias = nn.Parameter(torch.zeros(self.adaptor.weight.size(0)))
+
+	# this function is copied from modules.attn.gqa.SelfAttn only to override apply_rope to apply_rope_rot
+	def forward(self, iQ, mask=None, states=None, **kwargs):
+
+		bsize, nquery = iQ.size()[:2]
+		nheads = self.num_head
+		adim = self.attn_dim
+		kv_nheads = self.num_kv_head
+
+		_ = self.adaptor(iQ).view(bsize, nquery, self.num_qkv_head, adim)
+		real_iQ, real_iK, real_iV = _.narrow(2, 0, nheads), _.narrow(2, nheads, kv_nheads), _.narrow(2, nheads + kv_nheads, kv_nheads)
+		_h_real_iK, seql, sid = None, nquery, 0
+		if self.rope_sin is None:
+			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
+			if states is not None:
+				_h_real_iK, _h_real_iV = states
+				if _h_real_iK is not None:
+					sid = _h_real_iK.size(-1)
+					seql = nquery + sid
+					real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
+		else:
+			if states is not None:
+				_h_real_iK, _h_real_iV = states
+				if _h_real_iK is not None:
+					sid = _h_real_iK.size(-1)
+					seql = nquery + sid
+			if self.ref_ropem is None:
+				_rope_sin, _rope_cos = self.get_rope(seql, sid=sid)
+				self.rope_sin_cache, self.rope_cos_cache = _rope_sin.unsqueeze(1), _rope_cos.unsqueeze(1)
+			else:
+				self.rope_sin_cache, self.rope_cos_cache = self.ref_ropem.rope_sin_cache, self.ref_ropem.rope_cos_cache
+			real_iQ, real_iK = apply_rope(real_iQ, self.rope_sin_cache, self.rope_cos_cache), apply_rope(real_iK, self.rope_sin_cache, self.rope_cos_cache)
+			real_iQ, real_iK, real_iV = real_iQ.transpose(1, 2), real_iK.permute(0, 2, 3, 1), real_iV.transpose(1, 2)
+			if _h_real_iK is not None:
+				real_iK, real_iV = torch.cat((_h_real_iK, real_iK,), dim=-1), torch.cat((_h_real_iV, real_iV,), dim=2)
+
+		scores = real_iQ.view(bsize, kv_nheads, -1, nquery, adim).matmul(real_iK.unsqueeze(2))
+
+		if self.rel_pemb is not None:
+			if states is None:
+				self.rel_pos_cache = self.get_rel_pos(nquery).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
+				scores += (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, nquery).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).unsqueeze(2)
+			else:
+				self.rel_pos_cache = self.get_rel_pos(seql, sid=sid).contiguous() if self.ref_rel_posm is None else self.ref_rel_posm.rel_pos_cache
+				scores += (real_iQ.permute(2, 0, 1, 3).contiguous().view(nquery, bsize * nheads, adim).bmm(self.rel_pemb(self.rel_pos_cache).transpose(1, 2)).view(nquery, bsize, nheads, seql).permute(1, 2, 0, 3) if self.rel_pos_map is None else self.rel_pemb(self.rel_pos_cache).permute(2, 0, 1)).unsqueeze(2)
+		if self.alibi is not None:
+			self.alibi_cache = (self.get_alibi(nquery) if states is None else self.get_alibi(seql, sid=sid)).contiguous().unsqueeze(2) if self.ref_alibim is None else self.ref_alibim.alibi_cache
+			scores += self.alibi_cache
+
+		scores = scores / sqrt(adim)
+
+		if mask is not None:
+			_ = mask.size()
+			scores.masked_fill_(mask.view(_[0], 1, 1, *_[1:]), -inf_default)
+
+		scores = self.normer(scores)
+
+		if self.drop is not None:
+			scores = self.drop(scores)
+
+		out = self.outer(scores.matmul(real_iV.unsqueeze(2)).view(bsize, nheads, nquery, adim).transpose(1, 2).contiguous().view(bsize, nquery, self.hsize))
+
+		return out if states is None else (out, (real_iK, real_iV,),)
 
 class ResSelfAttn(ResSelfAttnBase):
 

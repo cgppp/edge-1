@@ -1,7 +1,7 @@
 #encoding: utf-8
 
 import torch
-from math import log, sqrt
+from math import sqrt
 from torch import nn
 
 from modules.attn.gqa import SelfAttn as SelfAttnBase
