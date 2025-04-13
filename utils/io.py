@@ -100,31 +100,35 @@ class SaveModelCleaner:
 
 save_model_cleaner = SaveModelCleaner()
 
-def save_model(model, fname, sub_module=False, print_func=print, mtyp=None, h5args=h5modelwargs):
+def save_model(model, fname, sub_module=False, print_func=print, mtyp=None, ps_func=None, h5args=h5modelwargs, **kwargs):
 
-	_msave = model.module if sub_module else model
+	_mps = mp_func(model.module if sub_module else model)
+	if ps_func is not None:
+		_mps = ps_func(_mps)
 	try:
-		h5save(mp_func(_msave), fname, h5args=h5args)
+		h5save(_mps, fname, h5args=h5args)
 		if mtyp is not None:
 			save_model_cleaner(fname, mtyp)
 	except Exception as e:
 		if print_func is not None:
 			print_func(str(e))
 
-def async_save_model(model, fname, sub_module=False, print_func=print, mtyp=None, h5args=h5modelwargs, para_lock=None, log_success=None):
+def async_save_model(model, fname, sub_module=False, print_func=print, mtyp=None, ps_func=None, h5args=h5modelwargs, para_lock=None, log_success=None):
 
-	def _worker(model, fname, sub_module=False, print_func=print, mtyp=None, para_lock=None, log_success=None):
+	def _worker(model, fname, sub_module=False, print_func=print, mtyp=None, ps_func=None, para_lock=None, log_success=None, **kwargs):
 
 		success = True
-		_msave = model.module if sub_module else model
+		_mps = mp_func(model.module if sub_module else model)
+		if ps_func is not None:
+			_mps = ps_func(_mps)
 		try:
 			if para_lock is None:
-				h5save(mp_func(_msave), fname, h5args=h5args)
+				h5save(_mps, fname, h5args=h5args)
 				if mtyp is not None:
 					save_model_cleaner(fname, mtyp)
 			else:
 				with para_lock:
-					h5save(mp_func(_msave), fname, h5args=h5args)
+					h5save(_mps, fname, h5args=h5args)
 					if mtyp is not None:
 						save_model_cleaner(fname, mtyp)
 		except Exception as e:
@@ -134,7 +138,7 @@ def async_save_model(model, fname, sub_module=False, print_func=print, mtyp=None
 		if success and (print_func is not None) and (log_success is not None):
 			print_func(str(log_success))
 
-	Thread(target=_worker, args=(model, fname, sub_module, print_func, mtyp, para_lock, log_success)).start()
+	Thread(target=_worker, args=(model, fname), kwargs={"sub_module": sub_module, "print_func": print_func, "mtyp": mtyp, "ps_func": ps_func, "para_lock": para_lock, "log_success": log_success, **kwargs}).start()
 
 def save_states(state_dict, fname, print_func=print, mtyp=None):
 

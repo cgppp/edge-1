@@ -63,7 +63,7 @@ class DecoderLayer(DecoderLayerBase):
 			if self.self_attn.net.outer.bias is not None:
 				copy_plm_parameter(self.self_attn.net.outer.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.self_attn.normer.weight, plm_parameters, "%s.layers.%d.input_layernorm.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.net[0].weight, plm_parameters, "%s.layers.%d.gate_up_proj.weight" % (_model_name, layer_idx,))
+			copy_plm_parameter(self.ff.net[0].weight, plm_parameters, "%s.layers.%d.mlp.gate_up_proj.weight" % (_model_name, layer_idx,))
 			_l = self.ff.net[-2] if isinstance(self.ff.net[-1], Dropout) else self.ff.net[-1]
 			copy_plm_parameter(_l.weight, plm_parameters, "%s.layers.%d.mlp.down_proj.weight" % (_model_name, layer_idx,))
 			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.layers.%d.post_attention_layernorm.weight" % (_model_name, layer_idx,))

@@ -4,12 +4,12 @@ import sys
 import torch
 import transformers
 
-from transformer.PLM.LLaMa.v3.Decoder import Decoder as NMT
+from transformer.PLM.GLM.v4.Decoder import Decoder as NMT
 from utils.torch.comp import torch_inference_mode
 
-import cnfg.plm.llama.v3.base as cnfg
-from cnfg.plm.llama.v3.ihyp import *
-from cnfg.vocab.plm.llama.v3 import vocab_size
+import cnfg.plm.glm.v4.base as cnfg
+from cnfg.plm.glm.v4.ihyp import *
+from cnfg.vocab.plm.glm.v4 import vocab_size
 
 llm_path = "/home/common/plm/GLM/glm-4-9b-chat-hf"
 #sys.path.append(llm_path)
@@ -34,9 +34,9 @@ print(ids)
 ids = torch.as_tensor(ids, dtype=torch.long).unsqueeze(0)
 
 print("load pre-trained models")
-#nm = NMT(cnfg.isize, vocab_size, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, emb_w=None, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindemb=cnfg.bindDecoderEmb, num_kv_head=cnfg.kv_nhead, model_name=cnfg.model_name)
-#nm.load_plm("%s/model.h5" % llm_path)
-#nm.eval()
+nm = NMT(cnfg.isize, vocab_size, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, emb_w=None, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindemb=cnfg.bindDecoderEmb, num_kv_head=cnfg.kv_nhead, model_name=cnfg.model_name)
+nm.load_plm("%s/model.h5" % llm_path)
+nm.eval()
 
 print("load models with transformers")
 hm = transformers.GlmForCausalLM.from_pretrained(llm_path)
