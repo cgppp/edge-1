@@ -6,7 +6,7 @@ from torch import nn
 
 from modules.base import Dropout
 from modules.norm.base import RMSNorm
-from modules.plm.llama.v3 import PositionwiseFF, ResSelfAttn
+from modules.plm.glm.v4 import PositionwiseFF, ResSelfAttn
 from transformer.Decoder import DecoderLayer as DecoderLayerBase
 from transformer.PLM.LLMDecoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_
@@ -17,12 +17,12 @@ from utils.plm.base import copy_plm_parameter, load_plm_wrapper
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_any_wodim, torch_no_grad
 
-from cnfg.plm.llama.v3.ihyp import *
-from cnfg.vocab.plm.llama.v3 import eos_id, pad_id, sos_id
+from cnfg.plm.glm.v4.ihyp import *
+from cnfg.vocab.plm.glm.v4 import eos_id, pad_id, sos_id
 
 class DecoderLayer(DecoderLayerBase):
 
-	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, norm_residual=norm_residual_default, k_rel_pos=use_k_relative_position_decoder, max_bucket_distance=relative_position_max_bucket_distance_decoder, num_kv_head=None, disable_ffn_bias=disable_ffn_bias, model_name="model", **kwargs):
+	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, norm_residual=norm_residual_default, k_rel_pos=use_k_relative_position_decoder, max_bucket_distance=relative_position_max_bucket_distance_decoder, num_kv_head=None, add_attn_qkv_bias=add_attn_qkv_bias, disable_ffn_bias=disable_ffn_bias, model_name="model", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
@@ -31,7 +31,7 @@ class DecoderLayer(DecoderLayerBase):
 
 		self.model_name = model_name
 		self.cross_attn = None
-		self.self_attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance, num_kv_head=num_kv_head)
+		self.self_attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance, num_kv_head=num_kv_head, add_attn_qkv_bias=add_attn_qkv_bias)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual, disable_ffn_bias=disable_ffn_bias)
 
 	def forward(self, inputo, tgt_pad_mask=None, query_unit=None, **kwargs):
@@ -63,14 +63,14 @@ class DecoderLayer(DecoderLayerBase):
 			if self.self_attn.net.outer.bias is not None:
 				copy_plm_parameter(self.self_attn.net.outer.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.self_attn.normer.weight, plm_parameters, "%s.layers.%d.input_layernorm.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.net[0].weight, plm_parameters, ["%s.layers.%d.mlp.gate_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.mlp.up_proj.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
+			copy_plm_parameter(self.ff.net[0].weight, plm_parameters, "%s.layers.%d.gate_up_proj.weight" % (_model_name, layer_idx,))
 			_l = self.ff.net[-2] if isinstance(self.ff.net[-1], Dropout) else self.ff.net[-1]
 			copy_plm_parameter(_l.weight, plm_parameters, "%s.layers.%d.mlp.down_proj.weight" % (_model_name, layer_idx,))
 			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.layers.%d.post_attention_layernorm.weight" % (_model_name, layer_idx,))
 
 class Decoder(DecoderBase):
 
-	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, share_layer=False, disable_pemb=disable_std_pemb_decoder, num_kv_head=None, disable_ffn_bias=disable_ffn_bias, remove_classifier_bias=remove_classifier_bias, model_name="model", **kwargs):
+	def __init__(self, isize, nwd, num_layer, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, emb_w=None, num_head=8, xseql=cache_len_default, ahsize=None, norm_output=True, bindemb=True, forbidden_index=None, share_layer=False, disable_pemb=disable_std_pemb_decoder, num_kv_head=None, add_attn_qkv_bias=add_attn_qkv_bias, disable_ffn_bias=disable_ffn_bias, remove_classifier_bias=remove_classifier_bias, model_name="model", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
@@ -80,10 +80,10 @@ class Decoder(DecoderBase):
 		self.model_name = model_name
 		self.wemb.padding_idx = pad_id
 		if share_layer:
-			_shared_layer = DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, disable_ffn_bias=disable_ffn_bias, model_name=model_name)
+			_shared_layer = DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, add_attn_qkv_bias=add_attn_qkv_bias, disable_ffn_bias=disable_ffn_bias, model_name=model_name)
 			self.nets = nn.ModuleList([_shared_layer for i in range(num_layer)])
 		else:
-			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, disable_ffn_bias=disable_ffn_bias, model_name=model_name) for i in range(num_layer)])
+			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, add_attn_qkv_bias=add_attn_qkv_bias, disable_ffn_bias=disable_ffn_bias, model_name=model_name) for i in range(num_layer)])
 
 		self.out_normer = RMSNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
 		if remove_classifier_bias:

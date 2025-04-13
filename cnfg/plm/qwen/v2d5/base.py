@@ -6,7 +6,6 @@ model_name = "model"
 pre_trained_m = None
 
 bindDecoderEmb = True# True for 0.5/1.5/3B, False for 7/14B
-share_emb = True
 
 isize = 896# 896 for 0.5B, 1536 for 1.5B, 2048 for 3B, 3584 for 7B, 5120 for 14B
 ff_hsize = 2 * 4864# 2 * (4864 for 0.5B, 8960 for 1.5B, 11008 for 3B, 18944 for 7B, 13824 for 14B)

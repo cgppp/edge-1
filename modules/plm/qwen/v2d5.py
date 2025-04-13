@@ -97,21 +97,6 @@ class SelfAttn(SelfAttnBase):
 
 		return out if states is None else (out, (real_iK, real_iV,),)
 
-	def rope_build(self, length, sid=0, dtype=None, device=None):
-
-		poff, doff, adim = self.rope_poff, self.rope_doff, self.attn_dim
-
-		pos = torch.arange(sid + poff, length + poff, dtype=torch.float32, device=device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=torch.float32, device=device) * -(log(self.sinusoid_base_frequency) / adim)).exp()
-		_tmp = pos * rdiv_term
-		if self.rope_alpha != 1.0:
-			_tmp.mul_(self.rope_alpha)
-		_s, _c = _tmp.sin(), _tmp.cos()
-		if dtype is not None:
-			_s, _c = _s.to(dtype, non_blocking=True), _c.to(dtype, non_blocking=True)
-
-		return _s, _c
-
 class ResSelfAttn(ResSelfAttnBase):
 
 	def __init__(self, isize, hsize=None, num_head=8, dropout=0.0, norm_residual=norm_residual_default, **kwargs):

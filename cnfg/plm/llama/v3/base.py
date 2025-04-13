@@ -6,7 +6,6 @@ model_name = "model"
 pre_trained_m = None
 
 bindDecoderEmb = True
-share_emb = True
 
 isize = 2048# 2048 for 1B
 ff_hsize = isize * 8

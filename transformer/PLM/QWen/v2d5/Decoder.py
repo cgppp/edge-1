@@ -382,19 +382,3 @@ class Decoder(DecoderBase):
 			_mask = _mask | _mask.new_ones(_, _l).tril(sid - _sliding_window - lsid).unsqueeze(0)
 
 		return _mask
-
-	@load_plm_wrapper()
-	def load_plm(self, plm_parameters, model_name=None, **kwargs):
-
-		_model_name = parse_none(model_name, self.model_name)
-		with torch_no_grad():
-			if "lm_head.weight" in plm_parameters:
-				copy_plm_parameter(self.classifier.weight, plm_parameters, "lm_head.weight")
-			copy_plm_parameter(self.wemb.weight, plm_parameters, "%s.embed_tokens.weight" % _model_name)
-			copy_plm_parameter(self.out_normer.weight, plm_parameters, "%s.norm.weight" % _model_name)
-			if (not remove_classifier_bias) and ("final_logits_bias" in plm_parameters):
-				if self.classifier.bias is None:
-					self.classifier.bias = nn.Parameter(torch.zeros(self.classifier.weight.size(0)))
-				copy_plm_parameter(self.classifier.bias, plm_parameters, "final_logits_bias")
-			for i, net in enumerate(self.nets):
-				net.load_plm(plm_parameters, model_name=_model_name, layer_idx=i, **kwargs)
