@@ -22,7 +22,7 @@ adv_act = advance_activation_function.lower() if use_adv_act_default else None
 inplace_after_Custom_Act = use_adv_act_default and (adv_act not in set(["sigmoid"]))
 
 # absolute position encoding
-sinusoid_base_frequency = 1e4 # 1e4 for 9B
+sinusoid_base_frequency = 1e4# 1e4 for 9B
 
 # relative position encoding
 use_k_relative_position_encoder, use_k_relative_position_decoder = parse_double_value_tuple(use_k_relative_position)
@@ -35,7 +35,7 @@ relpos_reduction_with_zeros = True
 inf_default = inf
 
 ieps_default = 1e-9
-ieps_ln_default = 1.5625e-07
+ieps_ln_default = 1e-5#1.5625e-07 for glm-4, 1e-5 for GLM-4-*-0414
 ieps_adam_default = 1e-9
 ieps_ln_default = parse_none(ieps_ln_default, ieps_default)
 ieps_adam_default = parse_none(ieps_adam_default, ieps_default)

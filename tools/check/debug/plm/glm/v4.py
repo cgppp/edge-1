@@ -11,7 +11,7 @@ import cnfg.plm.glm.v4.base as cnfg
 from cnfg.plm.glm.v4.ihyp import *
 from cnfg.vocab.plm.glm.v4 import vocab_size
 
-llm_path = "/home/common/plm/GLM/glm-4-9b-chat-hf"
+llm_path = "/home/common/plm/GLM/GLM-4-9B-0414/"
 #sys.path.append(llm_path)
 #from tokenization_chatglm import ChatGLM4Tokenizer
 

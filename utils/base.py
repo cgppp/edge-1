@@ -111,6 +111,22 @@ def select_zero_(x, dim, index):
 
 	return x
 
+def lfind_first_module(mod, typ):
+
+	for i, subm in enumerate(mod):
+		if isinstance(subm, typ):
+			return i, subm
+
+	return None, None
+
+def lfind_last_module(mod, typ):
+
+	for i, subm in enumerate(reversed(mod), 1):
+		if isinstance(subm, typ):
+			return -i, subm
+
+	return None, None
+
 def remove_layers(all_layers, ltr):
 
 	return [_l for i, _l in enumerate(all_layers) if i not in ltr]

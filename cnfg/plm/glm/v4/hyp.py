@@ -6,6 +6,8 @@ ease_optimization = True
 disable_ffn_bias = True
 remove_classifier_bias = True
 add_attn_qkv_bias = True
+add_self_attn_postnorm = True# True for GLM-4-*-0414
+add_pffn_postnorm = True# True for GLM-4-*-0414
 
 # choices: None, "GeLU", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
 advance_activation_function = None
@@ -24,6 +26,7 @@ relative_position_max_bucket_distance = 0
 # use rotary position embedding proposed in [RoFormer: Enhanced Transformer with Rotary Position Embedding](https://arxiv.org/abs/2104.09864).
 disable_std_pemb = True
 use_rope = True
+rope_partial_factor = 0.5# 1.0 for glm-4, 0.5 for GLM-4-*-0414
 # use ALiBi position encoding proposed in [Train Short, Test Long: Attention with Linear Biases Enables Input Length Extrapolation](https://openreview.net/forum?id=R8sQPpGCv0).
 use_alibi = False
 

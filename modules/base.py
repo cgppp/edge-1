@@ -142,7 +142,7 @@ class MultiHeadAttn(nn.Module):
 	# sparsenorm: using sparse normer or standard softmax
 	# bind_qk: query and key can share a same linear transformation for the Reformer: The Efficient Transformer (https://arxiv.org/abs/2001.04451) paper.
 
-	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, k_isize=None, v_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=0, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=False, bind_qk=False, xseql=cache_len_default, is_decoding=False, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, k_isize=None, v_isize=None, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=0, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, rope_partial_factor=rope_partial_factor, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=False, bind_qk=False, xseql=cache_len_default, is_decoding=False, **kwargs):
 
 		super(MultiHeadAttn, self).__init__()
 
@@ -200,7 +200,7 @@ class MultiHeadAttn(nn.Module):
 		else:
 			self.rel_pemb = None
 		if use_rope:
-			self.rope_poff, self.rope_doff, self.rope_alpha, self.xseql, self.sinusoid_base_frequency = rope_pos_offset, rope_dim_offset, rope_alpha, xseql, sinusoid_base_frequency
+			self.rope_poff, self.rope_doff, self.rope_alpha, self.xseql, self.sinusoid_base_frequency, self.rope_partial_factor = rope_pos_offset, rope_dim_offset, rope_alpha, xseql, sinusoid_base_frequency, rope_partial_factor
 			_sin, _cos = self.rope_build(self.xseql, sid=0, dtype=self.query_adaptor.weight.dtype, device=self.query_adaptor.weight.device)
 			self.register_buffer("rope_sin", _sin, persistent=False)
 			self.register_buffer("rope_cos", _cos, persistent=False)
@@ -379,12 +379,13 @@ class MultiHeadAttn(nn.Module):
 		if self.real_iV is not None:
 			self.real_iV = self.real_iV.index_select(dim, indices)
 
-	def rope_build(self, length, sid=0, dtype=None, device=None):
+	def rope_build(self, length, sid=0, dtype=None, device=None, **kwargs):
 
-		poff, doff, adim = self.rope_poff, self.rope_doff, self.attn_dim
+		poff, doff, adim, rope_partial_factor = self.rope_poff, self.rope_doff, self.attn_dim, self.rope_partial_factor
 
 		pos = torch.arange(sid + poff, length + poff, dtype=dtype, device=device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=dtype, device=device) * -(log(self.sinusoid_base_frequency) / adim)).exp()
+		_ = int(adim * rope_partial_factor) if (rope_partial_factor < 1.0) and (rope_partial_factor > 0.0) else adim
+		rdiv_term = (torch.arange(doff, _ + doff, 2, dtype=dtype, device=device) * -(log(self.sinusoid_base_frequency) / _)).exp()
 		_tmp = pos * rdiv_term
 		if self.rope_alpha != 1.0:
 			_tmp.mul_(self.rope_alpha)
@@ -408,7 +409,7 @@ class MultiHeadAttn(nn.Module):
 # Accelerated MultiHeadAttn for self attention, use when Q == K == V
 class SelfAttn(nn.Module):
 
-	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, rope_partial_factor=rope_partial_factor, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
 		super(SelfAttn, self).__init__()
 
@@ -463,7 +464,7 @@ class SelfAttn(nn.Module):
 		else:
 			self.rel_pemb = None
 		if use_rope:
-			self.rope_poff, self.rope_doff, self.rope_alpha, self.xseql, self.sinusoid_base_frequency = rope_pos_offset, rope_dim_offset, rope_alpha, xseql, sinusoid_base_frequency
+			self.rope_poff, self.rope_doff, self.rope_alpha, self.xseql, self.sinusoid_base_frequency, self.rope_partial_factor = rope_pos_offset, rope_dim_offset, rope_alpha, xseql, sinusoid_base_frequency, rope_partial_factor
 			_sin, _cos = self.rope_build(self.xseql, sid=0, dtype=self.adaptor.weight.dtype, device=self.adaptor.weight.device)
 			self.register_buffer("rope_sin", _sin, persistent=False)
 			self.register_buffer("rope_cos", _cos, persistent=False)
@@ -572,12 +573,13 @@ class SelfAttn(nn.Module):
 		if hasattr(self, "alibi_cache"):
 			self.alibi_cache = value
 
-	def rope_build(self, length, sid=0, dtype=None, device=None):
+	def rope_build(self, length, sid=0, dtype=None, device=None, **kwargs):
 
-		poff, doff, adim = self.rope_poff, self.rope_doff, self.attn_dim
+		poff, doff, adim, rope_partial_factor = self.rope_poff, self.rope_doff, self.attn_dim, self.rope_partial_factor
 
 		pos = torch.arange(sid + poff, length + poff, dtype=dtype, device=device).unsqueeze(1)
-		rdiv_term = (torch.arange(doff, adim + doff, 2, dtype=dtype, device=device) * -(log(self.sinusoid_base_frequency) / adim)).exp()
+		_ = int(adim * rope_partial_factor) if (rope_partial_factor < 1.0) and (rope_partial_factor > 0.0) else adim
+		rdiv_term = (torch.arange(doff, _ + doff, 2, dtype=dtype, device=device) * -(log(self.sinusoid_base_frequency) / _)).exp()
 		_tmp = pos * rdiv_term
 		if self.rope_alpha != 1.0:
 			_tmp.mul_(self.rope_alpha)
