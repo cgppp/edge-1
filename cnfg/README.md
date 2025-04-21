@@ -146,9 +146,9 @@ ease_optimization = True
 # using lipschitz constraint parameter initialization in [Lipschitz Constrained Parameter Initialization for Deep Transformers](https://aclanthology.org/2020.acl-main.38/), None to disable
 lipschitz_scale = 1.0
 
-# using advanced activation function, choices: None, "GeLU", "Swish", "Sigmoid", "NormSwish"
+# using advanced activation function, choices: None, "GeLU", "GeLUTanh", "Swish", "Sigmoid", "NormSwish"
 advance_activation_function = None
-# using GLU activation function for FFN, choices: None, "GLU", "GEGLU", "SwiGLU".
+# using GLU activation function for FFN, choices: None, "GLU", "GEGLU", "SwiGLU", "GETanhGLU".
 use_glu_ffn = None
 
 # computation order in Transformer sub-layer choices: "v1", "v2"

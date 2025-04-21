@@ -5,7 +5,7 @@ from math import inf
 from utils.fmt.parser import parse_double_value_tuple, parse_none
 
 from cnfg.ihyp import *
-from cnfg.plm.llama.v3.hyp import *
+from cnfg.plm.gemma.v3.hyp import *
 
 # biases
 enable_prev_ln_bias_default = enable_proj_bias_default = not ease_optimization
@@ -22,7 +22,8 @@ adv_act = advance_activation_function.lower() if use_adv_act_default else None
 inplace_after_Custom_Act = use_adv_act_default and (adv_act not in set(["sigmoid"]))
 
 # absolute position encoding
-sinusoid_base_frequency = 5e5# 5e5 for 1B
+sinusoid_base_frequency = 1e6# 1e6 for 1B
+sinusoid_base_frequency_sliding_window = 1e4# 1e4 for 1B
 
 # relative position encoding
 use_k_relative_position_encoder, use_k_relative_position_decoder = parse_double_value_tuple(use_k_relative_position)
@@ -35,7 +36,7 @@ relpos_reduction_with_zeros = True
 inf_default = inf
 
 ieps_default = 1e-9
-ieps_ln_default = 1e-5
+ieps_ln_default = 1e-6
 ieps_adam_default = 1e-9
 ieps_ln_default = parse_none(ieps_ln_default, ieps_default)
 ieps_adam_default = parse_none(ieps_adam_default, ieps_default)

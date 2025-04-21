@@ -41,6 +41,8 @@ def clean_tab(fname):
 				tmp = clean_lspace(tmp.decode("utf-8"))
 				if is_cpp_file:
 					tmp = tmp.replace("){", ") {").replace("else{", "else {")
+				while tmp.find(" #") >= 0:
+					tmp = tmp.replace(" #", "#")
 				#_tmp_strip = tmp.lstrip()
 				#if (_tmp_strip.startswith("class ") or _tmp_strip.startswith("def ")) and _tmp_strip[:_tmp_strip.rfind("#")].endswith(":"):
 				#	if not prev_emp:

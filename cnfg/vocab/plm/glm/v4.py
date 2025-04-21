@@ -21,10 +21,11 @@
 
 # pad_id: <|endoftext|>, sos_id: <sop>, eos_id: <|user|>
 pad_id, sos_id, eos_id, unk_id = 151329, 151333, 151336, None
+gmask_id, sop_id = 151331, 151333
 vocab_size = 151552# 151552 for 9B
 
-instruct_template = lambda system, user: "[gMASK]<sop><|system|>\n%s<|user|>\n%s<|assistant|>\n" % (system, user,)
-instruct_lm_template = lambda system, user, assistant: "[gMASK]<sop><|system|>\n%s<|user|>\n%s<|assistant|>\n%s<|user|>" % (system, user, assistant,)
+instruct_template = lambda system, user: "<|system|>\n%s<|user|>\n%s<|assistant|>\n" % (system, user,)
+instruct_lm_template = lambda system, user, assistant: "<|system|>\n%s<|user|>\n%s<|assistant|>\n%s<|user|>" % (system, user, assistant,)
 assistant_template = lambda system, assistant: "%s<|user|>" % assistant
-lm_template = lambda system, user: "[gMASK]<sop>%s\n" % user
+lm_template = lambda system, user: "%s\n" % user
 templated = {"instruct": instruct_template, "instruct_lm": instruct_lm_template, "assistant": assistant_template, "lm": lm_template}

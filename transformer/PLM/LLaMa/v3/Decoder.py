@@ -14,6 +14,7 @@ from utils.decode.beam import expand_bsize_for_beam
 from utils.decode.repan import is_penalty_enabled as is_repenalty_enabled, penalty as repenalty
 from utils.fmt.parser import parse_none
 from utils.plm.base import copy_plm_parameter, load_plm_wrapper
+from utils.relpos.base import share_rel_pos_cache
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_any_wodim, torch_no_grad
 
@@ -85,6 +86,9 @@ class Decoder(DecoderBase):
 			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, disable_ffn_bias=disable_ffn_bias, model_name=model_name) for i in range(num_layer)])
 
 		self.out_normer = RMSNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
+
+		if rel_pos_enabled:
+			share_rel_pos_cache(self)
 
 	def greedy_decode(self, inpute, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, repetition_penalty=1.0, ilen=None, post_ilen_rs=True, states=None, **kwargs):
 

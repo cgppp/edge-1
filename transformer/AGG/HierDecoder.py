@@ -73,7 +73,7 @@ class Decoder(DecoderBase):
 
 		self.pemb = base_decoder.pemb
 
-		self.nets = align_modules_by_type(base_decoder.nets, DecoderLayerBase, self.nets) # base_decoder.nets if isinstance(base_decoder, Decoder) else
+		self.nets = align_modules_by_type(base_decoder.nets, DecoderLayerBase, self.nets)# base_decoder.nets if isinstance(base_decoder, Decoder) else
 
 		self.classifier = base_decoder.classifier
 

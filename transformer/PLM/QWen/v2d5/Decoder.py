@@ -15,6 +15,7 @@ from utils.decode.beam import expand_bsize_for_beam
 from utils.decode.repan import is_penalty_enabled as is_repenalty_enabled, penalty as repenalty
 from utils.fmt.parser import parse_none
 from utils.plm.base import copy_plm_parameter, load_plm_wrapper
+from utils.relpos.base import share_rel_pos_cache
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_any_wodim, torch_no_grad
 
@@ -87,6 +88,9 @@ class Decoder(DecoderBase):
 			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, add_attn_qkv_bias=add_attn_qkv_bias, sliding_window=sliding_window, disable_ffn_bias=disable_ffn_bias, model_name=model_name) for i in range(num_layer)])
 
 		self.out_normer = RMSNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
+
+		if rel_pos_enabled:
+			share_rel_pos_cache(self)
 
 	def build_states(self, inpute, states=None, return_last_hidden=False, block_size=0, slen=None, sliding_window_khead=None, **kwargs):
 
@@ -370,7 +374,7 @@ class Decoder(DecoderBase):
 
 			return trans
 
-	def _get_subsequent_mask(self, length, sid=0, lsid=0):
+	def _get_subsequent_mask(self, length, sid=0, lsid=0, **kwargs):
 
 		_ = length - sid
 		_l = length - lsid

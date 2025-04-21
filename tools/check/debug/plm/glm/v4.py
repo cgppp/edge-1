@@ -11,7 +11,7 @@ import cnfg.plm.glm.v4.base as cnfg
 from cnfg.plm.glm.v4.ihyp import *
 from cnfg.vocab.plm.glm.v4 import vocab_size
 
-llm_path = "/home/common/plm/GLM/GLM-4-9B-0414/"
+llm_path = "/home/common/plm/GLM/GLM-4-9B-0414"
 #sys.path.append(llm_path)
 #from tokenization_chatglm import ChatGLM4Tokenizer
 
@@ -39,7 +39,7 @@ nm.load_plm("%s/model.h5" % llm_path)
 nm.eval()
 
 print("load models with transformers")
-hm = transformers.GlmForCausalLM.from_pretrained(llm_path)
+hm = transformers.Glm4ForCausalLM.from_pretrained(llm_path)
 hm.eval()
 
 with torch_inference_mode():

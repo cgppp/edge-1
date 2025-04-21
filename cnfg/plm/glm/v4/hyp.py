@@ -9,9 +9,9 @@ add_attn_qkv_bias = True
 add_self_attn_postnorm = True# True for GLM-4-*-0414
 add_pffn_postnorm = True# True for GLM-4-*-0414
 
-# choices: None, "GeLU", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
+# choices: None, "GeLU", "GeLUTanh", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
 advance_activation_function = None
-# using GLU activation function for FFN, choices: None, "GLU", "GEGLU", "SwiGLU".
+# using GLU activation function for FFN, choices: None, "GLU", "GEGLU", "SwiGLU", "GETanhGLU".
 use_glu_ffn = "SwiGLU"#"Swish" for 1B
 
 # choices: "v1", "v2"

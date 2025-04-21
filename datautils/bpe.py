@@ -96,7 +96,7 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
 
 	if version == (0, 1):
 		word = list(orig) + ["</w>"]
-	elif version == (0, 2): # more consistent handling of word-final segments
+	elif version == (0, 2):# more consistent handling of word-final segments
 		word = list(orig[:-1]) + [orig[-1] + "</w>"]
 	else:
 		raise NotImplementedError
@@ -122,10 +122,10 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
 			# merges are invalid if they start before current position. This can happen if there are overlapping pairs: (x x x -> xx x)
 			if j < i:
 				continue
-			new_word.extend(word[i:j]) # all symbols before merged pair
-			new_word.append(bigram) # merged pair
-			i = j+2 # continue after merged pair
-		new_word.extend(word[i:]) # add all symbols until end of word
+			new_word.extend(word[i:j])# all symbols before merged pair
+			new_word.append(bigram)# merged pair
+			i = j+2# continue after merged pair
+		new_word.extend(word[i:])# add all symbols until end of word
 		word = new_word
 
 	# don"t print end-of-word symbols
@@ -217,7 +217,7 @@ def isolate_glossary(word, glossary):
 	else:
 		segments = re.split(r"({})".format(glossary), word)
 		segments, ending = segments[:-1], segments[-1]
-		segments = list(filter(None, segments)) # Remove empty strings in regex group.
+		segments = list(filter(None, segments))# Remove empty strings in regex group.
 		return segments + [ending.strip("\r\n ")] if ending != "" else segments
 
 class BPERemover:

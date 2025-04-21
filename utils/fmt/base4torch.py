@@ -5,7 +5,7 @@ from math import sqrt
 
 from utils.fmt.base import list_reader
 from utils.h5serial import h5load
-from utils.torch.comp import cuda_support_bf16, torch_no_grad
+from utils.torch.comp import cuda_support_bf16, fp16_default_tensor_type, torch_no_grad
 
 def parse_cuda(use_cuda_arg, gpuid=None, use_amp=False, use_cuda_bfmp=True):
 
@@ -26,6 +26,9 @@ def parse_cuda(use_cuda_arg, gpuid=None, use_amp=False, use_cuda_bfmp=True):
 			cuda_devices = None
 			multi_gpu = False
 		torch.cuda.set_device(cuda_device.index)
+		torch.set_default_device(cuda_device)
+		if _use_cuda_bfmp:
+			torch.set_default_dtype(fp16_default_tensor_type)
 	else:
 		use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp = False, None, None, False, False, False
 
@@ -51,6 +54,9 @@ def parse_cuda_decode(use_cuda_arg, gpuid=None, multi_gpu_decoding=False, use_am
 			cuda_devices = None
 			multi_gpu = False
 		torch.cuda.set_device(cuda_device.index)
+		torch.set_default_device(cuda_device)
+		if _use_cuda_bfmp:
+			torch.set_default_dtype(fp16_default_tensor_type)
 	else:
 		use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp = False, None, None, False, False, False
 

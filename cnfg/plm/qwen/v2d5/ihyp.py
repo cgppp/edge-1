@@ -22,7 +22,7 @@ adv_act = advance_activation_function.lower() if use_adv_act_default else None
 inplace_after_Custom_Act = use_adv_act_default and (adv_act not in set(["sigmoid"]))
 
 # absolute position encoding
-sinusoid_base_frequency = 1e6 # 1e6 for 0.5B
+sinusoid_base_frequency = 1e6# 1e6 for 0.5B
 
 # relative position encoding
 use_k_relative_position_encoder, use_k_relative_position_decoder = parse_double_value_tuple(use_k_relative_position)

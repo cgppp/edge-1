@@ -210,7 +210,7 @@ class Decoder(nn.Module):
 
 		self.out_normer = None if self.out_normer is None else base_decoder.out_normer
 
-	def _get_subsequent_mask(self, length, sid=0):
+	def _get_subsequent_mask(self, length, sid=0, **kwargs):
 
 		return self.mask.narrow(1, sid, length - sid).narrow(2, 0, length).contiguous() if length <= self.xseql else self.mask.new_ones(length - sid, length).triu(1 + sid).unsqueeze(0)
 

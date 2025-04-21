@@ -11,13 +11,13 @@ from cnfg.plm.llama.v3.ihyp import *
 
 class SelfAttn(SelfAttnBase):
 
-	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, num_kv_head=None, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, rope_partial_factor=rope_partial_factor, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
+	def __init__(self, isize, hsize=None, osize=None, num_head=8, dropout=0.0, enable_bias=enable_prev_ln_bias_default, enable_proj_bias=enable_proj_bias_default, num_kv_head=None, k_rel_pos=use_k_relative_position, uni_direction_reduction=False, is_left_to_right_reduction=True, zero_reduction=relpos_reduction_with_zeros, max_bucket_distance=0, use_rope=use_rope, rope_pos_offset=0, rope_dim_offset=0, rope_alpha=1.0, rope_partial_factor=rope_partial_factor, rope_linear_scaling=rope_linear_scaling, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=False, xseql=cache_len_default, **kwargs):
 
-		super(SelfAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, num_kv_head=num_kv_head, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, rope_partial_factor=rope_partial_factor, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
+		super(SelfAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, num_kv_head=num_kv_head, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, rope_partial_factor=rope_partial_factor, rope_linear_scaling=rope_linear_scaling, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
 
 	def rope_build(self, length, sid=0, dtype=None, device=None, **kwargs):
 
-		poff, doff, adim, rope_partial_factor = self.rope_poff, self.rope_doff, self.attn_dim, self.rope_partial_factor
+		poff, doff, adim, rope_partial_factor, rope_linear_scaling = self.rope_poff, self.rope_doff, self.attn_dim, self.rope_partial_factor, self.rope_linear_scaling
 
 		pos = torch.arange(sid + poff, length + poff, dtype=torch.float32, device=device).unsqueeze(1)
 		_ = int(adim * rope_partial_factor) if (rope_partial_factor < 1.0) and (rope_partial_factor > 0.0) else adim
@@ -35,6 +35,8 @@ class SelfAttn(SelfAttnBase):
 		_ = rdiv_term[_is_medium_freq]
 		rdiv_term[_is_medium_freq] = _.mul(1.0 - smooth_factor).div(rope_factor).addcmul(smooth_factor, _)
 
+		if (rope_linear_scaling is not None) and (rope_linear_scaling > 0.0) and (rope_linear_scaling != 1.0):
+			rdiv_term.div_(rope_linear_scaling)
 		_tmp = pos * rdiv_term
 		if self.rope_alpha != 1.0:
 			_tmp.mul_(self.rope_alpha)

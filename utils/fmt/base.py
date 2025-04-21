@@ -23,6 +23,8 @@ all_ge = lambda lin, value: all(lu >= value for lu in lin)
 all_lt = lambda lin, value: all(lu < value for lu in lin)
 all_gt = lambda lin, value: all(lu > value for lu in lin)
 
+iter_all_eq = lambda a, b: (len(a) == len(b)) and all(_au == _bu for _au, _bu in zip(a, b))
+
 def sys_open(fname, mode="r", compresslevel=raw_cache_compression_level, **kwargs):
 
 	if fname == "-":

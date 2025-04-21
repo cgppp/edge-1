@@ -37,7 +37,7 @@ def share_rel_pos_cache(netin, share_emb=False):
 						else:
 							rel_cache_d[_key] = layer.rel_pos
 					if hasattr(layer, "rope_sin") and (layer.rope_sin is not None):
-						_key = layer.rope_sin.size()
+						_key = (layer.rope_poff, layer.rope_doff, layer.rope_alpha, layer.sinusoid_base_frequency, layer.rope_partial_factor, layer.rope_linear_scaling, layer.rope_sin.size(),)
 						if _key in rope_base_nets:
 							layer.ref_ropem = rope_base_nets[_key]
 						else:

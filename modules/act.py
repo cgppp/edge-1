@@ -1,7 +1,7 @@
 #encoding: utf-8
 
 import torch
-from math import sqrt
+from math import pi, sqrt
 from torch import nn
 from torch.autograd import Function
 from torch.nn import functional as nnFunc
@@ -13,23 +13,23 @@ from cnfg.ihyp import *
 
 # 2 kinds of GELU activation function implementation according to https://github.com/huggingface/pytorch-pretrained-BERT/blob/master/pytorch_pretrained_bert/modeling.py#L53-L58
 
-class GeLU_GPT(nn.Module):
+class cust_GeLU_Tanh(nn.Module):
 
 	def __init__(self, *args, **kwargs):
 
-		super(GeLU_GPT, self).__init__()
+		super(cust_GeLU_Tanh, self).__init__()
 
 		self.k = sqrt(2.0 / pi)
 
 	def forward(self, x, **kwargs):
 
-		return 0.5 * x * (1.0 + (self.k * (x + 0.044715 * x.pow(3.0))).tanh())
+		return x.mul(0.5).mul_(x.pow(3.0).mul(0.044715).add_(x).mul_(self.k).tanh().add(1.0))
 
-class GeLU_BERT(nn.Module):
+class cust_GeLU_BERT(nn.Module):
 
 	def __init__(self, *args, **kwargs):
 
-		super(GeLU_BERT, self).__init__()
+		super(cust_GeLU_BERT, self).__init__()
 
 		self.k = sqrt(2.0)
 
@@ -37,10 +37,20 @@ class GeLU_BERT(nn.Module):
 
 		return 0.5 * x * (1.0 + (x / self.k).erf())
 
-try:
+nn_has_gelu = hasattr(nn, "GELU")
+nn_gelu_has_approximate = nn_has_gelu and hasattr(nn.GELU(), "approximate")
+if nn_has_gelu:
 	GELU = nn.GELU
-except Exception as e:
-	GELU = GeLU_BERT
+	if nn_gelu_has_approximate:
+		class GELU_Tanh(GELU):
+
+			def __init__(self, approximate="tanh", **kwargs):
+
+				super(GELU_Tanh, self).__init__(approximate=approximate)
+	else:
+		GELU_Tanh = cust_GeLU_Tanh
+else:
+	GELU, GELU_Tanh = cust_GeLU_BERT, cust_GeLU_Tanh
 
 # Swish approximates GeLU when beta=1.702 (https://mp.weixin.qq.com/s/LEPalstOc15CX6fuqMRJ8Q).
 # GELU is nonmonotonic function that has a shape similar to Swish with beta = 1.4 (https://arxiv.org/abs/1710.05941).
@@ -74,10 +84,7 @@ class CustSwish(nn.Module):
 			if self.reset_beta is not None:
 				self.beta.fill_(self.reset_beta)
 
-try:
-	Swish = nn.SiLU
-except Exception as e:
-	Swish = CustSwish
+Swish = nn.SiLU if hasattr(nn, "SiLU") else CustSwish
 
 class SReLU(nn.Module):
 
@@ -97,10 +104,7 @@ class CustMish(nn.Module):
 
 		return x * nnFunc.softplus(x).tanh()
 
-try:
-	Mish = nn.Mish
-except:
-	Mish = CustMish
+Mish = nn.Mish if hasattr(nn, "Mish") else CustMish
 
 class LGLU(nn.Module):
 
@@ -137,6 +141,12 @@ class GEGLU(GLU_Act):
 
 		super(GEGLU, self).__init__(act=GELU(), dim=dim)
 
+class GETanhGLU(GLU_Act):
+
+	def __init__(self, dim=-1, **kwargs):
+
+		super(GETanhGLU, self).__init__(act=GELU_Tanh(), dim=dim)
+
 class SwiGLU(GLU_Act):
 
 	def __init__(self, dim=-1, **kwargs):
@@ -165,7 +175,7 @@ class TMix_Act(GLU_Act):
 
 		return torch.cat((_a * _b, _b * _c, _a * _c,), dim=self.dim)
 
-act_dict = {"swish": Swish, "normswish": Swish, "sigmoid": nn.Sigmoid, "glu": nn.GLU, "geglu": GEGLU, "swiglu": SwiGLU, "srelu": SReLU, "mish": Mish, "clamp": Clamp}
+act_dict = {"gelu": GELU, "gelutanh": GELU_Tanh, "swish": Swish, "normswish": Swish, "sigmoid": nn.Sigmoid, "glu": nn.GLU, "geglu": GEGLU, "getanhglu": GETanhGLU, "swiglu": SwiGLU, "srelu": SReLU, "mish": Mish, "clamp": Clamp}
 
 def get_act(strin, value=GELU, act_dict=act_dict):
 
@@ -285,6 +295,13 @@ class PruneAct(nn.Module):
 
 def reduce_model(modin):
 
-	rsm = reduce_model_list(modin, [nn.ReLU, nn.Softmax, Sparsemax, Swish, GEGLU, SwiGLU, SReLU, SelfGate, PruneAct], [lambda m: (m.inplace,), lambda m: (m.dim,), lambda m: (m.dim,), lambda m: (m.reset_beta, m.beta, m.dim, m.eps) if isinstance(Swish, CustSwish) else lambda m: (m.inplace,), lambda m: (m.dim,), lambda m: (m.dim,), lambda m: (m.inplace, m.k,), lambda m: (m.base, m.beta,), lambda m: (m.ratio, m.p,)])
+	_act, _act_func = [nn.ReLU, nn.Softmax, Sparsemax, Swish, GEGLU, SwiGLU, SReLU, SelfGate, PruneAct], [lambda m: (m.inplace,), lambda m: (m.dim,), lambda m: (m.dim,), lambda m: (m.reset_beta, m.beta, m.dim, m.eps) if isinstance(Swish, CustSwish) else lambda m: (m.inplace,), lambda m: (m.dim,), lambda m: (m.dim,), lambda m: (m.inplace, m.k,), lambda m: (m.base, m.beta,), lambda m: (m.ratio, m.p,)]
+	if nn_gelu_has_approximate:
+		_act.append(nn.GELU)
+		_act_func.append(lambda m: (m.approximate,))
+	rsm = reduce_model_list(modin, _act, _act_func)
+	_act = [cust_GeLU_Tanh, cust_GeLU_BERT, Mish, nn.Tanh, nn.Sigmoid]
+	if nn_has_gelu and (not nn_gelu_has_approximate):
+		_act.append(nn.GELU)
 
-	return reduce_model_list(rsm, [GELU, GeLU_GPT, GeLU_BERT, Mish, nn.Tanh, nn.Sigmoid])
+	return reduce_model_list(rsm, _act)

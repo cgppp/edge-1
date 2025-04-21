@@ -4,9 +4,9 @@ ease_optimization = True
 
 lipschitz_scale = 1.0
 
-# choices: None, "GeLU", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
+# choices: None, "GeLU", "GeLUTanh", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
 advance_activation_function = None
-# using GLU activation function for FFN, choices: None, "GLU", "GEGLU", "SwiGLU".
+# using GLU activation function for FFN, choices: None, "GLU", "GEGLU", "SwiGLU", "GETanhGLU".
 use_glu_ffn = None
 
 # choices: "v1", "v2"
@@ -22,6 +22,7 @@ relative_position_max_bucket_distance = 0
 disable_std_pemb = False
 use_rope = False
 rope_partial_factor = 1.0
+rope_linear_scaling = 1.0
 # use ALiBi position encoding proposed in [Train Short, Test Long: Attention with Linear Biases Enables Input Length Extrapolation](https://openreview.net/forum?id=R8sQPpGCv0).
 use_alibi = False
 
