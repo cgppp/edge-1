@@ -10,7 +10,7 @@ bindDecoderEmb = True# True for 1B
 isize = 1152# 1152 for 1B
 ff_hsize = 2 * 6912# 2 * (6912 for 1B)
 nhead = 4# 4 for 1B
-attn_hsize = isize
+attn_hsize = nhead * 256
 kv_nhead = 1# 1 for 1B
 
 nlayer = 26# 26 for 1B
