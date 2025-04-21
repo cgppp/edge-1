@@ -15,6 +15,7 @@ from utils.decode.beam import expand_bsize_for_beam
 from utils.decode.repan import is_penalty_enabled as is_repenalty_enabled, penalty as repenalty
 from utils.fmt.parser import parse_none
 from utils.plm.base import copy_plm_parameter, load_plm_wrapper
+from utils.plm.gemma.v3 import shift_rms_weight
 from utils.relpos.base import share_rel_pos_cache
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_any_wodim, torch_no_grad
@@ -64,32 +65,32 @@ class DecoderLayer(DecoderLayerBase):
 				self.self_attn.net.outer.bias = nn.Parameter(torch.zeros(self.attn.net.outer.weight.size(0)))
 			if self.self_attn.net.outer.bias is not None:
 				copy_plm_parameter(self.self_attn.net.outer.bias, plm_parameters, _bias_key)
-			copy_plm_parameter(self.self_attn.normer.weight, plm_parameters, "%s.layers.%d.input_layernorm.weight" % (_model_name, layer_idx,))
+			copy_plm_parameter(self.self_attn.normer.weight, plm_parameters, "%s.layers.%d.input_layernorm.weight" % (_model_name, layer_idx,), func=shift_rms_weight)
 			_bias_key = "%s.layers.%d.post_attention_layernorm.weight" % (_model_name, layer_idx,)
 			if _bias_key in plm_parameters:
 				if self.self_attn.post_normer is None:
 					self.self_attn.post_normer = RMSNorm(self.self_attn.normer.weight.size(), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
-				copy_plm_parameter(self.self_attn.post_normer.weight, plm_parameters, _bias_key)
+				copy_plm_parameter(self.self_attn.post_normer.weight, plm_parameters, _bias_key, func=shift_rms_weight)
 			elif self.self_attn.post_normer is not None:
 				self.self_attn.post_normer = None
 			_bias_key = "%s.layers.%d.self_attn.q_norm.weight" % (_model_name, layer_idx,)
 			if _bias_key in plm_parameters:
 				if self.self_attn.net.q_normer is None:
 					self.self_attn.net.q_normer = RMSNorm(self.self_attn.net.attn_dim, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
-				copy_plm_parameter(self.self_attn.net.q_normer.weight, plm_parameters, _bias_key)
+				copy_plm_parameter(self.self_attn.net.q_normer.weight, plm_parameters, _bias_key, func=shift_rms_weight)
 			elif self.self_attn.net.q_normer is not None:
 				self.self_attn.net.q_normer = None
 			_bias_key = "%s.layers.%d.self_attn.k_norm.weight" % (_model_name, layer_idx,)
 			if _bias_key in plm_parameters:
 				if self.self_attn.net.k_normer is None:
 					self.self_attn.net.k_normer = RMSNorm(self.self_attn.net.attn_dim, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
-				copy_plm_parameter(self.self_attn.net.k_normer.weight, plm_parameters, _bias_key)
+				copy_plm_parameter(self.self_attn.net.k_normer.weight, plm_parameters, _bias_key, func=shift_rms_weight)
 			elif self.self_attn.net.k_normer is not None:
 				self.self_attn.net.k_normer = None
 			copy_plm_parameter(self.ff.net[0].weight, plm_parameters, ["%s.layers.%d.mlp.gate_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.mlp.up_proj.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_l = lfind_last_module(self.ff.net, Linear)[-1]
 			copy_plm_parameter(_l.weight, plm_parameters, "%s.layers.%d.mlp.down_proj.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.layers.%d.post_attention_layernorm.weight" % (_model_name, layer_idx,))
+			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.layers.%d.post_attention_layernorm.weight" % (_model_name, layer_idx,), func=shift_rms_weight)
 			_bias_key = "%s.layers.%d.post_feedforward_layernorm.weight" % (_model_name, layer_idx,)
 			_pffn_net_ldrop = isinstance(self.ff.net[-1], Dropout)
 			_pffn_pnorm_ind = -2 if _pffn_net_ldrop else -1
@@ -100,7 +101,7 @@ class DecoderLayer(DecoderLayerBase):
 						self.ff.net.insert(-1, RMSNorm(self.ff.normer.weight.size(), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters))
 					else:
 						self.ff.net.append(RMSNorm(self.ff.normer.weight.size(), eps=ieps_ln_default, elementwise_affine=enable_ln_parameters))
-				copy_plm_parameter(self.ff.net[_pffn_pnorm_ind].weight, plm_parameters, _bias_key)
+				copy_plm_parameter(self.ff.net[_pffn_pnorm_ind].weight, plm_parameters, _bias_key, func=shift_rms_weight)
 			elif _pffn_has_pnorm:
 				del self.ff.net[_pffn_pnorm_ind]
 
@@ -459,3 +460,22 @@ class Decoder(DecoderBase):
 			_mask = _mask | _mask.new_ones(_, _l).tril(sid - _sliding_window - lsid).unsqueeze(0)
 
 		return _mask
+
+	@load_plm_wrapper()
+	def load_plm(self, plm_parameters, model_name=None, **kwargs):
+
+		_model_name = parse_none(model_name, self.model_name)
+		with torch_no_grad():
+			if "lm_head.weight" in plm_parameters:
+				copy_plm_parameter(self.classifier.weight, plm_parameters, "lm_head.weight")
+			copy_plm_parameter(self.wemb.weight, plm_parameters, "%s.embed_tokens.weight" % _model_name)
+			copy_plm_parameter(self.out_normer.weight, plm_parameters, "%s.norm.weight" % _model_name, func=shift_rms_weight)
+			if (not self.remove_classifier_bias) and ("final_logits_bias" in plm_parameters):
+				if self.classifier.bias is None:
+					self.classifier.bias = nn.Parameter(torch.zeros(self.classifier.weight.size(0)))
+				copy_plm_parameter(self.classifier.bias, plm_parameters, "final_logits_bias")
+			elif self.classifier.bias is not None:
+				self.classifier.bias = None
+			for i, net in enumerate(self.nets):
+				if hasattr(net, "load_plm"):
+					net.load_plm(plm_parameters, model_name=_model_name, layer_idx=i, **kwargs)

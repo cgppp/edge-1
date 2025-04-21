@@ -112,6 +112,8 @@ class Decoder(DecoderBase):
 				if self.classifier.bias is None:
 					self.classifier.bias = nn.Parameter(torch.zeros(self.classifier.weight.size(0)))
 				copy_plm_parameter(self.classifier.bias, plm_parameters, "final_logits_bias")
+			elif self.classifier.bias is not None:
+				self.classifier.bias = None
 			for i, net in enumerate(self.nets):
 				if hasattr(net, "load_plm"):
 					net.load_plm(plm_parameters, model_name=_model_name, layer_idx=i, **kwargs)
