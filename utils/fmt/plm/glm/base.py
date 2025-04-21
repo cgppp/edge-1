@@ -12,7 +12,7 @@ def lstrip(lin, xl):
 
 def add_prefix(lin, xl):
 
-	if iter_all_eq(lin[:len(xt)], xl):
+	if iter_all_eq(lin[:len(xl)], xl):
 
 		return lin
 
