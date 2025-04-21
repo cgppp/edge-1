@@ -153,6 +153,8 @@ class Decoder(DecoderBase):
 			_nquery = ilen.min().item()
 			_inpute = inpute.narrow(-1, 0, _nquery)
 		out, _states = self.build_states(_inpute, states=_states, return_last_hidden=True, slen=_slen, sliding_window_khead=_sliding_window_khead)
+		if self.pemb is not None:
+			sqrt_isize = sqrt(out.size(-1))
 		_slen += _nquery
 
 		out = self.classifier(out)
@@ -240,6 +242,8 @@ class Decoder(DecoderBase):
 			_inpute, _csteps = inpute.narrow(-1, 0, _nquery), (ilen - _nquery)
 			_lpv_rs = _csteps
 		out, _states = self.build_states(_inpute, states=_states, return_last_hidden=True, slen=_slen, sliding_window_khead=_sliding_window_khead)
+		if self.pemb is not None:
+			sqrt_isize = sqrt(out.size(-1))
 		_slen += _nquery
 
 		if length_penalty > 0.0:

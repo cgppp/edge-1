@@ -119,12 +119,42 @@ class Decoder(DecoderBase):
 			_shared_layer = DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, sliding_window=sliding_window, disable_ffn_bias=disable_ffn_bias, add_self_attn_postnorm=add_self_attn_postnorm, add_pffn_postnorm=add_pffn_postnorm, add_self_attn_qknorm=add_self_attn_qknorm, rope_linear_scaling=rope_linear_scaling, sinusoid_base_frequency=sinusoid_base_frequency, model_name=model_name)
 			self.nets = nn.ModuleList([_shared_layer for i in range(num_layer)])
 		else:
-			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, sliding_window=-1 if ((i + 1) % sliding_window_layerid_pattern == 0) else sliding_window, disable_ffn_bias=disable_ffn_bias, add_self_attn_postnorm=add_self_attn_postnorm, add_pffn_postnorm=add_pffn_postnorm, add_self_attn_qknorm=add_self_attn_qknorm, rope_linear_scaling=rope_linear_scaling if ((i + 1) % sliding_window_layerid_pattern == 0) else 1.0, sinusoid_base_frequency=sinusoid_base_frequency if ((i + 1) % sliding_window_layerid_pattern == 0) else sinusoid_base_frequency_sliding_window, model_name=model_name) for i in range(num_layer)])
+			self.nets = nn.ModuleList([DecoderLayer(isize, fhsize=_fhsize, dropout=dropout, attn_drop=attn_drop, act_drop=act_drop, num_head=num_head, ahsize=_ahsize, num_kv_head=num_kv_head, sliding_window=-1 if (i % sliding_window_layerid_pattern) == 0 else sliding_window, disable_ffn_bias=disable_ffn_bias, add_self_attn_postnorm=add_self_attn_postnorm, add_pffn_postnorm=add_pffn_postnorm, add_self_attn_qknorm=add_self_attn_qknorm, rope_linear_scaling=rope_linear_scaling if (i % sliding_window_layerid_pattern) == 0 else 1.0, sinusoid_base_frequency=sinusoid_base_frequency if (i % sliding_window_layerid_pattern) == 0 else sinusoid_base_frequency_sliding_window, model_name=model_name) for i in range(1, num_layer + 1)])
 
 		self.out_normer = RMSNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters) if norm_output else None
 
 		if rel_pos_enabled:
 			share_rel_pos_cache(self)
+
+	def forward(self, inputo, word_prediction=True, pred_mask=None, **kwargs):
+
+		nquery = inputo.size(-1)
+
+		out = self.wemb(inputo)
+		sqrt_isize = sqrt(out.size(-1))
+
+		if self.pemb is None:
+			out.mul_(sqrt_isize)
+		else:
+			out = self.pemb(inputo, expand=False).add(out, alpha=sqrt_isize)
+		if self.drop is not None:
+			out = self.drop(out)
+
+		_mask = self._get_subsequent_mask(nquery)
+		_full_mask = self._get_subsequent_mask(nquery, sliding_window=-1) if (self.sliding_window >= 0) and (nquery > self.sliding_window) else _mask
+
+		for i, net in enumerate(self.nets, 1):
+			out = net(out, _full_mask if (i % sliding_window_layerid_pattern == 0) else _mask)
+
+		if self.out_normer is not None:
+			out = self.out_normer(out)
+
+		if word_prediction:
+			if pred_mask is not None:
+				out = out[pred_mask]
+			out = self.lsm(self.classifier(out))
+
+		return out
 
 	def build_states(self, inpute, states=None, return_last_hidden=False, block_size=0, slen=None, sliding_window_khead=None, **kwargs):
 
@@ -139,9 +169,11 @@ class Decoder(DecoderBase):
 		_rslen = _slen + nquery
 
 		out = self.wemb(inpute)
+		sqrt_isize = sqrt(out.size(-1))
 
-		if self.pemb is not None:
-			sqrt_isize = sqrt(out.size(-1))
+		if self.pemb is None:
+			out.mul_(sqrt_isize)
+		else:
 			out = self.pemb.get_range(_rslen, sid=_slen).add(out, alpha=sqrt_isize)
 		if self.drop is not None:
 			out = self.drop(out)
@@ -152,7 +184,7 @@ class Decoder(DecoderBase):
 				_eid = min(_sid + block_size, _rslen)
 				_lsid = (_sid - (0 if (_states.get(0, (None, None,))[0] is None) else (_states.get(0, (None, None,))[0].size(-1)))) if self.sliding_window > 0 else 0
 				_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=_lsid)
-				_full_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=_lsid, sliding_window=-1) if self.sliding_window >= 0 else _mask
+				_full_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=_lsid, sliding_window=-1) if (self.sliding_window >= 0) and (_eid > self.sliding_window) else _mask
 				_out = out.narrow(1, _sid - _slen, _eid - _sid)
 				for _tmp, net in enumerate(self.nets):
 					_out, _state = net(_states.get(_tmp, (None, None,)), _full_mask if ((_tmp + 1) % sliding_window_layerid_pattern == 0) else _mask, _out, slen=_sid, sliding_window_khead=_sliding_window_khead)
@@ -161,7 +193,7 @@ class Decoder(DecoderBase):
 			out = _out
 		else:
 			_mask = self._get_subsequent_mask(_rslen, sid=_slen)
-			_full_mask = self._get_subsequent_mask(_rslen, sid=_slen, sliding_window=-1) if self.sliding_window >= 0 else _mask
+			_full_mask = self._get_subsequent_mask(_rslen, sid=_slen, sliding_window=-1) if (self.sliding_window >= 0) and (_rslen > self.sliding_window) else _mask
 			for _tmp, net in enumerate(self.nets):
 				out, _state = net(_states.get(_tmp, (None, None,)), _full_mask if ((_tmp + 1) % sliding_window_layerid_pattern == 0) else _mask, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
@@ -190,6 +222,7 @@ class Decoder(DecoderBase):
 			_nquery = ilen.min().item()
 			_inpute = inpute.narrow(-1, 0, _nquery)
 		out, _states = self.build_states(_inpute, states=_states, return_last_hidden=True, slen=_slen, sliding_window_khead=_sliding_window_khead)
+		sqrt_isize = sqrt(out.size(-1))
 		_slen += _nquery
 
 		out = self.classifier(out)
@@ -207,7 +240,9 @@ class Decoder(DecoderBase):
 		for i in range(_nquery, nquery + max_len):
 
 			out = self.wemb(wds)
-			if self.pemb is not None:
+			if self.pemb is None:
+				out.mul_(sqrt_isize)
+			else:
 				out = self.pemb.get_pos(i).add(out, alpha=sqrt_isize)
 			if self.drop is not None:
 				out = self.drop(out)
@@ -277,6 +312,7 @@ class Decoder(DecoderBase):
 			_inpute, _csteps = inpute.narrow(-1, 0, _nquery), (ilen - _nquery)
 			_lpv_rs = _csteps
 		out, _states = self.build_states(_inpute, states=_states, return_last_hidden=True, slen=_slen, sliding_window_khead=_sliding_window_khead)
+		sqrt_isize = sqrt(out.size(-1))
 		_slen += _nquery
 
 		if length_penalty > 0.0:
@@ -312,7 +348,9 @@ class Decoder(DecoderBase):
 		for step in range(_nquery, nquery + max_len):
 
 			out = self.wemb(wds)
-			if self.pemb is not None:
+			if self.pemb is None:
+				out.mul_(sqrt_isize)
+			else:
 				out = self.pemb.get_pos(step).add(out, alpha=sqrt_isize)
 
 			if self.drop is not None:

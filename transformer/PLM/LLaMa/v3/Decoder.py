@@ -99,6 +99,8 @@ class Decoder(DecoderBase):
 			_nquery = ilen.min().item()
 			_inpute = inpute.narrow(-1, 0, _nquery)
 		out, _states = self.build_states(_inpute, states=states, return_last_hidden=True)
+		if self.pemb is not None:
+			sqrt_isize = sqrt(out.size(-1))
 
 		out = self.classifier(out)
 		wds = SampleMax(out, dim=-1, keepdim=False, sample=sample, top_k=top_k, top_p=top_p, temp=temp)
@@ -176,6 +178,8 @@ class Decoder(DecoderBase):
 			_inpute, _csteps = inpute.narrow(-1, 0, _nquery), (ilen - _nquery)
 			_lpv_rs = _csteps
 		out, _states = self.build_states(_inpute, states=states, return_last_hidden=True)
+		if self.pemb is not None:
+			sqrt_isize = sqrt(out.size(-1))
 
 		if length_penalty > 0.0:
 			lpv = out.new_ones(real_bsize, 1)

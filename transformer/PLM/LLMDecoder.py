@@ -62,8 +62,7 @@ class Decoder(DecoderBase):
 		out = self.wemb(inpute)
 
 		if self.pemb is not None:
-			sqrt_isize = sqrt(out.size(-1))
-			out = self.pemb.get_range(_rslen, sid=_slen).add(out, alpha=sqrt_isize)
+			out = self.pemb.get_range(_rslen, sid=_slen).add(out, alpha=sqrt(out.size(-1)))
 		if self.drop is not None:
 			out = self.drop(out)
 
