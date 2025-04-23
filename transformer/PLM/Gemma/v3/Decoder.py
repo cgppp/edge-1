@@ -90,7 +90,7 @@ class DecoderLayer(DecoderLayerBase):
 			copy_plm_parameter(self.ff.net[0].weight, plm_parameters, ["%s.layers.%d.mlp.gate_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.mlp.up_proj.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_l = lfind_last_module(self.ff.net, Linear)[-1]
 			copy_plm_parameter(_l.weight, plm_parameters, "%s.layers.%d.mlp.down_proj.weight" % (_model_name, layer_idx,))
-			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.layers.%d.post_attention_layernorm.weight" % (_model_name, layer_idx,), func=shift_rms_weight)
+			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.layers.%d.pre_feedforward_layernorm.weight" % (_model_name, layer_idx,), func=shift_rms_weight)
 			_bias_key = "%s.layers.%d.post_feedforward_layernorm.weight" % (_model_name, layer_idx,)
 			_pffn_net_ldrop = isinstance(self.ff.net[-1], Dropout)
 			_pffn_pnorm_ind = -2 if _pffn_net_ldrop else -1
