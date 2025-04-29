@@ -7,7 +7,7 @@ from torch import nn
 
 from modules.base import Dropout
 from modules.norm.base import RMSNorm
-from modules.plm.qwen.v2d5 import PositionwiseFF, ResSelfAttn
+from modules.plm.qwen.v3 import PositionwiseFF, ResSelfAttn
 from transformer.Decoder import DecoderLayer as DecoderLayerBase
 from transformer.PLM.LLMDecoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_
@@ -19,12 +19,12 @@ from utils.relpos.base import share_rel_pos_cache
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_any_wodim, torch_no_grad
 
-from cnfg.plm.qwen.v2d5.ihyp import *
-from cnfg.vocab.plm.qwen.v2d5 import eos_id, pad_id, sos_id
+from cnfg.plm.qwen.v3.ihyp import *
+from cnfg.vocab.plm.qwen.v3 import eos_id, pad_id, sos_id
 
 class DecoderLayer(DecoderLayerBase):
 
-	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, norm_residual=norm_residual_default, k_rel_pos=use_k_relative_position_decoder, max_bucket_distance=relative_position_max_bucket_distance_decoder, num_kv_head=None, add_attn_qkv_bias=add_attn_qkv_bias, sliding_window=sliding_window, disable_ffn_bias=disable_ffn_bias, model_name="model", **kwargs):
+	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, norm_residual=norm_residual_default, k_rel_pos=use_k_relative_position_decoder, max_bucket_distance=relative_position_max_bucket_distance_decoder, num_kv_head=None, add_attn_qkv_bias=add_attn_qkv_bias, add_self_attn_qknorm=add_self_attn_qknorm, sliding_window=sliding_window, disable_ffn_bias=disable_ffn_bias, model_name="model", **kwargs):
 
 		_ahsize = parse_none(ahsize, isize)
 		_fhsize = _ahsize * 4 if fhsize is None else fhsize
@@ -33,7 +33,7 @@ class DecoderLayer(DecoderLayerBase):
 
 		self.model_name = model_name
 		self.cross_attn = None
-		self.self_attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance, num_kv_head=num_kv_head, add_attn_qkv_bias=add_attn_qkv_bias, sliding_window=sliding_window)
+		self.self_attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance, num_kv_head=num_kv_head, add_attn_qkv_bias=add_attn_qkv_bias, add_self_attn_qknorm=add_self_attn_qknorm, sliding_window=sliding_window)
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual, disable_ffn_bias=disable_ffn_bias)
 
 	def forward(self, inputo, tgt_pad_mask=None, query_unit=None, slen=None, sliding_window_khead=None, **kwargs):
@@ -71,6 +71,20 @@ class DecoderLayer(DecoderLayerBase):
 			if self.self_attn.net.outer.bias is not None:
 				copy_plm_parameter(self.self_attn.net.outer.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.self_attn.normer.weight, plm_parameters, "%s.layers.%d.input_layernorm.weight" % (_model_name, layer_idx,))
+			_bias_key = "%s.layers.%d.self_attn.q_norm.weight" % (_model_name, layer_idx,)
+			if _bias_key in plm_parameters:
+				if self.self_attn.net.q_normer is None:
+					self.self_attn.net.q_normer = RMSNorm(self.self_attn.net.attn_dim, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
+				copy_plm_parameter(self.self_attn.net.q_normer.weight, plm_parameters, _bias_key)
+			elif self.self_attn.net.q_normer is not None:
+				self.self_attn.net.q_normer = None
+			_bias_key = "%s.layers.%d.self_attn.k_norm.weight" % (_model_name, layer_idx,)
+			if _bias_key in plm_parameters:
+				if self.self_attn.net.k_normer is None:
+					self.self_attn.net.k_normer = RMSNorm(self.self_attn.net.attn_dim, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
+				copy_plm_parameter(self.self_attn.net.k_normer.weight, plm_parameters, _bias_key)
+			elif self.self_attn.net.k_normer is not None:
+				self.self_attn.net.k_normer = None
 			copy_plm_parameter(self.ff.net[0].weight, plm_parameters, ["%s.layers.%d.mlp.gate_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.mlp.up_proj.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_l = self.ff.net[-2] if isinstance(self.ff.net[-1], Dropout) else self.ff.net[-1]
 			copy_plm_parameter(_l.weight, plm_parameters, "%s.layers.%d.mlp.down_proj.weight" % (_model_name, layer_idx,))

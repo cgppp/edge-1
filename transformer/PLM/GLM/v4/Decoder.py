@@ -53,14 +53,20 @@ class DecoderLayer(DecoderLayerBase):
 		with torch_no_grad():
 			copy_plm_parameter(self.self_attn.net.adaptor.weight, plm_parameters, ["%s.layers.%d.self_attn.q_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.k_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.v_proj.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_bias_key = "%s.layers.%d.self_attn.q_proj.bias" % (_model_name, layer_idx,)
-			if (self.self_attn.net.adaptor.bias is None) and (_bias_key in plm_parameters):
-				self.self_attn.net.adaptor.bias = nn.Parameter(torch.zeros(self.attn.net.adaptor.weight.size(0)))
+			if _bias_key in plm_parameters:
+				if self.self_attn.net.adaptor.bias is None:
+					self.self_attn.net.adaptor.bias = nn.Parameter(torch.zeros(self.attn.net.adaptor.weight.size(0)))
+			elif self.self_attn.net.adaptor.bias is not None:
+				self.self_attn.net.adaptor.bias = None
 			if self.self_attn.net.adaptor.bias is not None:
 				copy_plm_parameter(self.self_attn.net.adaptor.bias, plm_parameters, [_bias_key, "%s.layers.%d.self_attn.k_proj.bias" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.v_proj.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			copy_plm_parameter(self.self_attn.net.outer.weight, plm_parameters, "%s.layers.%d.self_attn.o_proj.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.layers.%d.self_attn.o_proj.bias" % (_model_name, layer_idx,)
-			if (self.self_attn.net.outer.bias is None) and (_bias_key in plm_parameters):
-				self.self_attn.net.outer.bias = nn.Parameter(torch.zeros(self.attn.net.outer.weight.size(0)))
+			if _bias_key in plm_parameters:
+				if self.self_attn.net.outer.bias is None:
+					self.self_attn.net.outer.bias = nn.Parameter(torch.zeros(self.attn.net.outer.weight.size(0)))
+			elif self.self_attn.net.outer.bias is not None:
+				self.self_attn.net.outer.bias = None
 			if self.self_attn.net.outer.bias is not None:
 				copy_plm_parameter(self.self_attn.net.outer.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.self_attn.normer.weight, plm_parameters, "%s.layers.%d.input_layernorm.weight" % (_model_name, layer_idx,))

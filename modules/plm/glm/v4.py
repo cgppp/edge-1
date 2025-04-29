@@ -18,8 +18,11 @@ class SelfAttn(SelfAttnBase):
 
 		super(SelfAttn, self).__init__(isize, hsize=hsize, osize=osize, num_head=num_head, dropout=dropout, enable_bias=enable_bias, enable_proj_bias=enable_proj_bias, num_kv_head=num_kv_head, k_rel_pos=k_rel_pos, uni_direction_reduction=uni_direction_reduction, is_left_to_right_reduction=is_left_to_right_reduction, zero_reduction=zero_reduction, max_bucket_distance=max_bucket_distance, use_rope=use_rope, rope_pos_offset=rope_pos_offset, rope_dim_offset=rope_dim_offset, rope_alpha=rope_alpha, rope_partial_factor=rope_partial_factor, rope_linear_scaling=rope_linear_scaling, sinusoid_base_frequency=sinusoid_base_frequency, use_alibi=use_alibi, sparsenorm=sparsenorm, xseql=xseql, **kwargs)
 
-		if add_attn_qkv_bias and (self.adaptor.bias is None):
-			self.adaptor.bias = nn.Parameter(torch.zeros(self.adaptor.weight.size(0)))
+		if add_attn_qkv_bias:
+			if self.adaptor.bias is None:
+				self.adaptor.bias = nn.Parameter(torch.zeros(self.adaptor.weight.size(0)))
+		elif self.adaptor.bias is not None:
+			self.adaptor.bias = None
 
 	# this function is copied from modules.attn.gqa.SelfAttn only to override apply_rope to apply_rope_rot
 	def forward(self, iQ, mask=None, states=None, **kwargs):
