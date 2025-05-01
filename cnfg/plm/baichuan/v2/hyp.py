@@ -9,7 +9,7 @@ remove_classifier_bias = True
 # choices: None, "GeLU", "GeLUTanh", "Swish", "Sigmoid", "SReLU", "Mish", "NormSwish"
 advance_activation_function = None
 # using GLU activation function for FFN, choices: None, "GLU", "GEGLU", "SwiGLU", "GETanhGLU".
-use_glu_ffn = "SwiGLU"#"Swish" for 1B
+use_glu_ffn = "SwiGLU"
 
 # choices: "v1", "v2"
 computation_order = "v2"
