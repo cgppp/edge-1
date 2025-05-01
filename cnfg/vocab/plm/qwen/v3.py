@@ -34,11 +34,11 @@
 pad_id, sos_id, eos_id, unk_id = 151643, 151644, 151645, None
 vocab_size = 151936# 151936 for 0.6/1.7/4/8/14B
 
-instruct_template = lambda system, user: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n" % (system, user,)
-instruct_lm_template = lambda system, user, assistant: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n%s<|im_end|>" % (system, user, assistant,)
-instruct_auto_template = lambda system, user: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n" % (system, user,)
-instruct_think_template = lambda system, user, think: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n%s\n</think>\n\n" % (system, user, think,)
-instruct_think_lm_template = lambda system, user, assistant: "<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n%s\n</think>\n\n%s<|im_end|>" % (system, user, think, assistant,)
+instruct_template = lambda system, user: ("<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n" % (system, user,)) if system else ("<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n" % user)
+instruct_lm_template = lambda system, user, assistant: ("<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n%s<|im_end|>" % (system, user, assistant,)) if system else ("<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n%s<|im_end|>" % (user, assistant,))
+instruct_auto_template = lambda system, user: ("<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n" % (system, user,)) if system else ("<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n" % user)
+instruct_think_template = lambda system, user, think: ("<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n%s\n</think>\n\n" % (system, user, think,)) if system else ("<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n%s\n</think>\n\n" % (user, think,))
+instruct_think_lm_template = lambda system, user, assistant: ("<|im_start|>system\n%s<|im_end|>\n<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n%s\n</think>\n\n%s<|im_end|>" % (system, user, think, assistant,)) if system else ("<|im_start|>user\n%s<|im_end|>\n<|im_start|>assistant\n<think>\n%s\n</think>\n\n%s<|im_end|>" % (user, think, assistant,))
 assistant_template = lambda system, assistant: "%s<|im_end|>" % assistant
 lm_template = lambda system, user: user
 templated = {"instruct": instruct_template, "instruct_lm": instruct_lm_template, "assistant": assistant_template, "lm": lm_template, "instruct_auto": instruct_auto_template, "instruct_think": instruct_think_template, "instruct_think_lm": instruct_think_lm_template}

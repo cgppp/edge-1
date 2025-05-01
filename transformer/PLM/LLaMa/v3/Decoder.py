@@ -13,7 +13,7 @@ from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
 from utils.decode.repan import is_penalty_enabled as is_repenalty_enabled, penalty as repenalty
 from utils.fmt.parser import parse_none
-from utils.plm.base import copy_plm_parameter, load_plm_wrapper
+from utils.plm.base import align_linear_bias, copy_plm_parameter, load_plm_wrapper
 from utils.relpos.base import share_rel_pos_cache
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_any_wodim, torch_no_grad
@@ -53,14 +53,12 @@ class DecoderLayer(DecoderLayerBase):
 		with torch_no_grad():
 			copy_plm_parameter(self.self_attn.net.adaptor.weight, plm_parameters, ["%s.layers.%d.self_attn.q_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.k_proj.weight" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.v_proj.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_bias_key = "%s.layers.%d.self_attn.q_proj.bias" % (_model_name, layer_idx,)
-			if (self.self_attn.net.adaptor.bias is None) and (_bias_key in plm_parameters):
-				self.self_attn.net.adaptor.bias = nn.Parameter(torch.zeros(self.attn.net.adaptor.weight.size(0)))
+			align_linear_bias(self.self_attn.net.adaptor, plm_parameters, _bias_key)
 			if self.self_attn.net.adaptor.bias is not None:
 				copy_plm_parameter(self.self_attn.net.adaptor.bias, plm_parameters, [_bias_key, "%s.layers.%d.self_attn.k_proj.bias" % (_model_name, layer_idx,), "%s.layers.%d.self_attn.v_proj.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			copy_plm_parameter(self.self_attn.net.outer.weight, plm_parameters, "%s.layers.%d.self_attn.o_proj.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.layers.%d.self_attn.o_proj.bias" % (_model_name, layer_idx,)
-			if (self.self_attn.net.outer.bias is None) and (_bias_key in plm_parameters):
-				self.self_attn.net.outer.bias = nn.Parameter(torch.zeros(self.attn.net.outer.weight.size(0)))
+			align_linear_bias(self.self_attn.net.outer, plm_parameters, _bias_key)
 			if self.self_attn.net.outer.bias is not None:
 				copy_plm_parameter(self.self_attn.net.outer.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.self_attn.normer.weight, plm_parameters, "%s.layers.%d.input_layernorm.weight" % (_model_name, layer_idx,))

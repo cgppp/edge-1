@@ -77,3 +77,13 @@ def load_plm_wrapper(fix_pname=True, torch_map_location="cpu"):
 		return load_plm_wrapper_core
 
 	return wrapper_builder
+
+def align_linear_bias(m, plm_parameters, bias_key):
+
+	if bias_key in plm_parameters:
+		if m.bias is None:
+			m.bias = nn.Parameter(torch.zeros(m.weight.size(0)))
+	elif m.bias is not None:
+			m.bias = None
+
+	return m

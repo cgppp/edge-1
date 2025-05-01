@@ -8,7 +8,7 @@ from modules.dropout import Dropout
 from transformer.Encoder import Encoder as EncoderBase
 from transformer.TA.Encoder import EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none
-from utils.plm.base import copy_plm_parameter, load_plm_wrapper
+from utils.plm.base import align_linear_bias, copy_plm_parameter, load_plm_wrapper
 from utils.torch.comp import torch_no_grad
 
 from cnfg.plm.bert.base import num_type
@@ -30,14 +30,12 @@ class EncoderLayer(EncoderLayerBase):
 		with torch_no_grad():
 			copy_plm_parameter(self.attn.net.adaptor.weight, plm_parameters, ["%s.encoder.layer.%d.attention.self.query.weight" % (_model_name, layer_idx,), "%s.encoder.layer.%d.attention.self.key.weight" % (_model_name, layer_idx,), "%s.encoder.layer.%d.attention.self.value.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_bias_key = "%s.encoder.layer.%d.attention.self.query.bias" % (_model_name, layer_idx,)
-			if (self.attn.net.adaptor.bias is None) and (_bias_key in plm_parameters):
-				self.attn.net.adaptor.bias = nn.Parameter(torch.zeros(self.attn.net.adaptor.weight.size(0)))
+			align_linear_bias(self.attn.net.adaptor, plm_parameters, _bias_key)
 			if self.attn.net.adaptor.bias is not None:
 				copy_plm_parameter(self.attn.net.adaptor.bias, plm_parameters, [_bias_key, "%s.encoder.layer.%d.attention.self.key.bias" % (_model_name, layer_idx,), "%s.encoder.layer.%d.attention.self.value.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			copy_plm_parameter(self.attn.net.outer.weight, plm_parameters, "%s.encoder.layer.%d.attention.output.dense.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.encoder.layer.%d.attention.output.dense.bias" % (_model_name, layer_idx,)
-			if (self.attn.net.outer.bias is None) and (_bias_key in plm_parameters):
-				self.attn.net.outer.bias = nn.Parameter(torch.zeros(self.attn.net.outer.weight.size(0)))
+			align_linear_bias(self.attn.net.outer, plm_parameters, _bias_key)
 			if self.attn.net.outer.bias is not None:
 				copy_plm_parameter(self.attn.net.outer.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.attn.normer.weight, plm_parameters, "%s.encoder.layer.%d.attention.output.LayerNorm.weight" % (_model_name, layer_idx,))
@@ -47,8 +45,7 @@ class EncoderLayer(EncoderLayerBase):
 			_l = self.ff.net[-2] if isinstance(self.ff.net[-1], Dropout) else self.ff.net[-1]
 			copy_plm_parameter(_l.weight, plm_parameters, "%s.encoder.layer.%d.output.dense.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.encoder.layer.%d.output.dense.bias" % (_model_name, layer_idx,)
-			if (_l.bias is None) and (_bias_key in plm_parameters):
-				_l.bias = nn.Parameter(torch.zeros(_l.weight.size(0)))
+			align_linear_bias(_l, plm_parameters, _bias_key)
 			if _l.bias is not None:
 				copy_plm_parameter(_l.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.encoder.layer.%d.output.LayerNorm.weight" % (_model_name, layer_idx,))

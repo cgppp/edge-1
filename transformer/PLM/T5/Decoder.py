@@ -11,7 +11,7 @@ from transformer.Decoder import Decoder as DecoderBase, DecoderLayer as DecoderL
 from utils.base import index_tensors, select_zero_
 from utils.decode.beam import expand_bsize_for_beam
 from utils.fmt.parser import parse_none
-from utils.plm.base import copy_plm_parameter, load_plm_wrapper
+from utils.plm.base import align_linear_bias, copy_plm_parameter, load_plm_wrapper
 from utils.plm.t5 import reorder_pemb
 from utils.sampler import SampleMax
 from utils.torch.comp import all_done, torch_no_grad
@@ -53,14 +53,12 @@ class DecoderLayer(DecoderLayerBase):
 		with torch_no_grad():
 			copy_plm_parameter(self.self_attn.net.adaptor.weight, plm_parameters, ["%s.block.%d.layer.0.SelfAttention.q.weight" % (_model_name, layer_idx,), "%s.block.%d.layer.0.SelfAttention.k.weight" % (_model_name, layer_idx,), "%s.block.%d.layer.0.SelfAttention.v.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_bias_key = "%s.block.%d.layer.0.SelfAttention.q.bias" % (_model_name, layer_idx,)
-			if (self.self_attn.net.adaptor.bias is None) and (_bias_key in plm_parameters):
-				self.self_attn.net.adaptor.bias = nn.Parameter(torch.zeros(self.attn.net.adaptor.weight.size(0)))
+			align_linear_bias(self.self_attn.net.adaptor, plm_parameters, _bias_key)
 			if self.self_attn.net.adaptor.bias is not None:
 				copy_plm_parameter(self.self_attn.net.adaptor.bias, plm_parameters, [_bias_key, "%s.block.%d.layer.0.SelfAttention.k.bias" % (_model_name, layer_idx,), "%s.block.%d.layer.0.SelfAttention.v.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			copy_plm_parameter(self.self_attn.net.outer.weight, plm_parameters, "%s.block.%d.layer.0.SelfAttention.o.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.block.%d.layer.0.SelfAttention.o.bias" % (_model_name, layer_idx,)
-			if (self.self_attn.net.outer.bias is None) and (_bias_key in plm_parameters):
-				self.self_attn.net.outer.bias = nn.Parameter(torch.zeros(self.attn.net.outer.weight.size(0)))
+			align_linear_bias(self.self_attn.net.outer, plm_parameters, _bias_key)
 			if self.self_attn.net.outer.bias is not None:
 				copy_plm_parameter(self.self_attn.net.outer.bias, plm_parameters, _bias_key)
 			_bias_key = "%s.block.%d.layer.0.SelfAttention.relative_attention_bias.weight" % (_model_name, layer_idx,)
@@ -72,20 +70,17 @@ class DecoderLayer(DecoderLayerBase):
 				copy_plm_parameter(self.self_attn.normer.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.cross_attn.net.query_adaptor.weight, plm_parameters, "%s.block.%d.layer.1.EncDecAttention.q.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.block.%d.layer.1.EncDecAttention.q.bias" % (_model_name, layer_idx,)
-			if (self.cross_attn.net.query_adaptor.bias is None) and (_bias_key in plm_parameters):
-				self.cross_attn.net.query_adaptor.bias = nn.Parameter(torch.zeros(self.cross_attn.net.query_adaptor.weight.size(0)))
+			align_linear_bias(self.cross_attn.net.query_adaptor, plm_parameters, _bias_key)
 			if self.cross_attn.net.query_adaptor.bias is not None:
 				copy_plm_parameter(self.cross_attn.net.query_adaptor.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.cross_attn.net.kv_adaptor.weight, plm_parameters, ["%s.block.%d.layer.1.EncDecAttention.k.weight" % (_model_name, layer_idx,), "%s.block.%d.layer.1.EncDecAttention.v.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_bias_key = "%s.block.%d.layer.1.EncDecAttention.k.bias" % (_model_name, layer_idx,)
-			if (self.cross_attn.net.kv_adaptor.bias is None) and (_bias_key in plm_parameters):
-				self.cross_attn.net.kv_adaptor.bias = nn.Parameter(torch.zeros(self.cross_attn.net.kv_adaptor.weight.size(0)))
+			align_linear_bias(self.cross_attn.net.kv_adaptor, plm_parameters, _bias_key)
 			if self.cross_attn.net.kv_adaptor.bias is not None:
 				copy_plm_parameter(self.cross_attn.net.kv_adaptor.bias, plm_parameters, [_bias_key, "%s.block.%d.layer.1.EncDecAttention.v.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			copy_plm_parameter(self.cross_attn.net.outer.weight, plm_parameters, "%s.block.%d.layer.1.EncDecAttention.o.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.block.%d.layer.1.EncDecAttention.o.bias" % (_model_name, layer_idx,)
-			if (self.cross_attn.net.outer.bias is None) and (_bias_key in plm_parameters):
-				self.cross_attn.net.outer.bias = nn.Parameter(torch.zeros(self.cross_attn.net.outer.weight.size(0)))
+			align_linear_bias(self.cross_attn.net.outer, plm_parameters, _bias_key)
 			if self.cross_attn.net.outer.bias is not None:
 				copy_plm_parameter(self.cross_attn.net.outer.bias, plm_parameters, _bias_key)
 			_bias_key = "%s.block.%d.layer.1.EncDecAttention.relative_attention_bias.weight" % (_model_name, layer_idx,)
@@ -108,9 +103,8 @@ class DecoderLayer(DecoderLayerBase):
 			_l = self.ff.net[-2] if isinstance(self.ff.net[-1], Dropout) else self.ff.net[-1]
 			copy_plm_parameter(_l.weight, plm_parameters, "%s.block.%d.layer.2.DenseReluDense.wo.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.block.%d.layer.2.DenseReluDense.wo.bias" % (_model_name, layer_idx,)
-			if _bias_key in plm_parameters:
-				if _l.bias is None:
-					_l.bias = nn.Parameter(torch.zeros(_l.weight.size(0)))
+			align_linear_bias(_l, plm_parameters, _bias_key)
+			if _l.bias is not None:
 				copy_plm_parameter(_l.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.block.%d.layer.2.layer_norm.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.block.%d.layer.2.layer_norm.bias" % (_model_name, layer_idx,)

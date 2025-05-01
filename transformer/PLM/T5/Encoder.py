@@ -8,7 +8,7 @@ from modules.norm.base import RMSNorm as Norm
 from modules.plm.t5 import PositionwiseFF, ResSelfAttn
 from transformer.Encoder import Encoder as EncoderBase, EncoderLayer as EncoderLayerBase
 from utils.fmt.parser import parse_none
-from utils.plm.base import copy_plm_parameter, load_plm_wrapper
+from utils.plm.base import align_linear_bias, copy_plm_parameter, load_plm_wrapper
 from utils.plm.t5 import reorder_pemb
 from utils.torch.comp import torch_no_grad
 
@@ -35,14 +35,12 @@ class EncoderLayer(EncoderLayerBase):
 		with torch_no_grad():
 			copy_plm_parameter(self.attn.net.adaptor.weight, plm_parameters, ["%s.block.%d.layer.0.SelfAttention.q.weight" % (_model_name, layer_idx,), "%s.block.%d.layer.0.SelfAttention.k.weight" % (_model_name, layer_idx,), "%s.block.%d.layer.0.SelfAttention.v.weight" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			_bias_key = "%s.block.%d.layer.0.SelfAttention.q.bias" % (_model_name, layer_idx,)
-			if (self.attn.net.adaptor.bias is None) and (_bias_key in plm_parameters):
-				self.attn.net.adaptor.bias = nn.Parameter(torch.zeros(self.attn.net.adaptor.weight.size(0)))
+			align_linear_bias(self.attn.net.adaptor, plm_parameters, _bias_key)
 			if self.attn.net.adaptor.bias is not None:
 				copy_plm_parameter(self.attn.net.adaptor.bias, plm_parameters, [_bias_key, "%s.block.%d.layer.0.SelfAttention.k.bias" % (_model_name, layer_idx,), "%s.block.%d.layer.0.SelfAttention.v.bias" % (_model_name, layer_idx,)], func=torch.cat, func_kwargs={"dim": 0})
 			copy_plm_parameter(self.attn.net.outer.weight, plm_parameters, "%s.block.%d.layer.0.SelfAttention.o.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.block.%d.layer.0.SelfAttention.o.bias" % (_model_name, layer_idx,)
-			if (self.attn.net.outer.bias is None) and (_bias_key in plm_parameters):
-				self.attn.net.outer.bias = nn.Parameter(torch.zeros(self.attn.net.outer.weight.size(0)))
+			align_linear_bias(self.attn.net.outer, plm_parameters, _bias_key)
 			if self.attn.net.outer.bias is not None:
 				copy_plm_parameter(self.attn.net.outer.bias, plm_parameters, _bias_key)
 			_bias_key = "%s.block.%d.layer.0.SelfAttention.relative_attention_bias.weight" % (_model_name, layer_idx,)
@@ -65,9 +63,8 @@ class EncoderLayer(EncoderLayerBase):
 			_l = self.ff.net[-2] if isinstance(self.ff.net[-1], Dropout) else self.ff.net[-1]
 			copy_plm_parameter(_l.weight, plm_parameters, "%s.block.%d.layer.1.DenseReluDense.wo.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.block.%d.layer.1.DenseReluDense.wo.bias" % (_model_name, layer_idx,)
-			if _bias_key in plm_parameters:
-				if _l.bias is None:
-					_l.bias = nn.Parameter(torch.zeros(_l.weight.size(0)))
+			align_linear_bias(_l, plm_parameters, _bias_key)
+			if _l.bias is not None:
 				copy_plm_parameter(_l.bias, plm_parameters, _bias_key)
 			copy_plm_parameter(self.ff.normer.weight, plm_parameters, "%s.block.%d.layer.1.layer_norm.weight" % (_model_name, layer_idx,))
 			_bias_key = "%s.block.%d.layer.1.layer_norm.bias" % (_model_name, layer_idx,)
