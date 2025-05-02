@@ -1,5 +1,7 @@
 #encoding: utf-8
 
+# usage: python comet-score.py $srcf $mtf [$ref] $model $rsf|/dev/null $ngpu ${load_bsize}
+
 import sys
 from comet import load_from_checkpoint
 
@@ -11,7 +13,7 @@ def load_files(finputs, bsize=-1, keys=("src", "mt", "ref",)):
 	_seg = bsize > 0
 	_n = 0
 	with FileList(finputs, "rb") as fl:
-		for lines in zip(fl):
+		for lines in zip(*fl):
 			rs.append({_k: _v for _k, _v in zip(keys, [line.strip().decode("utf-8") for line in lines])})
 			_n += 1
 			if _seg and (_n >= bsize):
