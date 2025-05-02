@@ -25,11 +25,81 @@ all_gt = lambda lin, value: all(lu > value for lu in lin)
 
 iter_all_eq = lambda a, b: (len(a) == len(b)) and all(_au == _bu for _au, _bu in zip(a, b))
 
+class NullFile:
+
+	def __init__(self, name, mode="r", encoding=None, newlines=None, line_buffering=False, write_through=False, **kwargs):
+
+		self.closed, self.name, self.mode, self.raw, self.encoding, self.errors, self.newlines, self.line_buffering, self.write_through = False, name, mode, b"", encoding, None, None, line_buffering, write_through
+		self._read_value = self.raw if "b" in mode else ""
+		NullFile.__iter__ = NullFile.__enter__
+		NullFile.__exit__ = NullFile.close
+		NullFile.seek = NullFile.flush = NullFile.truncate = NullFile.writelines = NullFile._not_implemented
+		NullFile.fileno = NullFile.tell = NullFile.readinto = NullFile.write = NullFile.readinto1 = NullFile.peek = NullFile._return_zero
+		NullFile.readable = NullFile.seekable = NullFile.writable = NullFile. = NullFile._return_true
+		NullFile.readline = NullFile.read = NullFile.readall = NullFile.read1 = NullFile.getvalue = NullFile._return_read_value
+
+	def __enter__(self, *args, **kwargs):
+
+		return self
+
+	def __next__(self, *inputs, **kwargs):
+
+		raise StopIteration
+
+	def _not_implemented(self, *args, **kwargs):
+
+		pass
+
+	def _return_zero(self, *args, **kwargs):
+
+		return 0
+
+	def _return_true(self, *args, **kwargs):
+
+		return True
+
+	def _return_read_value(self, *args, **kwargs):
+
+		return self._read_value
+
+	def isatty(self, *args, **kwargs):
+
+		return False
+
+	def readlines(self, *args, **kwargs):
+
+		return []
+
+	def detach(self, *args, **kwargs):
+
+		return self.raw
+
+	def getbuffer(self, *args, **kwargs):
+
+		return memoryview(self.raw)
+
+	def reconfigure(self, *args, encoding=None, errors=None, newline=None, line_buffering=None, write_through=None, **kwargs):
+
+		if encoding is not None:
+			self.encoding = encoding
+		if errors is not None:
+			self.errors = errors
+		if newline is not None:
+			self.newline = newline
+		if line_buffering is not None:
+			self.line_buffering = line_buffering
+		if write_through is not None:
+			self.write_through = write_through
+
+is_null_file = lambda x: isinstance(x, NullFile)
+
 def sys_open(fname, mode="r", compresslevel=raw_cache_compression_level, **kwargs):
 
 	if fname == "-":
 		_ = sys.stdin if "r" in mode else sys.stdout
 		return _.buffer if "b" in mode else _
+	elif fname == "/dev/null" or (not fname):
+		return NullFile(fname, mode=mode, **kwargs)
 	else:
 		if fname.endswith(".gz"):
 			return gz_open(fname, mode=mode, compresslevel=compresslevel, **kwargs)
