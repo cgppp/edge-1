@@ -62,6 +62,10 @@ class NullFile:
 
 		return self._read_value
 
+	def close(self, *args, **kwargs):
+
+		self.closed = True
+
 	def isatty(self, *args, **kwargs):
 
 		return False
