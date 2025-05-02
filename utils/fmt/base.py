@@ -35,7 +35,7 @@ class NullFile:
 		NullFile.__exit__ = NullFile.close
 		NullFile.seek = NullFile.flush = NullFile.truncate = NullFile.writelines = NullFile._not_implemented
 		NullFile.fileno = NullFile.tell = NullFile.readinto = NullFile.write = NullFile.readinto1 = NullFile.peek = NullFile._return_zero
-		NullFile.readable = NullFile.seekable = NullFile.writable = NullFile. = NullFile._return_true
+		NullFile.readable = NullFile.seekable = NullFile.writable = NullFile._return_true
 		NullFile.readline = NullFile.read = NullFile.readall = NullFile.read1 = NullFile.getvalue = NullFile._return_read_value
 
 	def __enter__(self, *args, **kwargs):
