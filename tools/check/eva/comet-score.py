@@ -36,7 +36,7 @@ def handle(finputs, fmodel, frs, ngpu=0, load_bsize=-1, model_bsize=8):
 			if _write:
 				fwrt.write("\n".join(iter_to_str(scores)).encode("utf-8"))
 				fwrt.write(ens)
-			sum_scores += sum(scores)
+			sum_score += sum(scores)
 			n += len(scores)
 
 	return sum_score / float(n)
