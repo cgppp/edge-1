@@ -6,6 +6,7 @@ import sys
 from comet import load_from_checkpoint
 
 from utils.fmt.base import FileList, is_null_file, iter_to_str, sys_open
+from utils.torch.comp import torch_inference_mode
 
 def load_files(finputs, bsize=-1, keys=("src", "mt", "ref",)):
 
@@ -26,13 +27,15 @@ def load_files(finputs, bsize=-1, keys=("src", "mt", "ref",)):
 def handle(finputs, fmodel, frs, ngpu=0, load_bsize=-1, model_bsize=8):
 
 	model = load_from_checkpoint(fmodel)
+	model.eval()
+	model.half()
 	sum_score = 0.0
 	n = 0
 	ens = "\n".encode("utf-8")
-	with sys_open(frs, "wb") as fwrt:
+	with sys_open(frs, "wb") as fwrt, torch_inference_mode():
 		_write = not is_null_file(fwrt)
 		for data in load_files(finputs[:3], bsize=max(load_bsize, model_bsize) if load_bsize > 0 else load_bsize):
-			scores = model.predict(data, batch_size=model_bsize, gpus=ngpu).scores
+			scores = model.predict(data, batch_size=model_bsize, gpus=ngpu, progress_bar=False).scores
 			if _write:
 				fwrt.write("\n".join(iter_to_str(scores)).encode("utf-8"))
 				fwrt.write(ens)
