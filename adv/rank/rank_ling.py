@@ -11,7 +11,7 @@ from parallel.parallelMT import DataParallelMT
 from transformer.EnsembleNMT import NMT as Ensemble
 from transformer.NMT import NMT
 from utils.base import set_random_seed
-from utils.fmt.base import sys_open
+from utils.fmt.base import iter_to_str, sys_open
 from utils.fmt.base4torch import parse_cuda
 from utils.h5serial import h5File
 from utils.io import load_model_cpu
@@ -89,7 +89,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 		if norm_token:
 			lenv = (ot.size(-1) - _mask.to(torch.int32, non_blocking=True).sum(-1)).to(loss, non_blocking=True)
 			loss = loss / lenv
-		f.write("\n".join([str(rsu) for rsu in loss.tolist()]).encode("utf-8"))
+		f.write("\n".join(iter_to_str(loss.tolist())).encode("utf-8"))
 		f.write(ens)
 		loss = output = ot = seq_batch = seq_o = None
 

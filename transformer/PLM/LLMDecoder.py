@@ -25,7 +25,7 @@ class Decoder(DecoderBase):
 			self.classifier.bias = None
 		self.remove_classifier_bias = remove_classifier_bias
 
-	def forward(self, inputo, word_prediction=True, pred_mask=None, **kwargs):
+	def forward(self, inputo, word_prediction=True, pred_mask=None, states=None, **kwargs):
 
 		nquery = inputo.size(-1)
 
@@ -36,17 +36,27 @@ class Decoder(DecoderBase):
 		if self.drop is not None:
 			out = self.drop(out)
 
-		_mask = self._get_subsequent_mask(nquery)
+		if states is None:
+			_sid = 0
+		else:
+			_ = states.get(0, (None, None,))[0]
+			_sid = 0 if _ is None else _.size(-1)
+		_mask = self._get_subsequent_mask(nquery + _sid, sid=_sid)
 
-		for net in self.nets:
-			out = net(out, _mask)
+		if states is None:
+			for net in self.nets:
+				out = net(out, tgt_pad_mask=_mask, **kwargs)
+		else:
+			for _tmp, net in enumerate(self.nets):
+				out = net(states.get(_tmp, (None, None,)), tgt_pad_mask=_mask, query_unit=out, **kwargs)[0]
+
+		if pred_mask is not None:
+			out = out[pred_mask]
 
 		if self.out_normer is not None:
 			out = self.out_normer(out)
 
 		if word_prediction:
-			if pred_mask is not None:
-				out = out[pred_mask]
 			out = self.lsm(self.classifier(out))
 
 		return out
@@ -73,14 +83,14 @@ class Decoder(DecoderBase):
 				_mask = self._get_subsequent_mask(_eid, sid=_sid)
 				_out = out.narrow(1, _sid - _slen, _eid - _sid)
 				for _tmp, net in enumerate(self.nets):
-					_out, _state = net(_states.get(_tmp, (None, None,)), _mask, _out)
+					_out, _state = net(_states.get(_tmp, (None, None,)), tgt_pad_mask=_mask, query_unit=_out)
 					_states[_tmp] = _state
 				_sid = _eid
 			out = _out
 		else:
 			_mask = self._get_subsequent_mask(_rslen, sid=_slen)
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states.get(_tmp, (None, None,)), _mask, out)
+				out, _state = net(_states.get(_tmp, (None, None,)), tgt_pad_mask=_mask, query_unit=out)
 				_states[_tmp] = _state
 
 		if return_last_hidden:

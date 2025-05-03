@@ -131,14 +131,14 @@ class Decoder(DecoderBase):
 				_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=(_sid - (0 if (_states.get(0, (None, None,))[0] is None) else (_states.get(0, (None, None,))[0].size(-1)))) if self.sliding_window > 0 else 0)
 				_out = out.narrow(1, _sid - _slen, _eid - _sid)
 				for _tmp, net in enumerate(self.nets):
-					_out, _state = net(_states.get(_tmp, (None, None,)), _mask, _out, slen=_sid, sliding_window_khead=_sliding_window_khead)
+					_out, _state = net(_states.get(_tmp, (None, None,)), tgt_pad_mask=_mask, query_unit=_out, slen=_sid, sliding_window_khead=_sliding_window_khead)
 					_states[_tmp] = _state
 				_sid = _eid
 			out = _out
 		else:
 			_mask = self._get_subsequent_mask(_rslen, sid=_slen)
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states.get(_tmp, (None, None,)), _mask, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
+				out, _state = net(_states.get(_tmp, (None, None,)), tgt_pad_mask=_mask, query_unit=out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
 
 		if return_last_hidden:
@@ -190,7 +190,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states[_tmp], None, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
+				out, _state = net(_states[_tmp], tgt_pad_mask=None, query_unit=out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
 
 			if self.out_normer is not None:
@@ -298,7 +298,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states[_tmp], None, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
+				out, _state = net(_states[_tmp], tgt_pad_mask=None, query_unit=out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
 
 			if self.out_normer is not None:

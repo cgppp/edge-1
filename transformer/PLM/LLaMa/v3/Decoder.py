@@ -121,7 +121,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states[_tmp], None, out)
+				out, _state = net(_states[_tmp], tgt_pad_mask=None, query_unit=out)
 				_states[_tmp] = _state
 
 			if self.out_normer is not None:
@@ -219,7 +219,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states[_tmp], None, out)
+				out, _state = net(_states[_tmp], tgt_pad_mask=None, query_unit=out)
 				_states[_tmp] = _state
 
 			if self.out_normer is not None:

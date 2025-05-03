@@ -125,7 +125,7 @@ class Decoder(DecoderBase):
 		if rel_pos_enabled:
 			share_rel_pos_cache(self)
 
-	def forward(self, inputo, word_prediction=True, pred_mask=None, **kwargs):
+	def forward(self, inputo, word_prediction=True, pred_mask=None, states=None, **kwargs):
 
 		nquery = inputo.size(-1)
 
@@ -139,18 +139,29 @@ class Decoder(DecoderBase):
 		if self.drop is not None:
 			out = self.drop(out)
 
-		_mask = self._get_subsequent_mask(nquery)
-		_full_mask = self._get_subsequent_mask(nquery, sliding_window=-1) if (self.sliding_window >= 0) and (nquery > self.sliding_window) else _mask
+		if states is None:
+			_sid, _rslen = 0, nquery
+		else:
+			_ = states.get(0, (None, None,))[0]
+			_sid = 0 if _ is None else _.size(-1)
+			_rslen = _sid + nquery
+		_mask = self._get_subsequent_mask(_rslen, sid=_sid)
+		_full_mask = self._get_subsequent_mask(_rslen, sid=_sid, sliding_window=-1) if (self.sliding_window >= 0) and (_rslen > self.sliding_window) else _mask
 
-		for i, net in enumerate(self.nets, 1):
-			out = net(out, _full_mask if (i % sliding_window_layerid_pattern == 0) else _mask)
+		if states is None:
+			for i, net in enumerate(self.nets, 1):
+				out = net(out, tgt_pad_mask=_full_mask if (i % sliding_window_layerid_pattern == 0) else _mask, **kwargs)
+		else:
+			for _tmp, net in enumerate(self.nets):
+				out = net(states.get(_tmp, (None, None,)), tgt_pad_mask=_full_mask if ((_tmp + 1) % sliding_window_layerid_pattern == 0) else _mask, query_unit=out, slen=_slen, sliding_window_khead=_sliding_window_khead, **kwargs)[0]
+
+		if pred_mask is not None:
+			out = out[pred_mask]
 
 		if self.out_normer is not None:
 			out = self.out_normer(out)
 
 		if word_prediction:
-			if pred_mask is not None:
-				out = out[pred_mask]
 			out = self.lsm(self.classifier(out))
 
 		return out
@@ -186,7 +197,7 @@ class Decoder(DecoderBase):
 				_full_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=_lsid, sliding_window=-1) if (self.sliding_window >= 0) and (_eid > self.sliding_window) else _mask
 				_out = out.narrow(1, _sid - _slen, _eid - _sid)
 				for _tmp, net in enumerate(self.nets):
-					_out, _state = net(_states.get(_tmp, (None, None,)), _full_mask if ((_tmp + 1) % sliding_window_layerid_pattern == 0) else _mask, _out, slen=_sid, sliding_window_khead=_sliding_window_khead)
+					_out, _state = net(_states.get(_tmp, (None, None,)), tgt_pad_mask=_full_mask if ((_tmp + 1) % sliding_window_layerid_pattern == 0) else _mask, query_unit=_out, slen=_sid, sliding_window_khead=_sliding_window_khead, **kwargs)
 					_states[_tmp] = _state
 				_sid = _eid
 			out = _out
@@ -194,7 +205,7 @@ class Decoder(DecoderBase):
 			_mask = self._get_subsequent_mask(_rslen, sid=_slen)
 			_full_mask = self._get_subsequent_mask(_rslen, sid=_slen, sliding_window=-1) if (self.sliding_window >= 0) and (_rslen > self.sliding_window) else _mask
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states.get(_tmp, (None, None,)), _full_mask if ((_tmp + 1) % sliding_window_layerid_pattern == 0) else _mask, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
+				out, _state = net(_states.get(_tmp, (None, None,)), tgt_pad_mask=_full_mask if ((_tmp + 1) % sliding_window_layerid_pattern == 0) else _mask, query_unit=out, slen=_slen, sliding_window_khead=_sliding_window_khead, **kwargs)
 				_states[_tmp] = _state
 
 		if return_last_hidden:
@@ -247,7 +258,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states[_tmp], None, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
+				out, _state = net(_states[_tmp], tgt_pad_mask=None, query_unit=out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
 
 			if self.out_normer is not None:
@@ -356,7 +367,7 @@ class Decoder(DecoderBase):
 				out = self.drop(out)
 
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states[_tmp], None, out, slen=_slen, sliding_window_khead=_sliding_window_khead)
+				out, _state = net(_states[_tmp], tgt_pad_mask=None, query_unit=out, slen=_slen, sliding_window_khead=_sliding_window_khead)
 				_states[_tmp] = _state
 
 			if self.out_normer is not None:

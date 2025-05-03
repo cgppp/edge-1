@@ -146,6 +146,14 @@ def load_states(fname):
 
 	return rs
 
+def get_common_prefix_len(a, b):
+
+	for i, (au, bu,) in enumerate(zip(a, b)):
+		if au != bu:
+			break
+
+	return i
+
 def list_reader(fname, keep_empty_line=True, sep=None, print_func=print):
 
 	with sys_open(fname, "rb") as frd:
@@ -223,6 +231,30 @@ def loop_file_so(fsrc, frs, process_func=None, processor=None):
 				fwrt.write(process_func(tmp.decode("utf-8"), processor).encode("utf-8"))
 			fwrt.write(ens)
 
+def merge_rchar(strin, rchar=None):
+
+	_rs = []
+	_not_rchar = True
+	for _ in strin:
+		_c_not_rchar = _ != rchar
+		if _c_not_rchar or _not_rchar:
+			_rs.append(_)
+		_not_rchar = _c_not_rchar
+
+	return "".join(_rs)
+
+def merge_rchars(strin, rchars=set()):
+
+	_rs = []
+	_not_rchars = True
+	for _ in strin:
+		_c_not_rchars = _ not in rchars
+		if _c_not_rchars or _not_rchars:
+			_rs.append(_)
+		_not_rchars = _c_not_rchars
+
+	return "".join(_rs)
+
 def clean_str(strin):
 
 	return " ".join([tmpu for tmpu in strin.split() if tmpu])
@@ -242,6 +274,13 @@ def clean_liststr_lentok(lin):
 	rs = [tmpu for tmpu in lin if tmpu]
 
 	return " ".join(rs), len(rs)
+
+def clean_empl_iter(lin):
+
+	for _ in lin:
+		_rs = _.strip()
+		if _rs:
+			yield _rs
 
 def maxfreq_filter_many(inputs):
 
