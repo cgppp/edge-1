@@ -63,7 +63,7 @@ class Decoder(DecoderBase):
 
 	def build_states(self, inpute, states=None, return_last_hidden=False, block_size=0, **kwargs):
 
-		_states = {} if states is None else states
+		_states = {} if states is None else states.copy()# prevent changing states
 		nquery = inpute.size(-1)
 		_ = _states.get(0, (None, None,))[0]
 		_slen = 0 if _ is None else _.size(-1)

@@ -161,7 +161,7 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 			seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 			oi, pred_mask, ot = data_converter(seq_batch, seq_o, seq_o_sub_len=prefix_len)
 			with torch_autocast(enabled=use_amp):
-				output = model(oi, word_prediction=True, pred_mask=pred_mask, states=prefix_states if prefix_states is None else prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
+				output = model(oi, word_prediction=True, pred_mask=pred_mask, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
 				loss = lossf(output, ot)
 				if multi_gpu:
 					loss = loss.sum()

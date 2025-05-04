@@ -62,4 +62,4 @@ def expand_bsize(*inputs, bsize=1):
 
 def prepare_states_bsize(states, bsize=1):
 
-	return states if bsize == 1 else expand_bsize(states, bsize=bsize)
+	return states if (states is None) or (bsize == 1) else expand_bsize(states, bsize=bsize)

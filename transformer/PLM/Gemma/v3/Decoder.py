@@ -168,7 +168,7 @@ class Decoder(DecoderBase):
 
 	def build_states(self, inpute, states=None, return_last_hidden=False, block_size=0, slen=None, sliding_window_khead=None, **kwargs):
 
-		_states = {} if states is None else states
+		_states = {} if states is None else states.copy()# prevent changing states
 		nquery = inpute.size(-1)
 		_sliding_window_khead = None if sliding_window_khead is None else (sliding_window_khead if isinstance(sliding_window_khead, Integral) else nquery)
 		if slen is None:

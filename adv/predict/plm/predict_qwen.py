@@ -69,8 +69,6 @@ beam_size = cnfg.beam_size
 length_penalty = cnfg.length_penalty
 
 ens = "\n".encode("utf-8")
-
-src_grp = td["src"]
 with sys_open(sys.argv[3], "rb") as fsrc, sys_open(sys.argv[1], "wb") as frs, torch_inference_mode():
 	prefix_ids = lcnfg.prefix_ids
 	if prefix_ids:
@@ -99,5 +97,5 @@ with sys_open(sys.argv[3], "rb") as fsrc, sys_open(sys.argv[1], "wb") as frs, to
 			with torch_autocast(enabled=use_amp):
 				output = mymodel.decode(seq_batch, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, states=prefix_states)
 			output = ext_ids(output.squeeze().tolist())
-			f.write(ext_txt(tokenizer.decode(output, skip_special_tokens=False, clean_up_tokenization_spaces=False).strip()).strip().encode("utf-8"))
-		f.write(ens)
+			frs.write(ext_txt(tokenizer.decode(output, skip_special_tokens=False, clean_up_tokenization_spaces=False).strip()).strip().encode("utf-8"))
+		frs.write(ens)
