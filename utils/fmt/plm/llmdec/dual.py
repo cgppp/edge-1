@@ -30,6 +30,7 @@ def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, ge
 		else:
 			yield rsi, rsl, mlen_i
 			rsi = [i_d + td]
+			rsl = [[lid, lgth]]
 			mlen_i = lgth
 			_maxpad = min(maxpad, ceil(lgth / _f_maxpart))
 			maxlen = lgth + _maxpad

@@ -229,8 +229,6 @@ vd = h5File(cnfg.dev_data, "r", **h5_fileargs)
 
 ntrain = td["ndata"][()].item()
 nvalid = vd["ndata"][()].item()
-nword = td["nword"][()].tolist()
-nwordi, nwordt = nword[0], nword[-1]
 
 tl = [str(i) for i in range(ntrain)]
 
@@ -256,21 +254,22 @@ if fine_tune_m is None:
 		mymodel = init_model_params(mymodel)
 		mymodel.apply(init_fixing)
 	else:
+		logger.info("Load pre-trained model from: " + cnfg.pre_trained_m)
 		mymodel.load_plm(cnfg.pre_trained_m)
 else:
 	logger.info("Load pre-trained model from: " + fine_tune_m)
 	mymodel = load_model_cpu(fine_tune_m, mymodel)
 	mymodel.apply(load_fixing)
 
-#lossf = NLLLoss(ignore_index=None, reduction="sum")
-lossf = LabelSmoothingLoss(nwordt, cnfg.label_smoothing, ignore_index=None, reduction="sum", forbidden_index=cnfg.forbidden_indexes)
+#lossf = NLLLoss(ignore_index=-1, reduction="sum")
+lossf = LabelSmoothingLoss(vocab_size, cnfg.label_smoothing, ignore_index=-1, reduction="sum", forbidden_index=cnfg.forbidden_indexes)
 
 if cnfg.src_emb is not None:
 	logger.info("Load source embedding from: " + cnfg.src_emb)
-	load_emb(cnfg.src_emb, mymodel.enc.wemb.weight, nwordi, cnfg.scale_down_emb, cnfg.freeze_srcemb)
+	load_emb(cnfg.src_emb, mymodel.enc.wemb.weight, vocab_size, cnfg.scale_down_emb, cnfg.freeze_srcemb)
 if cnfg.tgt_emb is not None:
 	logger.info("Load target embedding from: " + cnfg.tgt_emb)
-	load_emb(cnfg.tgt_emb, mymodel.dec.wemb.weight, nwordt, cnfg.scale_down_emb, cnfg.freeze_tgtemb)
+	load_emb(cnfg.tgt_emb, mymodel.dec.wemb.weight, vocab_size, cnfg.scale_down_emb, cnfg.freeze_tgtemb)
 
 if lcnfg.save_base:
 	save_model(mymodel, wkdir + "base.h5", False, print_func=logger.info, ps_func=None)
