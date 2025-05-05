@@ -1,6 +1,6 @@
 #encoding: utf-8
 
-# usage: python rank.py rsf h5f models...
+# usage: python rank.py $rsf $h5f $model
 
 norm_token = True
 
@@ -61,7 +61,7 @@ else:
 
 mymodel.eval()
 
-lossf = LabelSmoothingLoss(vocab_size, cnfg.label_smoothing, ignore_index=None, reduction="none", forbidden_index=cnfg.forbidden_indexes)
+lossf = LabelSmoothingLoss(vocab_size, cnfg.label_smoothing, ignore_index=-1, reduction="none", forbidden_index=cnfg.forbidden_indexes)
 
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
@@ -95,7 +95,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 		seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 		oi, pred_mask, ot = data_converter(seq_batch, seq_o, seq_o_sub_len=prefix_len)
 		with torch_autocast(enabled=use_amp):
-			output = mymodel(oi, word_prediction=True, pred_mask=pred_mask, states=prefix_states if prefix_states is None else prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
+			output = mymodel(oi, word_prediction=True, pred_mask=pred_mask, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
 			loss = lossf(output, ot).view(ot.size(0), -1).sum(-1)
 			if pred_mask is not None:
 				loss = loss.new_zeros(oi.size(), dtype=loss.dtype, device=loss.device).masked_scatter_(pred_mask, loss).sum(-1)

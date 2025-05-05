@@ -18,7 +18,8 @@ from utils.fmt.base4torch import load_emb, parse_cuda
 from utils.h5serial import h5File
 from utils.init.base import init_model_params
 from utils.io import load_model_cpu, save_model, save_states
-from utils.lora.base import lora_filter, std2lora
+from utils.lora.base import std2lora
+from utils.lora.para import lora_filter
 from utils.norm.mp.f import convert as make_mp_model
 from utils.plm.inference import get_h5g_common_prefix, prepare_states_bsize
 from utils.state.holder import Holder

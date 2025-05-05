@@ -3,7 +3,7 @@
 import sys
 
 from utils.h5serial import h5load, h5save
-from utils.lora.base import merge_lora
+from utils.lora.para import merge_lora
 
 from cnfg.ihyp import *
 
