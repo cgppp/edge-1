@@ -3,6 +3,7 @@
 # usage: python comet-score.py $srcf $mtf [$ref] $model $rsf|/dev/null $ngpu ${load_bsize}
 
 import sys
+import torch
 from comet import load_from_checkpoint
 
 from utils.fmt.base import FileList, is_null_file, iter_to_str, sys_open
@@ -28,7 +29,8 @@ def handle(finputs, fmodel, frs, ngpu=0, load_bsize=-1, model_bsize=8):
 
 	model = load_from_checkpoint(fmodel)
 	model.eval()
-	model.half()
+	if ngpu > 0:
+		model.to(torch.float16, non_blocking=True)
 	sum_score = 0.0
 	n = 0
 	ens = "\n".encode("utf-8")
