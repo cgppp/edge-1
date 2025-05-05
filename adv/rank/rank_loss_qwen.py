@@ -30,7 +30,7 @@ def load_fixing(module):
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
-use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 
 data_converter = PMaskDataConverter(xseql=cache_len_default, device=cuda_device)
@@ -49,8 +49,6 @@ else:
 	prefix_len = None
 
 mymodel = NMT(cnfg.isize, vocab_size, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, emb_w=None, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindemb=cnfg.bindDecoderEmb, num_kv_head=cnfg.kv_nhead, model_name=cnfg.model_name)
-if use_cuda_bfmp:
-	make_mp_model(mymodel)
 
 if len(sys.argv) < 4:
 	if cnfg.pre_trained_m is not None:
@@ -58,11 +56,14 @@ if len(sys.argv) < 4:
 else:
 	mymodel = load_model_cpu(sys.argv[3], mymodel)
 	mymodel.apply(load_fixing)
-
 mymodel.eval()
 
 lossf = LabelSmoothingLoss(vocab_size, cnfg.label_smoothing, ignore_index=-1, reduction="none", forbidden_index=cnfg.forbidden_indexes)
 
+if use_cuda_bfmp:
+	make_mp_model(mymodel)
+elif use_cuda_fp16:
+	mymodel.to(torch.float16, non_blocking=True)
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 	lossf.to(cuda_device, non_blocking=True)

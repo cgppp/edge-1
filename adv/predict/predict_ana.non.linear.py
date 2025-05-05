@@ -27,7 +27,7 @@ def load_fixing(module):
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
-use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 
 td = h5File(cnfg.test_data, "r", **h5_fileargs)
@@ -41,12 +41,13 @@ model_func, layer_linear = cnfg.model_func, cnfg.layer_linear
 
 if len(sys.argv) == 4:
 	mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
-	if use_cuda_bfmp:
-		make_mp_model(mymodel)
 
 	mymodel = load_model_cpu(cnfg.fine_tune_m, mymodel)
 	mymodel.apply(load_fixing)
-
+	if use_cuda_bfmp:
+		make_mp_model(mymodel)
+	elif use_cuda_fp16:
+		mymodel.to(torch.float16, non_blocking=True)
 	_tmpm = MALinear(cnfg.isize, cnfg.isize, bias=False, args_take=cnfg.arg_index, kwargs_take=cnfg.kwargs_key, add_out_func=cnfg.add_out_func)
 	_tmpm = load_model_cpu(sys.argv[3], _tmpm)
 	model_func(mymodel).nets[layer_linear] = _tmpm
@@ -55,15 +56,16 @@ else:
 	models = []
 	for modelf in sys.argv[3:]:
 		tmp = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
-		if use_cuda_bfmp:
-			make_mp_model(tmp)
-
 		tmp = load_model_cpu(cnfg.fine_tune_m, tmp)
 		tmp.apply(load_fixing)
 
 		_tmpm = MALinear(cnfg.isize, cnfg.isize, bias=False, args_take=cnfg.arg_index, kwargs_take=cnfg.kwargs_key, add_out_func=cnfg.add_out_func)
 		_tmpm = load_model_cpu(modelf, _tmpm)
 		model_func(tmp).nets[layer_linear] = _tmpm
+		if use_cuda_bfmp:
+			make_mp_model(tmp)
+		elif use_cuda_fp16:
+			tmp.to(torch.float16, non_blocking=True)
 
 		models.append(tmp)
 	mymodel = Ensemble(models)

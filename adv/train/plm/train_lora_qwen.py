@@ -219,7 +219,7 @@ if cnfg.save_train_state:
 
 logger = get_logger(wkdir + "train.log")
 
-use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 multi_gpu_optimizer = multi_gpu and cnfg.multi_gpu_optimizer
 
@@ -244,10 +244,6 @@ else:
 
 logger.info("Design models with seed: %d" % torch.initial_seed())
 mymodel = NMT(cnfg.isize, vocab_size, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, emb_w=None, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindemb=cnfg.bindDecoderEmb, num_kv_head=cnfg.kv_nhead, model_name=cnfg.model_name)
-if use_cuda_bfmp:
-	make_mp_model(mymodel)
-	Optimizer = mp_optm_agent_wrapper(Optimizer)
-
 fine_tune_m = cnfg.fine_tune_m
 
 if fine_tune_m is None:
@@ -284,6 +280,9 @@ else:
 		mymodel = load_model_cpu(lcnfg.lora_fine_tune_m, mymodel)
 	save_model_ps_func = lora_filter
 
+if use_cuda_bfmp:
+	make_mp_model(mymodel)
+	Optimizer = mp_optm_agent_wrapper(Optimizer)
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 	lossf.to(cuda_device, non_blocking=True)

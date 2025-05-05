@@ -12,6 +12,7 @@ def parse_cuda(use_cuda_arg, gpuid=None, use_amp=False, use_cuda_bfmp=True, cuda
 	if use_cuda_arg and torch.cuda.is_available():
 		use_cuda = True
 		_use_cuda_bfmp = use_cuda_bfmp and cuda_support_bf16
+		_use_cuda_fp16 = use_cuda_bfmp and (not cuda_support_bf16)
 		_use_amp = use_amp and (not _use_cuda_bfmp)
 		ngpus = torch.cuda.device_count()
 		if gpuid is None:
@@ -31,15 +32,16 @@ def parse_cuda(use_cuda_arg, gpuid=None, use_amp=False, use_cuda_bfmp=True, cuda
 		if _use_cuda_bfmp:
 			torch.set_default_dtype(fp16_default_tensor_type)
 	else:
-		use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp = False, None, None, False, False, False
+		use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp, _use_cuda_fp16 = False, None, None, False, False, False, False
 
-	return use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp
+	return use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp, _use_cuda_fp16
 
 def parse_cuda_decode(use_cuda_arg, gpuid=None, multi_gpu_decoding=False, use_amp=False, use_cuda_bfmp=True, cuda_set_default_device=False, **kwargs):
 
 	if use_cuda_arg and torch.cuda.is_available():
 		use_cuda = True
 		_use_cuda_bfmp = use_cuda_bfmp and cuda_support_bf16
+		_use_cuda_fp16 = use_cuda_bfmp and (not cuda_support_bf16)
 		_use_amp = use_amp and (not _use_cuda_bfmp)
 		ngpus = torch.cuda.device_count()
 		if gpuid is None:
@@ -60,9 +62,9 @@ def parse_cuda_decode(use_cuda_arg, gpuid=None, multi_gpu_decoding=False, use_am
 		if _use_cuda_bfmp:
 			torch.set_default_dtype(fp16_default_tensor_type)
 	else:
-		use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp = False, None, None, False, False, False
+		use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp, _use_cuda_fp16 = False, None, None, False, False, False, False
 
-	return use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp
+	return use_cuda, cuda_device, cuda_devices, multi_gpu, _use_amp, _use_cuda_bfmp, _use_cuda_fp16
 
 def load_emb_txt(vcb, embf):
 

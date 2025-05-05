@@ -170,7 +170,7 @@ done_tokens = 0
 batch_report = cnfg.batch_report
 report_eva = cnfg.report_eva
 
-use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 
 use_ams = cnfg.use_ams
@@ -206,10 +206,6 @@ tl = [str(i) for i in range(ntrain)]
 
 logger.info("Design models with seed: %d" % torch.initial_seed())
 mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, cnfg.ff_hsize, cnfg.drop, cnfg.attn_drop, cnfg.act_drop, cnfg.share_emb, cnfg.nhead, cache_len_default, cnfg.attn_hsize, cnfg.norm_output)
-if use_cuda_bfmp:
-	make_mp_model(mymodel)
-	Optimizer = mp_optm_agent_wrapper(Optimizer)
-
 fine_tune_m = cnfg.fine_tune_m
 
 if fine_tune_m is None:
@@ -229,6 +225,9 @@ if cnfg.tgt_emb is not None:
 	logger.info("Load target embedding from: " + cnfg.tgt_emb)
 	load_emb(cnfg.tgt_emb, mymodel.dec.wemb.weight, nwordt, cnfg.scale_down_emb, cnfg.freeze_tgtemb)
 
+if use_cuda_bfmp:
+	make_mp_model(mymodel)
+	Optimizer = mp_optm_agent_wrapper(Optimizer)
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 	lossf.to(cuda_device, non_blocking=True)

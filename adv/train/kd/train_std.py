@@ -212,7 +212,7 @@ if cnfg.save_train_state:
 
 logger = get_logger(wkdir + "train.log")
 
-use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 multi_gpu_optimizer = multi_gpu and cnfg.multi_gpu_optimizer
 
@@ -251,9 +251,6 @@ if fine_tune_m_teacher is not None:
 
 kd_T, kd_weight = cnfg.T, cnfg.kd_weight
 mymodel = NMT(teacher=teacher, student=student, T=kd_T)
-if use_cuda_bfmp:
-	make_mp_model(mymodel)
-	Optimizer = mp_optm_agent_wrapper(Optimizer)
 student = teacher = None
 
 lossf = NLLLoss(ignore_index=pad_id, reduction="sum")#LabelSmoothingLoss(nwordt, cnfg.label_smoothing, ignore_index=pad_id, reduction="sum", forbidden_index=cnfg.forbidden_indexes)
@@ -265,6 +262,9 @@ if cnfg.tgt_emb is not None:
 	logger.info("Load target embedding from: " + cnfg.tgt_emb)
 	load_emb(cnfg.tgt_emb, mymodel.dec.wemb.weight, nwordt, cnfg.scale_down_emb, cnfg.freeze_tgtemb)
 
+if use_cuda_bfmp:
+	make_mp_model(mymodel)
+	Optimizer = mp_optm_agent_wrapper(Optimizer)
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 	lossf.to(cuda_device, non_blocking=True)

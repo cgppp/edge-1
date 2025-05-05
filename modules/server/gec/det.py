@@ -65,7 +65,7 @@ class Handler:
 
 	def __init__(self, modelfs, cnfg, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, norm_u8=False, **kwargs):
 
-		self.use_cuda, self.cuda_device, cuda_devices, self.multi_gpu, self.use_amp, use_cuda_bfmp = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+		self.use_cuda, self.cuda_device, cuda_devices, self.multi_gpu, self.use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 		set_random_seed(cnfg.seed, self.use_cuda)
 		self.tokenizer = Tokenizer(cnfg.plm_vcb, norm_u8=norm_u8, post_norm_func=None, split=False)
 		self.vcbt = reverse_dict(self.tokenizer.vcb)
@@ -81,12 +81,14 @@ class Handler:
 		self.minbsize = minbsize
 
 		model = NMT(cnfg.isize, vocab_size, vocab_size, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
-		if use_cuda_bfmp:
-			make_mp_model(model)
 		model.build_task_model(fix_init=False)
 		model = load_model_cpu(modelfs, model)
 		model.apply(load_fixing)
 		model.eval()
+		if use_cuda_bfmp:
+			make_mp_model(model)
+		elif use_cuda_fp16:
+			model.to(torch.float16, non_blocking=True)
 		if self.use_cuda:
 			model.to(self.cuda_device, non_blocking=True)
 			if self.multi_gpu:

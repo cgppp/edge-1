@@ -146,7 +146,7 @@ mkdir(wkdir)
 
 logger = get_logger(wkdir + "train.log")
 
-use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 multi_gpu_optimizer = multi_gpu and cnfg.multi_gpu_optimizer
 
@@ -168,9 +168,10 @@ if use_cuda_bfmp:
 
 fine_tune_m = cnfg.fine_tune_m
 
-mymodel = init_model_params(mymodel)
-mymodel.apply(init_fixing)
-if fine_tune_m is not None:
+if fine_tune_m is None:
+	mymodel = init_model_params(mymodel)
+	mymodel.apply(init_fixing)
+else:
 	logger.info("Load pre-trained model from: " + fine_tune_m)
 	mymodel = load_model_cpu(fine_tune_m, mymodel)
 	mymodel.apply(load_fixing)

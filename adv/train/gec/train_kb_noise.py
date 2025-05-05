@@ -206,7 +206,7 @@ if cnfg.save_train_state:
 
 logger = get_logger(wkdir + "train.log")
 
-use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 multi_gpu_optimizer = multi_gpu and cnfg.multi_gpu_optimizer
 
@@ -223,19 +223,16 @@ tl = []#[str(i) for i in range(ntrain)]
 
 logger.info("Design models with seed: %d" % torch.initial_seed())
 mymodel = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
-if use_cuda_bfmp:
-	make_mp_model(mymodel)
-	Optimizer = mp_optm_agent_wrapper(Optimizer)
-
-mymodel = init_model_params(mymodel)
-mymodel.apply(init_fixing)
+mymodel.build_task_model()
 
 pre_trained_m = cnfg.pre_trained_m
+fine_tune_m = cnfg.fine_tune_m
+if (pre_trained_m is None) and (fine_tune_m is None):
+	mymodel = init_model_params(mymodel)
+	mymodel.apply(init_fixing)
 if pre_trained_m is not None:
 	logger.info("Load pre-trained model from: " + pre_trained_m)
 	mymodel.load_plm(pre_trained_m)
-mymodel.build_task_model()
-fine_tune_m = cnfg.fine_tune_m
 if fine_tune_m is not None:
 	logger.info("Load pre-trained model from: " + fine_tune_m)
 	mymodel = load_model_cpu(fine_tune_m, mymodel)
@@ -250,6 +247,9 @@ if cnfg.tgt_emb is not None:
 	logger.info("Load target embedding from: " + cnfg.tgt_emb)
 	load_emb(cnfg.tgt_emb, mymodel.dec.wemb.weight, nwordt, cnfg.scale_down_emb, cnfg.freeze_tgtemb)
 
+if use_cuda_bfmp:
+	make_mp_model(mymodel)
+	Optimizer = mp_optm_agent_wrapper(Optimizer)
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 	#lossf.to(cuda_device, non_blocking=True)

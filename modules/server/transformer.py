@@ -53,7 +53,7 @@ class TranslatorCore:
 
 	def __init__(self, modelfs, fvocab_i, fvocab_t, cnfg, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False, **kwargs):
 
-		self.use_cuda, self.cuda_device, cuda_devices, self.multi_gpu, self.use_amp, use_cuda_bfmp = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+		self.use_cuda, self.cuda_device, cuda_devices, self.multi_gpu, self.use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 		set_random_seed(cnfg.seed, self.use_cuda)
 
 		vcbi, nwordi = ldvocab(fvocab_i, minf=minfreq, omit_vsize=vsize, vanilla=False)
@@ -74,22 +74,26 @@ class TranslatorCore:
 			models = []
 			for modelf in modelfs:
 				tmp = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
-				if use_cuda_bfmp:
-					make_mp_model(tmp)
 
 				tmp = load_model_cpu(modelf, tmp)
 				tmp.apply(load_fixing)
 
+				if use_cuda_bfmp:
+					make_mp_model(tmp)
+				elif use_cuda_fp16:
+					tmp.to(torch.float16, non_blocking=True)
 				models.append(tmp)
 			model = Ensemble(models)
 
 		else:
 			model = NMT(cnfg.isize, nwordi, nwordt, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, global_emb=cnfg.share_emb, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindDecoderEmb=cnfg.bindDecoderEmb, forbidden_index=cnfg.forbidden_indexes)
-			if use_cuda_bfmp:
-				make_mp_model(model)
 
 			model = load_model_cpu(modelfs, model)
 			model.apply(load_fixing)
+			if use_cuda_bfmp:
+				make_mp_model(model)
+			elif use_cuda_fp16:
+				model.to(torch.float16, non_blocking=True)
 
 		model.eval()
 
