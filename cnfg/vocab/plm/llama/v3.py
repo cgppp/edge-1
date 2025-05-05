@@ -20,4 +20,5 @@ instruct_template = lambda system, user: "<|start_header_id|>system<|end_header_
 instruct_lm_template = lambda system, user, assistant: "<|start_header_id|>system<|end_header_id|>\n\n%s<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n%s<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n%s<|eot_id|>" % (system, user, assistant,)
 assistant_template = lambda system, assistant: "%s<|eot_id|>" % assistant
 lm_template = lambda system, user: "%s\n" % user
-templated = {"instruct": instruct_template, "instruct_lm": instruct_lm_template, "assistant": assistant_template, "lm": lm_template}
+instruct_task_template = lambda system, user: instruct_template(system, "Translate the input into German, do not generate the other contents apart from the translation. Input: %s" % user)
+templated = {"instruct": instruct_template, "instruct_lm": instruct_lm_template, "assistant": assistant_template, "lm": lm_template, "instruct_task": instruct_task_template}

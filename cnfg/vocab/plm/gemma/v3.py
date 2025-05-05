@@ -27,4 +27,5 @@ instruct_template = lambda system, user: "<bos><start_of_turn>user\n%s\n\n%s<end
 instruct_lm_template = lambda system, user, assistant: "<bos><start_of_turn>user\n%s\n\n%s<end_of_turn>\n<start_of_turn>model\n%s<end_of_turn>" % (system, user, assistant,)
 assistant_template = lambda system, assistant: "%s<end_of_turn>" % assistant
 lm_template = lambda system, user: "%s\n" % user
-templated = {"instruct": instruct_template, "instruct_lm": instruct_lm_template, "assistant": assistant_template, "lm": lm_template}
+instruct_task_template = lambda system, user: instruct_template(system, "Translate the input into German, do not generate the other contents apart from the translation. Input: %s" % user)
+templated = {"instruct": instruct_template, "instruct_lm": instruct_lm_template, "assistant": assistant_template, "lm": lm_template, "instruct_task": instruct_task_template}
