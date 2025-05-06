@@ -20,6 +20,7 @@ def handle(srcf, model_path, rsf, max_len=512, system="You are a helpful assista
 	set_random_seed(cnfg.seed, use_cuda)
 	tokenizer = AutoTokenizer.from_pretrained(model_path)
 	model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16 if use_cuda_bfmp else (torch.float16 if use_cuda_fp16 else torch.float32))
+	model.eval()
 	if use_cuda:
 		model.to(cuda_device)
 	ens = "\n".encode("utf-8")
