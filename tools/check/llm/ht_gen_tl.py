@@ -7,14 +7,23 @@ import torch
 from json import dumps
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from utils.base import set_random_seed
 from utils.fmt.base import sys_open
+from utils.fmt.base4torch import parse_cuda_decode
+from utils.torch.comp import torch_inference_mode
+
+import cnfg.base as cnfg
 
 def handle(srcf, model_path, rsf, max_len=512, system="You are a helpful assistant."):
 
+	use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
+	set_random_seed(cnfg.seed, use_cuda)
 	tokenizer = AutoTokenizer.from_pretrained(model_path)
-	model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype="auto")
+	model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16 if use_cuda_bfmp else (torch.float16 if use_cuda_fp16 else torch.float32))
+	if use_cuda:
+		model.to(cuda_device)
 	ens = "\n".encode("utf-8")
-	with sys_open(srcf, "rb") as fsrc, sys_open(rsf, "wb") as fwrt:
+	with sys_open(srcf, "rb") as fsrc, sys_open(rsf, "wb") as fwrt, torch_inference_mode():
 		for _ in fsrc:
 			_l = _.strip()
 			if _l:
