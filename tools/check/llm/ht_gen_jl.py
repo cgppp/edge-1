@@ -14,7 +14,7 @@ from utils.torch.comp import torch_inference_mode
 
 import cnfg.base as cnfg
 
-def handle(srcf, model_path, rsf, max_len=512, load_chat=False, system="You are a helpful assistant."):
+def handle(srcf, model_path, rsf, system="You are a helpful assistant.", load_chat=False, max_len=512, strip_last=True):
 
 	use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 	set_random_seed(cnfg.seed, use_cuda)
@@ -36,10 +36,14 @@ def handle(srcf, model_path, rsf, max_len=512, load_chat=False, system="You are 
 					chat.append({"role": "user", "content": _l})
 				ids = torch.as_tensor(tokenizer.apply_chat_template(chat, tokenize=True, add_generation_prompt=True), dtype=torch.long, device=model.device).unsqueeze(0)
 				gids = model.generate(ids, max_new_tokens=max_len)
-				gids = gids.narrow(-1, ids.size(-1), gids.size(-1) - ids.size(-1)).squeeze()
-				rs = tokenizer.decode(gids.tolist(), skip_special_tokens=False, clean_up_tokenization_spaces=False).strip()
+				_sid = ids.size(-1)
+				_len = gids.size(-1) - _sid
+				if strip_last:
+					_len -= 1
+				gids = gids.narrow(-1, _sid, _len).squeeze().tolist()
+				rs = tokenizer.decode(gids, skip_special_tokens=False, clean_up_tokenization_spaces=False).strip()
 				fwrt.write(dumps(rs, ensure_ascii=False).encode("utf-8"))
 			fwrt.write(ens)
 
 if __name__ == "__main__":
-	handle(*sys.argv[1:4])
+	handle(*sys.argv[1:])
