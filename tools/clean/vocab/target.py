@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import all_in, sys_open
 from utils.fmt.vocab.token import ldvocab_list
 
-def handle(srcfs, srcft, tgtfs, tgtft, vcbft):
+def handle(srcfs, srcft, tgtfs, tgtft, vcbft, **kwargs):
 
 	ens = "\n".encode("utf-8")
 

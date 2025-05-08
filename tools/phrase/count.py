@@ -36,7 +36,7 @@ def formatd(din):
 
 	return rs
 
-def handle(tagf, wf, rsf):
+def handle(tagf, wf, rsf, **kwargs):
 
 	rsd = {}
 	rst = {}

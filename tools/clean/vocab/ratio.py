@@ -11,7 +11,7 @@ from utils.fmt.vocab.token import ldvocab_list
 
 from utils.fmt.base import sys_open
 
-def handle(srcfs, srcft, tgtfs, tgtft, vcbfs, vcbft, vratio, dratio=None):
+def handle(srcfs, srcft, tgtfs, tgtft, vcbfs, vcbft, vratio, dratio=None, **kwargs):
 
 	_dratio = parse_none(dratio, vratio)
 

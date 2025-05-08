@@ -20,7 +20,7 @@ def h5_to_safetensors(srcfl, rsf):
 		_.update(h5load(srcf, restore_list=False))
 	save_file(_, rsf)
 
-def handle(srcfl, rsf):
+def handle(srcfl, rsf, **kwargs):
 
 	(safetensors_to_h5 if rsf.endswith(".h5") else h5_to_safetensors)(srcfl, rsf)
 

@@ -53,12 +53,12 @@ def batch_loader(finput, bsize, maxpad, maxpart, maxtoken, minbsize, get_bsize=g
 	if rsi:
 		yield rsi, mlen_i
 
-def sorti(lin):
+def sorti(lin, descend=False):
 
 	data = {}
 	for ls in lin:
 		data = dict_insert_set(data, ls, len(ls))
-	for _ in iter_dict_sort(data, free=True):
+	for _ in iter_dict_sort(data, reverse=descend, free=True):
 		yield from _
 
 class Handler:

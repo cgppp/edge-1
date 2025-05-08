@@ -136,7 +136,7 @@ def process_file(fname, impl, cts):
 		f.write("\n".join(cache).encode("utf-8"))
 		f.write(ens)
 
-def handle(srcf, ptws):
+def handle(srcf, ptws, **kwargs):
 
 	_defs = load_defs(load_file(srcf))
 	_impl = "from %s import *" % srcf.replace("/", ".")[:-3]

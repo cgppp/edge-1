@@ -7,7 +7,7 @@ import sys
 from utils.fmt.base import sys_open
 from utils.fmt.lang.zh.deseg import deseg as map_func
 
-def handle(srcf, rsf):
+def handle(srcf, rsf, **kwargs):
 
 	ens = "\n".encode("utf-8")
 	with sys_open(srcf, "rb") as frd, sys_open(rsf, "wb") as fwrt:

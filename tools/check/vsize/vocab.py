@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.vocab.token import ldvocab
 
-def handle(srcfl):
+def handle(srcfl, **kwargs):
 
 	for srcf in srcfl:
 		print("The vocabulary size of %s is: %d (with special tokens counted)" % (srcf, ldvocab(srcf, minf=False, omit_vsize=False, vanilla=False)[-1],))

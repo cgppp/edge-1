@@ -137,7 +137,7 @@ def process_file(fname, oimpl, nimpl, cts):
 		f.write("\n".join(cache).encode("utf-8"))
 		f.write(ens)
 
-def handle(srcf, opkg, ptws):
+def handle(srcf, opkg, ptws, **kwargs):
 
 	_defs = load_defs(load_file(srcf), skip_package=opkg)
 	_oimpl = "from %s import " % opkg

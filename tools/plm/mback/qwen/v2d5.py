@@ -5,7 +5,7 @@ from transformers import Qwen2TokenizerFast as Tokenizer
 
 from utils.fmt.plm.token import map_back_file_jdumps as map_func
 
-def handle(fsrc, vcb, frs):
+def handle(fsrc, vcb, frs, **kwargs):
 
 	return map_func(fsrc, frs, processor=Tokenizer.from_pretrained(vcb).decode)
 

@@ -8,8 +8,9 @@ from utils.fmt.base import FileList, all_le, clean_liststr_lentok, dict_insert_l
 # remove_same: reduce same data in the corpus
 # shuf: shuffle the data of same source/target length
 # max_remove: if one source has several targets, only keep those with highest frequency
+# descend: in descending order
 
-def handle(srcfl, tgtfl, max_len=256, remove_same=True, shuf=True, max_remove=False):
+def handle(srcfl, tgtfl, max_len=256, remove_same=True, shuf=True, max_remove=False, descend=False, **kwargs):
 
 	_max_len = max(1, max_len - 2)
 
@@ -27,7 +28,7 @@ def handle(srcfl, tgtfl, max_len=256, remove_same=True, shuf=True, max_remove=Fa
 	ens = "\n".encode("utf-8")
 
 	with FileList(tgtfl, "wb") as fl:
-		for tmp in iter_dict_sort(data, free=True):
+		for tmp in iter_dict_sort(data, reverse=descend, free=True):
 			tmp = list(tmp)
 			if len(tmp) > 1:
 				if max_remove:

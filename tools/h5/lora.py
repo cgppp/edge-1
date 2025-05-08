@@ -7,7 +7,7 @@ from utils.lora.para import merge_lora
 
 from cnfg.ihyp import *
 
-def handle(srcfl, rsf, h5args=h5zipargs):
+def handle(srcfl, rsf, h5args=h5zipargs, **kwargs):
 
 	d = None
 	for _ in srcfl:

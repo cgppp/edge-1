@@ -16,7 +16,7 @@ def handle_group(srcg, rsg, h5args=h5zipargs):
 			rsg.create_group(k)
 			handle_group(v, rsg[k], h5args=h5args)
 
-def handle(srcf, rsf, h5args=h5zipargs):
+def handle(srcf, rsf, h5args=h5zipargs, **kwargs):
 
 	if srcf == rsf:
 		h5save(h5load(srcf, restore_list=False), rsf, h5args=h5args)

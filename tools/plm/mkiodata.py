@@ -10,7 +10,7 @@ from utils.h5serial import h5File
 from cnfg.ihyp import *
 from cnfg.vocab.plm.roberta import pad_id
 
-def handle(finput, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False, pad_id=pad_id):
+def handle(finput, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False, pad_id=pad_id, **kwargs):
 
 	if expand_for_mulgpu:
 		_bsize = bsize * minbsize

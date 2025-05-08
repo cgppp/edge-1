@@ -18,7 +18,7 @@ def collect(fl):
 
 	return vcb
 
-def handle(srcfl, tgtfl):
+def handle(srcfl, tgtfl, **kwargs):
 
 	src_vcb, tgt_vcb = collect(srcfl), collect(tgtfl)
 

@@ -23,12 +23,12 @@ def load_fixing(module):
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
-def sorti(lin):
+def sorti(lin, descend=False):
 
 	data = {}
 	for ls in lin:
 		data = dict_insert_set(data, ls, len(ls[0]))
-	for _ in iter_dict_sort(data, free=True):
+	for _ in iter_dict_sort(data, reverse=descend, free=True):
 		yield from _
 
 class Handler:

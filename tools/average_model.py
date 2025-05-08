@@ -12,7 +12,7 @@ from utils.torch.comp import secure_type_map
 
 from cnfg.ihyp import h5_fileargs, h5zipargs
 
-def handle(srcfl, rsf):
+def handle(srcfl, rsf, **kwargs):
 
 	src_type = {}
 	map_type = {}

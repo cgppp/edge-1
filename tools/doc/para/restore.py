@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import clean_str, sys_open
 
-def handle(srcfs, srtsf_base, srttf_base, srtsf, srttf, tgtf):
+def handle(srcfs, srtsf_base, srttf_base, srtsf, srttf, tgtf, **kwargs):
 
 	data = {}
 

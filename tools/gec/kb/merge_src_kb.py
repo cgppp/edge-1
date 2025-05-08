@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import iter_to_int, iter_to_str, sys_open
 from utils.fmt.gec.kb.base import merge_src_kb
 
-def handle(srcf, kbf, rssf, rskf):
+def handle(srcf, kbf, rssf, rskf, **kwargs):
 
 	ens = "\n".encode("utf-8")
 	with sys_open(srcf, "rb") as frds, sys_open(kbf, "rb") as frdk, sys_open(rssf, "wb") as fwrts, sys_open(rskf, "wb") as fwrtk:

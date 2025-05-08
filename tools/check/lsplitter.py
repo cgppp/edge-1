@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import FileList, sys_open
 
-def handle(srcf, osfl, interval=15, max_id=3):
+def handle(srcf, osfl, interval=15, max_id=3, **kwargs):
 
 	fwd = {}
 

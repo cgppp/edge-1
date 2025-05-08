@@ -20,7 +20,7 @@ def h5_to_torch(srcfl, rsf):
 		_.update(h5load(srcf, restore_list=False))
 	torch.save(_, rsf)
 
-def handle(srcfl, rsf):
+def handle(srcfl, rsf, **kwargs):
 
 	(torch_to_h5 if rsf.endswith(".h5") else h5_to_torch)(srcfl, rsf)
 

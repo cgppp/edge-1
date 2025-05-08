@@ -6,7 +6,7 @@ from utils.h5serial import h5File
 
 from cnfg.ihyp import *
 
-def handle(srcfl, rsf, h5args=h5zipargs):
+def handle(srcfl, rsf, h5args=h5zipargs, **kwargs):
 
 	with h5File(rsf, "w", **h5_fileargs) as h5fr:
 		for srcf in srcfl:

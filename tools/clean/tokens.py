@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import clean_liststr_lentok, sys_open
 
-def handle(srcfs, srcft, tgtfs, tgtft, maxlen=256):
+def handle(srcfs, srcft, tgtfs, tgtft, maxlen=256, **kwargs):
 
 	ens = "\n".encode("utf-8")
 

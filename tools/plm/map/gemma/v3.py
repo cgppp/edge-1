@@ -7,7 +7,7 @@ from utils.fmt.base import iter_to_str, loop_file_so
 
 from cnfg.vocab.plm.gemma.v3 import templated
 
-def handle(fsrc, vcb, frs, template="instruct", system="You are a helpful assistant.", templated=templated):
+def handle(fsrc, vcb, frs, template="instruct", system="You are a helpful assistant.", templated=templated, **kwargs):
 
 	_tfunc = templated[template]
 	_ = (lambda lin, processor: " ".join(iter_to_str(processor(_tfunc(system, lin))[1:]))) if template == "assistant" else (lambda lin, processor: " ".join(iter_to_str(processor(_tfunc(system, lin)))))

@@ -82,7 +82,7 @@ def process_cache(lin, bpesrc):
 
 	return " ".join(rl)
 
-def handle(srcf, bpef, rsf):
+def handle(srcf, bpef, rsf, **kwargs):
 
 	ens = "\n".encode("utf-8")
 	cache = []

@@ -9,7 +9,7 @@ from utils.tqdm import tqdm
 
 from cnfg.ihyp import h5_fileargs, tqdm_mininterval
 
-def handle(h5f, bsize, shuf=True):
+def handle(h5f, bsize, shuf=True, **kwargs):
 
 	with h5File(h5f, "r", **h5_fileargs) as td:
 		tl = [(str(nsent), str(_curd),) for nsent, ndata in zip(td["nsent"][()].tolist(), td["ndata"][()].tolist()) for _curd in range(ndata)]

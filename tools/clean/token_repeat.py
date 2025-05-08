@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import FileList, all_gt, clean_list
 
-def handle(srcfl, tgtfl, r=0.4):
+def handle(srcfl, tgtfl, r=0.4, **kwargs):
 
 	ens = "\n".encode("utf-8")
 	with FileList(srcfl, "rb") as rfl, FileList(tgtfl, "wb") as wfl:

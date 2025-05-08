@@ -26,7 +26,7 @@ def load_fixing(module):
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
-def sorti(lin):
+def sorti(lin, descend=False):
 
 	data = {}
 
@@ -35,7 +35,7 @@ def sorti(lin):
 		if ls:
 			data = dict_insert_set(data, ls, len(ls.split()))
 
-	for _ in iter_dict_sort(data, free=True):
+	for _ in iter_dict_sort(data, reverse=descend, free=True):
 		yield from _
 
 def restore(src, tsrc, trs):

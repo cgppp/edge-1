@@ -8,7 +8,7 @@ from utils.h5serial import h5File
 
 from cnfg.ihyp import h5_fileargs, h5datawargs
 
-def handle(bsize, seql, nword, frs, ndata=1):
+def handle(bsize, seql, nword, frs, ndata=1, **kwargs):
 
 	_bsize = bsize
 	with h5File(frs, "w", **h5_fileargs) as rsf:

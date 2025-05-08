@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import sys_open
 from utils.fmt.diff import seq_diff_ratio
 
-def handle(srcfs, srcft, tgtfs, tgtft, ratio, splt):
+def handle(srcfs, srcft, tgtfs, tgtft, ratio, splt, **kwargs):
 
 	ens = "\n".encode("utf-8")
 	with sys_open(srcfs, "rb") as frs, sys_open(srcft, "rb") as frt, sys_open(tgtfs, "wb") as fws, sys_open(tgtft, "wb") as fwt:

@@ -25,7 +25,7 @@ def load_files(finputs, bsize=-1, keys=("src", "mt", "ref",)):
 	if rs:
 		yield rs
 
-def handle(finputs, fmodel, frs, ngpu=0, load_bsize=-1, model_bsize=256):
+def handle(finputs, fmodel, frs, ngpu=0, load_bsize=-1, model_bsize=256, **kwargs):
 
 	model = load_from_checkpoint(fmodel)
 	model.eval()

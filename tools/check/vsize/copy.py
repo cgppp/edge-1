@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import clean_list, sys_open
 
-def handle(srcfl, tgtfl):
+def handle(srcfl, tgtfl, **kwargs):
 
 	nsrc = ntgt = ncopy = 0
 	for srcf, tgtf in zip(srcfl, tgtfl):

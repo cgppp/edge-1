@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import sys_open
 from utils.fmt.doc.base import get_char_ratio
 
-def handle(srcfs):
+def handle(srcfs, **kwargs):
 
 	def getfratio(fname):
 

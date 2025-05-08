@@ -14,7 +14,7 @@ from utils.torch.comp import torch_inference_mode
 
 import cnfg.base as cnfg
 
-def handle(srcf, model_path, rsf, system="You are a helpful assistant.", max_len=512, strip_last=True):
+def handle(srcf, model_path, rsf, system="You are a helpful assistant.", max_len=512, strip_last=True, **kwargs):
 
 	use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 	set_random_seed(cnfg.seed, use_cuda)

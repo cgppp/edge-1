@@ -66,7 +66,7 @@ def normd(din, total):
 
 	return rsd
 
-def handle(srcf):
+def handle(srcf, **kwargs):
 
 	rsl = []
 	for data in load_log(srcf):

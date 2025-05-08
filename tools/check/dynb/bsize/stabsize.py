@@ -35,7 +35,7 @@ def load_log(fname):
 			if legal(cache):
 				yield cache
 
-def handle(srcf):
+def handle(srcf, **kwargs):
 
 	rsl = []
 	for data in load_log(srcf):

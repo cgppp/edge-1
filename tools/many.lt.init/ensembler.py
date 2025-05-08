@@ -13,7 +13,7 @@ from utils.torch.comp import secure_type_map
 
 from cnfg.ihyp import *
 
-def get_topkf(perfd, k):
+def get_topkf(perfd, k, descend=False):
 
 	data = {}
 	# v: (terr, vloss, vprec, init_vloss, init_vprec,)
@@ -22,7 +22,7 @@ def get_topkf(perfd, k):
 
 	rs = []
 	_nremain = k
-	for tmp in iter_dict_sort(data, free=True):
+	for tmp in iter_dict_sort(data, reverse=descend, free=True):
 		_nd = len(tmp)
 		if _nd <= _nremain:
 			rs.extend(tmp)
@@ -43,7 +43,7 @@ def prune_parameter(para, ratio, inplace=True):
 
 	return para.masked_fill_(_m, 0.0) if inplace else para.masked_fill(_m, 0.0)
 
-def handle(perf, wkd, rsf, k=10, prune_ratio=None, avg=True):
+def handle(perf, wkd, rsf, k=10, prune_ratio=None, avg=True, **kwargs):
 
 	srcfl = get_topkf(load_objects(perf), k)
 

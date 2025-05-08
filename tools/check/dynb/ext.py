@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import sys_open
 
-def handle(srcf, rsf, el1=10, el2=9, el3=7):
+def handle(srcf, rsf, el1=10, el2=9, el3=7, **kwargs):
 
 	acc_bsize = 0
 	odd_line = True

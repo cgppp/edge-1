@@ -36,7 +36,7 @@ def load_log(fname):
 			if legal(cache):
 				yield cache
 
-def handle(srcf, minv, delt):
+def handle(srcf, minv, delt, **kwargs):
 
 	rsd = {}
 	for data in load_log(srcf):

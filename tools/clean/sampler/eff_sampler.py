@@ -8,7 +8,7 @@ from random import random, seed as rpyseed
 
 from utils.fmt.base import FileList
 
-def handle(srcfl, tgtfl, ratio):
+def handle(srcfl, tgtfl, ratio, **kwargs):
 
 	ens = "\n".encode("utf-8")
 	nkeep = ntotal = 0

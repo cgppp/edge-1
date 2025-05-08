@@ -85,7 +85,7 @@ def process_file(fname):
 		print(fname)
 		print(_)
 
-def handle(ptws):
+def handle(ptws, **kwargs):
 
 	for ptw in ptws:
 		if isfile(ptw):

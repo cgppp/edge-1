@@ -183,7 +183,7 @@ def process_file(fname):
 		f.write("\n".join(cache).encode("utf-8"))
 		f.write(ens)
 
-def handle(ptws):
+def handle(ptws, **kwargs):
 
 	for ptw in ptws:
 		if isfile(ptw):

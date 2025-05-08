@@ -6,7 +6,7 @@ from utils.fmt.base import sys_open
 
 from cnfg.vocab.gec.det import correct_id, incorrect_id
 
-def handle(srcf, tgtf, rssf, rstf, unbalance=True):
+def handle(srcf, tgtf, rssf, rstf, unbalance=True, **kwargs):
 
 	ens, c_ens, i_ens = "\n".encode("utf-8"), ("%d\n" % correct_id).encode("utf-8"), ("%d\n" % incorrect_id).encode("utf-8")
 	with sys_open(srcf, "rb") as frds, sys_open(tgtf, "rb") as frdt, sys_open(rssf, "wb") as fwrts, sys_open(rstf, "wb") as fwrtt:

@@ -11,7 +11,7 @@ from utils.fmt.base import FileList, clean_liststr_lentok, maxfreq_filter
 # shuf: shuffle the data of same source/target length
 # max_remove: if one source has several targets, only keep those with highest frequency
 
-def handle(cached, tgtfl, remove_same=True, shuf=True, max_remove=False):
+def handle(cached, tgtfl, remove_same=True, shuf=True, max_remove=False, **kwargs):
 
 	def paral_reader(srcfl):
 

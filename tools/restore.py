@@ -7,7 +7,7 @@ import sys
 from utils.fmt.base import FileList, clean_str, sys_open
 
 # srtfl: (k - 1) source + 1 target
-def handle(srcfl, srtfl, tgtf):
+def handle(srcfl, srtfl, tgtf, **kwargs):
 
 	data = {}
 

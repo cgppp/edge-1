@@ -54,7 +54,7 @@ def retrieve_con(lin):
 
 	return [float(tmpu.split()[-1]) for tmpu in lin[1:-1]]
 
-def handle(srcf):
+def handle(srcf, **kwargs):
 
 	rsl = []
 	for data in load_log(srcf):

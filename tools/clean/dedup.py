@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import FileList, all_le, clean_liststr_lentok
 
-def handle(srcfl, tgtfl, max_len=256, drop_tail=False):
+def handle(srcfl, tgtfl, max_len=256, drop_tail=False, **kwargs):
 
 	_max_len = max(1, max_len - 2)
 	data = set()

@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import sys_open
 from utils.fmt.diff import seq_diff_ratio
 
-def handle(srcfs, srcft, splt=1, dbg=False):
+def handle(srcfs, srcft, splt=1, dbg=False, **kwargs):
 
 	min_v = 1.0
 	with sys_open(srcfs, "rb") as fs, sys_open(srcft, "rb") as ft:

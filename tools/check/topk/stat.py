@@ -14,7 +14,7 @@ from utils.tqdm import tqdm
 from cnfg.ihyp import *
 from cnfg.vocab.base import pad_id
 
-def handle(srcf, ref):
+def handle(srcf, ref, **kwargs):
 
 	with h5File(srcf, "r", **h5_fileargs) as fs, h5File(ref, "r", **h5_fileargs) as fr, torch_inference_mode():
 		p_grp, ind_grp, tgt_grp = fs["p"], fs["ind"], fr["tgt"]

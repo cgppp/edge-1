@@ -22,7 +22,7 @@ def handle_group(srcg):
 
 	return rs
 
-def handle(srcf):
+def handle(srcf, **kwargs):
 
 	with h5File(srcf, "r", **h5_fileargs) as sfg:
 		rs = handle_group(sfg)

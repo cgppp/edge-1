@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import sys_open
 
-def handle(srcf, rsf):
+def handle(srcf, rsf, **kwargs):
 
 	ens = "\n".encode("utf-8")
 

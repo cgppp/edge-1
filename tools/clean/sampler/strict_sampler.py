@@ -8,7 +8,7 @@ from random import seed as rpyseed, shuffle
 
 from utils.fmt.base import FileList, sys_open
 
-def handle(srcfl, tgtfl, ratio):
+def handle(srcfl, tgtfl, ratio, **kwargs):
 
 	rs = []
 	with FileList(srcfl, "rb") as fl:

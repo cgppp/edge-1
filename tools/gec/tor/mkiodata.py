@@ -8,7 +8,7 @@ from utils.h5serial import h5File
 
 from cnfg.ihyp import *
 
-def handle(finput, fedit, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False):
+def handle(finput, fedit, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_sentences_gpu, maxpad=max_pad_tokens_sentence, maxpart=normal_tokens_vs_pad_tokens, maxtoken=max_tokens_gpu, minfreq=False, vsize=False, **kwargs):
 
 	if expand_for_mulgpu:
 		_bsize = bsize * minbsize

@@ -16,7 +16,7 @@ import cnfg.base as cnfg
 from cnfg.ihyp import *
 from cnfg.vocab.base import pad_id
 
-def handle(vsrc, vtgt, src, tgt, srcm, rsm, minfreq=False, vsize=False):
+def handle(vsrc, vtgt, src, tgt, srcm, rsm, minfreq=False, vsize=False, **kwargs):
 
 	vcbi, nwordi = ldvocab(vsrc, minf=minfreq, omit_vsize=vsize, vanilla=False)
 	vcbt, nwordt = ldvocab(vtgt, minf=minfreq, omit_vsize=vsize, vanilla=False)

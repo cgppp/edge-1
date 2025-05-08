@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import clean_list_iter, sys_open
 
-def handle(srcfl):
+def handle(srcfl, **kwargs):
 
 	vocab = set()
 

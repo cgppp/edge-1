@@ -6,7 +6,7 @@ import sys
 
 from utils.fmt.base import sys_open
 
-def handle(rankf, dkeep):
+def handle(rankf, dkeep, descend=False, **kwargs):
 
 	scores = []
 
@@ -16,7 +16,7 @@ def handle(rankf, dkeep):
 			if tmp:
 				scores.append(float(tmp.decode("utf-8")))
 
-	scores.sort()
+	scores.sort(reverse=descend)
 
 	print(scores[dkeep - 1])
 

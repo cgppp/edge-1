@@ -54,7 +54,7 @@ class SubMany:
 		self.re_escape = not allow_re
 		self.set_ref(dbl)
 
-	def handle(self, x):
+	def handle(self, x, **kwargs):
 
 		return self.data("", x)
 
@@ -80,7 +80,7 @@ class SubPair:
 		self.re_escape = not allow_re
 		self.set_ref(dbl)
 
-	def handle(self, x, offset=0):
+	def handle(self, x, offset=0, **kwargs):
 
 		rs = x
 		_sind = None
@@ -123,7 +123,7 @@ class SubPairP:
 		self.re_escape, self.p = not allow_re, p
 		self.set_ref(dbl)
 
-	def handle(self, x, offset=0, p=None):
+	def handle(self, x, offset=0, p=None, **kwargs):
 
 		rs = x
 		_sind = None

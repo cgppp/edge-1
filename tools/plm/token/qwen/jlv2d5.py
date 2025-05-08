@@ -8,7 +8,7 @@ from utils.fmt.base import loop_file_so
 
 from cnfg.vocab.plm.qwen.v2d5 import templated
 
-def handle(fsrc, vcb, frs, template="instruct", system="You are a helpful assistant.", templated=templated):
+def handle(fsrc, vcb, frs, template="instruct", system="You are a helpful assistant.", templated=templated, **kwargs):
 
 	_tfunc = templated[template]
 	_ = lambda lin, processor: " ".join(processor(_tfunc(system, loads(lin))))

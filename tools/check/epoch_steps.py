@@ -9,7 +9,7 @@ from utils.tqdm import tqdm
 
 from cnfg.ihyp import h5_fileargs, tqdm_mininterval
 
-def handle(h5f, bsize, shuf=True):
+def handle(h5f, bsize, shuf=True, **kwargs):
 
 	ntoken = 0
 	nstep = 0

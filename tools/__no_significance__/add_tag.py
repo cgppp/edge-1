@@ -8,7 +8,7 @@ import sys
 
 from utils.fmt.base import sys_open
 
-def handle(srcf, rsf, token):
+def handle(srcf, rsf, token, **kwargs):
 
 	_et = token.encode("utf-8") if token.endswith(" ") else (token + " ").encode("utf-8")
 	_ens = "\n".encode("utf-8")

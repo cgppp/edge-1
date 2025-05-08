@@ -5,7 +5,7 @@ from random import seed as rpyseed, shuffle
 
 from utils.fmt.base import FileList, clean_str, sys_open
 
-def handle(srcfl, rsfl):
+def handle(srcfl, rsfl, **kwargs):
 
 	data = []
 	with FileList(srcfl, "rb") as files:

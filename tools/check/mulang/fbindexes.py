@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import sys_open
 from utils.fmt.vocab.token import init_vocab, ldvocab
 
-def handle(vcbf, srcfl, fvocab_task, rsf, minfreq=False, vsize=False):
+def handle(vcbf, srcfl, fvocab_task, rsf, minfreq=False, vsize=False, **kwargs):
 
 	vcb, nwords = ldvocab(vcbf, minf=minfreq, omit_vsize=vsize, vanilla=False)
 	vcbtask, nwordtask = ldvocab(fvocab_task, minf=False, omit_vsize=False, vanilla=True)

@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import iter_to_int, iter_to_str, sys_open
 from utils.fmt.gec.kb.base import generate_iter_data
 
-def handle(srcf, kbf, tgtf, rssf, rskf, rsef, rstf):
+def handle(srcf, kbf, tgtf, rssf, rskf, rsef, rstf, **kwargs):
 
 	ens = "\n".encode("utf-8")
 	with sys_open(srcf, "rb") as frds, sys_open(kbf, "rb") as frdk, sys_open(tgtf, "rb") as frdt, sys_open(rssf, "wb") as fwrts, sys_open(rskf, "wb") as fwrtk, sys_open(rsef, "wb") as fwrte, sys_open(rstf, "wb") as fwrtt:

@@ -11,7 +11,7 @@ import sys
 
 from utils.fmt.base import sys_open
 
-def handle(srcfs, srcft, tgtfs, tgtft, cratio=0.8, bratio=5.0, sratio=0.8, pratio=3.0, oratio=3.0, num_rules_drop=1):
+def handle(srcfs, srcft, tgtfs, tgtft, cratio=0.8, bratio=5.0, sratio=0.8, pratio=3.0, oratio=3.0, num_rules_drop=1, **kwargs):
 
 	def legal_mono(strin, cratio, bratio, sratio):
 		ntokens = nchars = nsp = nrule = 0

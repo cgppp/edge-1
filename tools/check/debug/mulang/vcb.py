@@ -27,7 +27,7 @@ def lang_distance(lang1, lang2):
 
 	return angle
 
-def handle(srcfl, vcbf, rsf, rsxf):
+def handle(srcfl, vcbf, rsf, rsxf, **kwargs):
 
 	vcb, _ = ldvocab(vcbf, minf=None, omit_vsize=64000, vanilla=True)
 	fvcb = {}

@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import sys_open
 from utils.fmt.u8 import norm_u8_byte, uni_normer
 
-def handle(srcf, rsf, uni_normer=uni_normer):
+def handle(srcf, rsf, uni_normer=uni_normer, **kwargs):
 
 	ens="\n".encode("utf-8")
 	with sys_open(srcf, "rb") as frd, sys_open(rsf, "wb") as fwrt:

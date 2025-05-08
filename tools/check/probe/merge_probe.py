@@ -11,7 +11,7 @@ from utils.io import load_model_cpu, save_model
 import cnfg.probe as cnfg
 from cnfg.ihyp import *
 
-def handle(cnfg, srcmtf, decf, rsf):
+def handle(cnfg, srcmtf, decf, rsf, **kwargs):
 
 	with h5File(cnfg.dev_data, "r", **h5_fileargs) as tdf:
 		nwordi, nwordt = tdf["nword"][()].tolist()

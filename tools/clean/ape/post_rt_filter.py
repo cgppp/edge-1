@@ -13,7 +13,7 @@ def covered(srcl, mtl, pel, srcvcb, mtvcb, tgtvcb):
 				return False
 	return True
 
-def handle(srcfs, srcfm, srcft, tgtfs, tgtfm, tgtft, vcbfs, vcbfm, vcbft, max_len=256):
+def handle(srcfs, srcfm, srcft, tgtfs, tgtfm, tgtft, vcbfs, vcbfm, vcbft, max_len=256, **kwargs):
 
 	_max_len = max(1, max_len - 2)
 

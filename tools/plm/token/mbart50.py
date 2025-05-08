@@ -7,7 +7,7 @@ from transformers import MBart50TokenizerFast as Tokenizer
 
 from utils.fmt.plm.token import tokenize_file as map_func
 
-def handle(fsrc, vcb, frs, lang):
+def handle(fsrc, vcb, frs, lang, **kwargs):
 
 	return map_func(fsrc, frs, processor=Tokenizer.from_pretrained(vcb, src_lang=lang).tokenize)
 

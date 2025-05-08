@@ -35,7 +35,7 @@ def load_log(fname):
 			if legal(cache):
 				yield cache
 
-def handle(srcf, rsf):
+def handle(srcf, rsf, **kwargs):
 
 	ens = "\n".encode("utf-8")
 	with sys_open(rsf, "wb") as f:

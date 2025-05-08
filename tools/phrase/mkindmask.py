@@ -57,7 +57,7 @@ def build_ind_mask(lbpe, seql):
 	# mask: (bsize, mxp, mxtk)
 	return ind, mask
 
-def handle(h5src, bpeparsf, rsf):
+def handle(h5src, bpeparsf, rsf, **kwargs):
 
 	with h5File(h5src, "r", **h5_fileargs) as data, h5File(rsf, "w", **h5_fileargs) as frs, sys_open(bpeparsf, "rb") as frd:
 		ndata = data["ndata"][()].item()

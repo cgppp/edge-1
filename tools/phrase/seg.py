@@ -164,7 +164,7 @@ def process_cache(lin, bpesrc, max_chunk_tokens=8, min_chunks=8):
 
 	return "\t".join(rs)
 
-def handle(srcf, bpef, rsf, max_phrase_size=8, min_phrases=8):
+def handle(srcf, bpef, rsf, max_phrase_size=8, min_phrases=8, **kwargs):
 
 	ens = "\n".encode("utf-8")
 	cache = []

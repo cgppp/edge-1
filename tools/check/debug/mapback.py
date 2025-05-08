@@ -9,7 +9,7 @@ from utils.h5serial import h5File
 
 from cnfg.ihyp import h5_fileargs
 
-def handle(h5f, vcbsf, vcbtf, rsfs, rsft):
+def handle(h5f, vcbsf, vcbtf, rsfs, rsft, **kwargs):
 
 	td = h5File(h5f, "r", **h5_fileargs)
 

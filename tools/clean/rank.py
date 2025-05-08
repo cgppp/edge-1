@@ -1,32 +1,30 @@
 #encoding: utf-8
 
-# usage: python tools/check/rank.py srcf tgtf rankf rssf rstf threshold
+# usage: python tools/clean/rank.py srcf tgtf rankf rssf rstf threshold
 
 import sys
 
-from utils.fmt.base import clean_str, sys_open
+from utils.fmt.base import FileList, sys_open
 
-def handle(srcf, tgtf, rankf, rssf, rstf, threshold):
+def handle(srcfl, rankf, rsfl, threshold, descend=False, **kwargs):
 
-	with sys_open(srcf, "rb") as frs, sys_open(tgtf, "rb") as frt, sys_open(rankf, "rb") as fs, sys_open(rssf, "wb") as fws, sys_open(rstf, "wb") as fwt:
-
-		ndata = nkeep = 0
-
-		ens = "\n".encode("utf-8")
-
-		for srcl, tgtl, score in zip(frs, frt, fs):
-			src, tgt, s = srcl.strip(), tgtl.strip(), score.strip()
-			if src and tgt and s:
-				src, tgt, s = clean_str(src.decode("utf-8")), clean_str(tgt.decode("utf-8")), float(s.decode("utf-8"))
-				if s <= threshold:
-					fws.write(src.encode("utf-8"))
-					fws.write(ens)
-					fwt.write(tgt.encode("utf-8"))
-					fwt.write(ens)
+	ndata = nkeep = 0
+	ens = "\n".encode("utf-8")
+	_comp_func = (lambda a, b: a >= b) if descend else (lambda a, b: a <= b)
+	with FileList(srcfl, "rb") as fsrc, sys_open(rankf, "rb") as fs, FileList(rsfl, "wb") as fwrt:
+		for lines in zip(*fsrc, fs):
+			srcl = [_.strip() for _ in lines]
+			if all(srcl):
+				srcl, s = [_.decode("utf-8") for _ in srcl[:-1]], float(srcl[-1].decode("utf-8"))
+				if _comp_func(s, threshold):
+					for _, _f in zip(srcl, fwrt):
+						_f.write(_.encode("utf-8"))
+						_f.write(ens)
 					nkeep += 1
 				ndata += 1
 
-		print("%d in %d data keeped with ratio %.2f" % (nkeep, ndata, float(nkeep) / float(ndata) * 100.0 if ndata > 0 else 0.0))
+	print("%d in %d data keeped with ratio %.2f" % (nkeep, ndata, float(nkeep) / float(ndata) * 100.0 if ndata > 0 else 0.0))
 
 if __name__ == "__main__":
-	handle(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]))
+	_ = (len(sys.argv) - 1) // 2
+	handle(sys.argv[1:_], sys.argv[_], sys.argv[_ + 1:-1], float(sys.argv[-1]))

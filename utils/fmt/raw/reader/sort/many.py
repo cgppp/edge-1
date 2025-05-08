@@ -5,7 +5,7 @@ from random import shuffle
 from utils.fmt.base import dict_insert_set, iter_dict_sort, read_lines
 from utils.fmt.parser import parse_none
 
-def sort_list_reader(x, *args, clear_input=True, **kwargs):
+def sort_list_reader(x, *args, clear_input=True, descend=False, **kwargs):
 
 	_d = {}
 	for mi in x:
@@ -14,27 +14,27 @@ def sort_list_reader(x, *args, clear_input=True, **kwargs):
 		_d = dict_insert_set(_d, mi, lgth, *reversed(lens[1:]))
 	if clear_input and hasattr(x, "clear"):
 		x.clear()
-	for tmp in iter_dict_sort(_d, free=True):
+	for tmp in iter_dict_sort(_d, reverse=descend, free=True):
 		_v = list(tmp)
 		shuffle(_v)
 		yield from _v
 
 class sort_lines_reader:
 
-	def __init__(self, line_read=None, **kwargs):
+	def __init__(self, line_read=None, descend=False, **kwargs):
 
-		self.line_read = line_read
+		self.line_read, self.descend = line_read, descend
 
-	def __call__(self, x, *args, line_read=None, **kwargs):
+	def __call__(self, x, *args, line_read=None, descend=None, **kwargs):
 
-		_line_read = parse_none(line_read, self.line_read)
+		_line_read, _descend = parse_none(line_read, self.line_read), parse_none(descend, self.descend)
 		_data_iter = x if _line_read is None else read_lines(x, _line_read)
 		_d = {}
 		for mi in _data_iter:
 			lens = [len(_) for _ in mi]
 			lgth = sum(lens)
 			_d = dict_insert_set(_d, mi, lgth, *reversed(lens[1:]))
-		for tmp in iter_dict_sort(_d, free=True):
+		for tmp in iter_dict_sort(_d, reverse=_descend, free=True):
 			_v = list(tmp)
 			shuffle(_v)
 			yield from _v

@@ -6,7 +6,7 @@ from utils.fmt.base import loop_file_so
 
 from cnfg.vocab.plm.baichuan.v2 import templated
 
-def handle(fsrc, vcb, frs, template="instruct", system="You are a helpful assistant.", templated=templated):
+def handle(fsrc, vcb, frs, template="instruct", system="You are a helpful assistant.", templated=templated, **kwargs):
 
 	sys.path.append(vcb)
 	from tokenization_baichuan import BaichuanTokenizer as Tokenizer

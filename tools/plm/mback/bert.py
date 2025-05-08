@@ -5,7 +5,7 @@ from transformers import BertTokenizerFast as Tokenizer
 
 from utils.fmt.plm.token import map_back_file as map_func
 
-def handle(fsrc, vcb, frs):
+def handle(fsrc, vcb, frs, **kwargs):
 
 	return map_func(fsrc, frs, processor=Tokenizer(tokenizer_file=vcb).decode)
 

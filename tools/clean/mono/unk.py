@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import clean_list, sys_open
 from utils.fmt.vocab.token import ldvocab_list
 
-def handle(srcfs, tgtfs, vcbfs):
+def handle(srcfs, tgtfs, vcbfs, **kwargs):
 
 	def no_unk(strin, vcbs):
 		_no_unk = True

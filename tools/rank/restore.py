@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import clean_liststr_lentok, sys_open
 
-def handle(srcfs, srcfm, srtsf, srtmf, srttf, tgtf):
+def handle(srcfs, srcfm, srtsf, srtmf, srttf, tgtf, **kwargs):
 
 	data = {}
 

@@ -5,7 +5,7 @@ import sys
 from utils.fmt.vocab.base import merge_vocab
 from utils.fmt.vocab.token import ldvocab_freq, save_vocab
 
-def handle(srcfl, rsf, vsize=65532):
+def handle(srcfl, rsf, vsize=65532, **kwargs):
 
 	save_vocab(merge_vocab(*[ldvocab_freq(_)[0] for _ in srcfl]), rsf, omit_vsize=vsize)
 

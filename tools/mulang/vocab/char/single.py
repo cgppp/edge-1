@@ -5,7 +5,7 @@ import sys
 from utils.fmt.base import sys_open
 from utils.fmt.vocab.char import save_vocab
 
-def handle(srcf, rsf, rslangf, vsize=65532):
+def handle(srcf, rsf, rslangf, vsize=65532, **kwargs):
 
 	vocab = {}
 	lang_vocab = {}

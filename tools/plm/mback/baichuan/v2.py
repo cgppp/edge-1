@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.plm.token import map_back_file_jdumps as map_func
 
-def handle(fsrc, vcb, frs):
+def handle(fsrc, vcb, frs, **kwargs):
 
 	sys.path.append(vcb)
 	from tokenization_baichuan import BaichuanTokenizer as Tokenizer

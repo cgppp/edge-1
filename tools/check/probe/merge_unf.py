@@ -12,7 +12,7 @@ from utils.io import load_model_cpu, save_model
 import cnfg.unf as cnfg
 from cnfg.ihyp import *
 
-def handle(cnfg, srcmtf, unfdecf, rsf):
+def handle(cnfg, srcmtf, unfdecf, rsf, **kwargs):
 
 	with h5File(cnfg.dev_data, "r", **h5_fileargs) as tdf:
 		nwordi, nwordt = tdf["nword"][()].tolist()

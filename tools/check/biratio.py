@@ -4,7 +4,7 @@ import sys
 
 from utils.fmt.base import get_bi_ratio, sys_open
 
-def handle(srcfs, srcft):
+def handle(srcfs, srcft, **kwargs):
 
 	bmaxratio = 0.0
 	omaxratio = 0.0

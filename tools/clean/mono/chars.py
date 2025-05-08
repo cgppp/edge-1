@@ -9,7 +9,7 @@ import sys
 
 from utils.fmt.base import sys_open
 
-def handle(srcfs, tgtfs, cratio=0.8, bratio=5.0, sratio=0.8, num_rules_drop=1):
+def handle(srcfs, tgtfs, cratio=0.8, bratio=5.0, sratio=0.8, num_rules_drop=1, **kwargs):
 
 	def legal_mono(strin, cratio, bratio, sratio):
 		ntokens = nchars = nsp = nrule = 0

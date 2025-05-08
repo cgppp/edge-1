@@ -50,7 +50,7 @@ def giter(lin, nsep=20):
 		yield lin[lind:rind]
 		lind = rind
 
-def handle(srcf):
+def handle(srcf, **kwargs):
 
 	rsl = []
 	for data in load_log(srcf):
