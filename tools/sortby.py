@@ -34,5 +34,10 @@ def handle(srcfl, rankf, tgtfl, remove_same=True, shuf=True, descend=False, **kw
 
 if __name__ == "__main__":
 	rpyseed(666666)
-	_ = len(sys.argv) // 2
-	handle(sys.argv[1:_], sys.argv[_], sys.argv[_ + 1:])
+	_ = len(sys.argv)
+	if (_ % 2) == 1:
+		_ = (_ - 1) // 2
+		handle(sys.argv[1:_], sys.argv[_], sys.argv[_ + 1:-1], descend=bool(int(sys.argv[-1])))
+	else:
+		_ = _ // 2
+		handle(sys.argv[1:_], sys.argv[_], sys.argv[_ + 1:])

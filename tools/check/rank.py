@@ -21,4 +21,7 @@ def handle(rankf, dkeep, descend=False, **kwargs):
 	print(scores[dkeep - 1])
 
 if __name__ == "__main__":
-	handle(sys.argv[1], int(sys.argv[2]))
+	if len(sys.argv) > 3:
+		handle(sys.argv[1], int(sys.argv[2]), bool(int(sys.argv[-1])))
+	else:
+		handle(sys.argv[1], int(sys.argv[2]))

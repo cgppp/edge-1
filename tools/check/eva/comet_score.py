@@ -5,6 +5,7 @@
 import sys
 import torch
 from comet import load_from_checkpoint
+from math import inf
 
 from utils.fmt.base import FileList, is_null_file, iter_to_str, sys_open
 from utils.torch.comp import torch_inference_mode
@@ -31,8 +32,7 @@ def handle(finputs, fmodel, frs, ngpu=0, load_bsize=-1, model_bsize=256, **kwarg
 	model.eval()
 	if ngpu > 0:
 		model.to(torch.float16, non_blocking=True)
-	sum_score = 0.0
-	n = 0
+	sum_score, n, min_score, max_score = 0.0, 0, inf, -inf
 	ens = "\n".encode("utf-8")
 	with sys_open(frs, "wb") as fwrt, torch_inference_mode():
 		_write = not is_null_file(fwrt)
@@ -43,8 +43,9 @@ def handle(finputs, fmodel, frs, ngpu=0, load_bsize=-1, model_bsize=256, **kwarg
 				fwrt.write(ens)
 			sum_score += sum(scores)
 			n += len(scores)
+			min_score, max_score = min(min_score, min(scores)), max(max_score, max(scores))
 
-	return sum_score / float(n)
+	return sum_score / float(n), min_score, max_score
 
 if __name__ == "__main__":
 	print(handle(sys.argv[1:-4], sys.argv[-4], sys.argv[-3], int(sys.argv[-2]), int(sys.argv[-1])))

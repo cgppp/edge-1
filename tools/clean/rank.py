@@ -1,6 +1,6 @@
 #encoding: utf-8
 
-# usage: python tools/clean/rank.py srcf tgtf rankf rssf rstf threshold
+# usage: python tools/clean/rank.py srcf tgtf rankf rssf rstf threshold descend(0|1)
 
 import sys
 
@@ -26,5 +26,10 @@ def handle(srcfl, rankf, rsfl, threshold, descend=False, **kwargs):
 	print("%d in %d data keeped with ratio %.2f" % (nkeep, ndata, float(nkeep) / float(ndata) * 100.0 if ndata > 0 else 0.0))
 
 if __name__ == "__main__":
-	_ = (len(sys.argv) - 1) // 2
-	handle(sys.argv[1:_], sys.argv[_], sys.argv[_ + 1:-1], float(sys.argv[-1]))
+	_ = len(sys.argv)
+	if (_ % 2) == 1:
+		_ = (_ - 1) // 2
+		handle(sys.argv[1:_], sys.argv[_], sys.argv[_ + 1:-2], float(sys.argv[-2]))
+	else:
+		_ = _ // 2 - 1
+		handle(sys.argv[1:_], sys.argv[_], sys.argv[_ + 1:-2], float(sys.argv[-2]), bool(int(sys.argv[-1])))
