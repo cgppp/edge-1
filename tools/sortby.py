@@ -11,7 +11,7 @@ from utils.fmt.base import FileList, dict_insert_list, dict_insert_set, iter_dic
 
 def handle(srcfl, rankf, tgtfl, remove_same=True, shuf=True, descend=False, **kwargs):
 
-	_insert_func = dict_insert_set if remove_same and (not max_remove) else dict_insert_list
+	_insert_func = dict_insert_set if remove_same else dict_insert_list
 	data = {}
 
 	with FileList(srcfl, "rb") as fl, sys_open(rankf, "rb") as fs:
