@@ -35,9 +35,9 @@ export get_rank_thres=true
 export do_rank_sort=true
 export do_rank_score=true
 export do_rank_clean=true
-export do_sort=true
 export do_map=true
 export do_filter=true
+export do_sort=true
 
 export faext=".xz"
 
