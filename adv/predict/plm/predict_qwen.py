@@ -21,10 +21,10 @@ import cnfg.lora as lcnfg
 import cnfg.plm.qwen.v3.base as cnfg
 import cnfg.quant as qcnfg
 from cnfg.plm.qwen.v3.ihyp import *
-from cnfg.vocab.plm.qwen.v3 import eos_id, eot_id, instruct_template, vocab_size
+from cnfg.vocab.plm.qwen.v3 import eos_id, eot_id, instruct_task_template, vocab_size
 
 max_len = 512
-line_func = lambda x: instruct_template("You are a helpful assistant.", x)
+line_func = lambda x: instruct_task_template("You are a helpful assistant.", x)
 ext_txt = lambda x: merge_rchar((" " if _ in "\n\r" else _ for _ in x), rchar=" ")
 
 def ext_ids(lin):
@@ -65,7 +65,7 @@ if use_cuda_bfmp:
 elif use_cuda_fp16:
 	mymodel.to(torch.float16, non_blocking=True)
 if qcnfg.use_quant:
-	mymodel = quant(mymodel, quant_linear=qcnfg.quant_linear, quant_embedding=qcnfg.quant_embedding, quant_normer=qcnfg.quant_normer, quant_dim=qcnfg.quant_dim, quant_weight=qcnfg.quant_weight, quant_bias=qcnfg.quant_bias, quant_io=qcnfg.quant_io, name_cfunc=qcnfg.name_cfunc, keep_tying=True)[0]
+	mymodel = quant(mymodel, quant_linear=qcnfg.quant_linear, quant_embedding=qcnfg.quant_embedding, quant_normer=qcnfg.quant_normer, quant_dim=qcnfg.quant_dim, quant_weight=qcnfg.quant_normer_weight, quant_bias=qcnfg.quant_bias, quant_io=qcnfg.quant_io, name_cfunc=qcnfg.name_cfunc, keep_tying=True)[0]
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 
