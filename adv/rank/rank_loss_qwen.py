@@ -16,12 +16,14 @@ from utils.h5serial import h5File
 from utils.io import load_model_cpu
 from utils.norm.mp.f import convert as make_mp_model
 from utils.plm.inference import get_h5g_common_prefix, prepare_states_bsize
+from utils.quant.s.base import quant
 from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
 from utils.tqdm import tqdm
 from utils.train.llm import PMaskDataConverter
 
 import cnfg.lora as lcnfg
 import cnfg.plm.qwen.v3.base as cnfg
+import cnfg.quant as qcnfg
 from cnfg.plm.qwen.v3.ihyp import *
 from cnfg.vocab.plm.qwen.v3 import vocab_size
 
@@ -64,6 +66,8 @@ if use_cuda_bfmp:
 	make_mp_model(mymodel)
 elif use_cuda_fp16:
 	mymodel.to(torch.float16, non_blocking=True)
+if qcnfg.use_quant:
+	mymodel = quant(mymodel, quant_linear=qcnfg.quant_linear, quant_embedding=qcnfg.quant_embedding, quant_normer=qcnfg.quant_normer, quant_dim=qcnfg.quant_dim, quant_weight=qcnfg.quant_weight, quant_bias=qcnfg.quant_bias, quant_io=qcnfg.quant_io, name_cfunc=qcnfg.name_cfunc, keep_tying=True)[0]
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 	lossf.to(cuda_device, non_blocking=True)

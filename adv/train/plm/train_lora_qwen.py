@@ -275,7 +275,7 @@ if lcnfg.lora_features is None:
 	save_model_ps_func = None
 else:
 	freeze_module(mymodel)
-	mymodel = std2lora(mymodel, lora_features=lcnfg.lora_features, lora_alpha=lcnfg.lora_alpha, scaling=lcnfg.scaling, update_bias=lcnfg.update_bias, name_cfunc=lcnfg.name_cfunc)[0]
+	mymodel = std2lora(mymodel, lora_features=lcnfg.lora_features, lora_alpha=lcnfg.lora_alpha, scaling=lcnfg.scaling, update_bias=lcnfg.update_bias, name_cfunc=lcnfg.name_cfunc, keep_lora_weight_tying=lcnfg.keep_lora_weight_tying)[0]
 	if lcnfg.lora_fine_tune_m is not None:
 		mymodel = load_model_cpu(lcnfg.lora_fine_tune_m, mymodel)
 	save_model_ps_func = lora_filter

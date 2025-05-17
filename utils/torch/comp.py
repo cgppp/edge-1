@@ -48,6 +48,23 @@ if hasattr(torch, "autograd") and hasattr(torch.autograd, "set_detect_anomaly"):
 	except Exception as e:
 		print(e)
 
+torch_nn_Module_setattr_patched = False
+
+def patch_nn_Module_setattr():
+
+	global torch_nn_Module_setattr_patched
+	if not torch_nn_Module_setattr_patched:
+		_set_attr_ori = torch.nn.Module.__setattr__
+
+		def __setattr__(m, name, value):
+
+			if hasattr(m, name):
+				delattr(m, name)
+			_set_attr_ori(m, name, value)
+
+		torch.nn.Module.__setattr__ = __setattr__
+		torch_nn_Module_setattr_patched = True
+
 def torch_std_mean_cust(x, *args, **kwargs):
 
 	return x.std(*args, **kwargs), x.mean(*args, **kwargs)

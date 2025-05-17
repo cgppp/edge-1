@@ -8,6 +8,7 @@ lora_alpha = None
 scaling = 1.0
 update_bias = False
 name_cfunc = lambda mname: True
+keep_lora_weight_tying = True
 
 prefix_ids = None
 find_common_prefix = True

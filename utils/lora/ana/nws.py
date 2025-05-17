@@ -3,7 +3,7 @@
 import torch
 from math import acos, pi, sqrt
 
-from modules.lora import Linear
+from modules.lora.base import Linear
 from utils.angle import prep_cos
 from utils.fmt.parser import parse_none
 from utils.lora.ana.base import Ana

@@ -2,7 +2,7 @@
 
 from math import sqrt
 
-from modules.lora import Linear
+from modules.lora.base import Linear
 from utils.fmt.parser import parse_none
 from utils.lora.ana.base import Ana
 

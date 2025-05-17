@@ -226,6 +226,53 @@ def add_buffer(m, strin, b_add, persistent=True, print_func=print, **kwargs):
 
 	return m
 
+def add_attr(m, strin, value, print_func=print, **kwargs):
+
+	_name_list = strin.split(".")
+	if len(_name_list) == 1:
+		setattr(m, strin, value)
+	else:
+		_m, _success = get_module_nl(m, _name_list[:-1])
+		if _success:
+			setattr(_m, _name_list[-1], value)
+		elif print_func is not None:
+			print_func(strin)
+
+	return m
+
+def get_parameter_tying(modin):
+
+	_ = {}
+	for n, p in modin.named_parameters(remove_duplicate=False):
+		if p in _:
+			_[p].append(n)
+		else:
+			_[p] = [n]
+
+	return [nl for nl in _.values() if len(nl) > 1]
+
+def get_module_tying(modin):
+
+	_ = {}
+	for n, p in modin.named_modules(remove_duplicate=False):
+		if p in _:
+			_[p].append(n)
+		else:
+			_[p] = [n]
+
+	return [nl for nl in _.values() if len(nl) > 1]
+
+def get_buffer_tying(modin):
+
+	_ = {}
+	for n, p in modin.named_buffers(remove_duplicate=False):
+		if p in _:
+			_[p].append(n)
+		else:
+			_[p] = [n]
+
+	return [nl for nl in _.values() if len(nl) > 1]
+
 def load_tensor_attr(m, strin, t, print_func=print, **kwargs):
 
 	_name_list = strin.split(".")

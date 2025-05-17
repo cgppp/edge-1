@@ -12,9 +12,11 @@ from modules.act import Custom_Act
 from modules.base import CrossAttn as CrossAttnBase, Dropout, PositionwiseFF as PositionwiseFFBase, ResCrossAttn as ResCrossAttnBase, ResSelfAttn as ResSelfAttnBase, SelfAttn as SelfAttnBase
 from utils.fmt.parser import parse_none
 from utils.init.base import kaiming_uniform_
-from utils.torch.comp import mask_tensor_type, torch_no_grad
+from utils.torch.comp import mask_tensor_type, patch_nn_Module_setattr, torch_no_grad
 
 from cnfg.ihyp import *
+
+patch_nn_Module_setattr()
 
 class BernoulliMaskFunction(Function):
 
