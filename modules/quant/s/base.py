@@ -118,7 +118,17 @@ class Embedding(nn.Embedding):
 
 		_ = nnFunc.embedding(x, self.weight.data, self.padding_idx, self.max_norm, self.norm_type, self.scale_grad_by_freq, self.sparse)
 
-		return self.weight.dequant(data=_) if self.weight.dim != 0 else dequant(_, self.weight.scale.index_select(0, x), self.weight.bias.index_select(0, x))
+		if self.weight.dim == 0:
+			_flatten = x.dim() > 1
+			_i = x.view(-1) if _flatten else x
+			_s, _b = self.weight.scale.index_select(0, _i), self.weight.bias.index_select(0, _i)
+			if _flatten:
+				_s, _b = _s.view(*x.size(), -1), _b.view(*x.size(), -1)
+
+			return dequant(_, _s, _b)
+		else:
+
+			return self.weight.dequant(data=_)
 
 	def from_std(self, m):
 
