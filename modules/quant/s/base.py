@@ -116,7 +116,9 @@ class Embedding(nn.Embedding):
 
 	def forward(self, x):
 
-		return self.weight.dequant(data=nnFunc.embedding(x, self.weight.data, self.padding_idx, self.max_norm, self.norm_type, self.scale_grad_by_freq, self.sparse))
+		_ = nnFunc.embedding(x, self.weight.data, self.padding_idx, self.max_norm, self.norm_type, self.scale_grad_by_freq, self.sparse)
+
+		return self.weight.dequant(data=_) if self.weight.quant_dim != 0 else dequant(_, self.weight.scale.index_select(0, x), self.weight.bias.index_select(0, x))
 
 	def from_std(self, m):
 
