@@ -3,6 +3,8 @@
 import torch
 from numbers import Number
 
+from utils.torch.comp import torch_amax
+
 from cnfg.ihyp import ieps_ln_default, ieps_upper_bound_default
 
 upper_one = 1.0 - ieps_upper_bound_default
@@ -75,9 +77,13 @@ def arcsigmoid(x):
 
 def arcsoftmax(p):
 
-	_ = p.amax(-1, keepdim=True)
+	_ = torch_amax(p, dim=-1, keepdim=True)
 
 	return (p / _).log()
+
+def is_floating_dtype(dtype):
+
+	return torch.is_floating_point(torch.empty((), dtype=dtype))
 
 def ensure_num_threads(n):
 

@@ -69,6 +69,23 @@ def torch_std_mean_cust(x, *args, **kwargs):
 
 	return x.std(*args, **kwargs), x.mean(*args, **kwargs)
 
+def torch_amin_cust(x, *args, **kwargs):
+
+	return x.min(*args, **kwargs)[0]
+
+def torch_amax_cust(x, *args, **kwargs):
+
+	return x.max(*args, **kwargs)[0]
+
+torch_amin = torch.amin if hasattr(torch, "amin") else torch_amin_cust
+torch_amax = torch.amax if hasattr(torch, "amax") else torch_amax_cust
+
+def torch_aminmax_cust(x, *args, **kwargs):
+
+	return torch_amin(x, *args, **kwargs), torch_amax(x, *args, **kwargs)
+
+torch_aminmax = torch.aminmax if hasattr(torch, "aminmax") else torch_aminmax_cust
+
 def tensor_numpy(x, tensor_numpy_map=tensor_numpy_map, **kwargs):
 
 	_type = x.dtype
@@ -230,6 +247,8 @@ if torch_support_f8e5m2:
 	secure_type_map[torch.float8_e5m2] = torch.float64
 	tensor_numpy_map[torch.float8_e5m2] = torch.float32
 	low_precision_floats.add(torch.float8_e5m2)
+
+torch_quant_dtype = torch.float8_e4m3fn if torch_support_f8e4m3 else (torch.float8_e5m2 if torch_support_f8e5m2 else torch.int8)
 
 # handling torch.cuda.amp, fp16 will NOT be really enabled if torch.amp or torch.cuda.amp does not exist (for early versions)
 _use_torch_amp_autocast = hasattr(torch, "amp") and hasattr(torch.amp, "autocast") and hasattr(torch.amp, "GradScaler")

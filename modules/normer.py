@@ -2,11 +2,13 @@
 
 from torch import nn
 
+from utils.torch.comp import torch_amax, torch_amin
+
 from cnfg.ihyp import ieps_default
 
 def min_normer(x, dim=-1, bias=0.0, eps=ieps_default):
 
-	_ = x.amin(dim=dim, keepdim=True)
+	_ = torch_amin(x, dim=dim, keepdim=True)
 	if bias > 0.0:
 		_.sub_(bias)
 	_p = x - _
@@ -16,8 +18,8 @@ def min_normer(x, dim=-1, bias=0.0, eps=ieps_default):
 
 def max_relu_normer(x, dim=-1, scale=0.5, eps=ieps_default):
 
-	_p = x - x.amin(dim=dim, keepdim=True)
-	_p = (_p - _p.amax(dim=dim, keepdim=True).mul(scale)).relu_()
+	_p = x - torch_amin(x, dim=dim, keepdim=True)
+	_p = (_p - torch_amax(_p, dim=dim, keepdim=True).mul(scale)).relu_()
 	_ = _p.sum(dim=dim, keepdim=True).add_(eps)
 
 	return _p / _

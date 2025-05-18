@@ -9,8 +9,9 @@ from modules.norm.base import LayerNorm as LayerNormBase, RMSNorm as RMSNormBase
 from utils.fmt.base import iter_to_str
 from utils.fmt.parser import parse_none
 from utils.fmt.quant import is_legal_dim, parse_dim
-from utils.quant.s.proto import dequant, estimate_scale_bias, quant
-from utils.torch.comp import patch_nn_Module_setattr, torch_no_grad
+from utils.quant.s.proto.bsb import dequant, estimate_quant_hyp, quant
+from utils.torch.comp import patch_nn_Module_setattr, torch_no_grad, torch_quant_dtype
+from utils.torch.ext import is_floating_dtype
 
 from cnfg.ihyp import *
 
@@ -18,54 +19,62 @@ patch_nn_Module_setattr()
 
 class QPara(nn.Module):
 
-	def __init__(self, data=None, dim=None, dtype=torch.int8, qsize=256, qmin=-128, qmax=127, quant_io=False, **kwargs):
+	def __init__(self, data=None, quant_log_shift=0.0, dim=None, dtype=torch_quant_dtype, quant_io=False, **kwargs):
 
 		super(QPara, self).__init__()
 
-		self.dtype, self.dim, self.qsize, self.qmin, self.qmax, self.quant_io = dtype, parse_dim(dim, data=data), qsize, qmin, qmax, quant_io
+		self.dtype, self.quant_log_shift, self.dim, self.quant_io = None, quant_log_shift, parse_dim(dim, data=data), quant_io
+		self.set_quant_dtype(dtype=dtype)
 		if data is not None:
-			self.quant(data=data, dim=dim)
+			self.quant(data=data, quant_log_shift=quant_log_shift, dim=dim)
 
-	def forward(self, data=None, dim=None, dtype=None, **kwargs):
+	def forward(self, data=None, quant_log_shift=None, dim=None, dtype=None, quant_io=None, **kwargs):
 
 		if data is None:
 
-			return self.dequant(**kwargs)
+			return self.dequant(quant_log_shift=quant_log_shift, **kwargs)
 		else:
-			self.quant(data=data, dim=dim, dtype=dtype, **kwargs)
+			self.quant(data=data, quant_log_shift=quant_log_shift, dim=dim, dtype=dtype, **kwargs)
 
-			return self.dequant(**kwargs) if self.quant_io else data
+			return self.dequant(quant_log_shift=quant_log_shift, **kwargs) if parse_none(quant_io, self.quant_io) else data
 
 	def size(self, *args, **kwargs):
 
 		return self.data.size(*args, **kwargs)
 
-	def quant(self, data=None, dim=None, dtype=None, qsize=None, qmin=None, qmax=None, **kwargs):
+	def quant(self, data=None, quant_log_shift=None, dim=None, dtype=None, **kwargs):
 
-		_qmin = parse_none(qmin, self.qmin)
-		_s, _b = estimate_scale_bias(data, dim=parse_dim(dim, data=data) if is_legal_dim(dim) else self.dim, qsize=parse_none(qsize, self.qsize), qmin=_qmin)
-		self.register_buffer("scale", _s, persistent=False)
-		self.register_buffer("bias", _b, persistent=False)
-		self.register_buffer("data", quant(data, _s, _b, dtype=parse_none(dtype, self.dtype), qmin=_qmin, qmax=parse_none(qmax, self.qmax)), persistent=False)
+		self.set_quant_dtype(dtype=dtype)
+		_quant_log_shift = parse_none(quant_log_shift, self.quant_log_shift)
+		self.register_buffer("qhyp", estimate_quant_hyp(data, dim=parse_dim(dim, data=data) if is_legal_dim(dim) else self.dim, qmin=self.qmin, qmax=self.qmax, log_shift=_quant_log_shift), persistent=False)
+		self.register_buffer("data", quant(data, self.qhyp, dtype=self.dtype, qmin=self.qmin, qmax=self.qmax, log_shift=_quant_log_shift), persistent=False)
 
-	def dequant(self, data=None, **kwargs):
+	def dequant(self, data=None, quant_log_shift=None, **kwargs):
 
-		return dequant(parse_none(data, self.data), self.scale, self.bias, **kwargs)
+		return dequant(parse_none(data, self.data), self.qhyp, log_shift=parse_none(quant_log_shift, self.quant_log_shift), **kwargs)
+
+	def set_quant_dtype(self, dtype=None, **kwargs):
+
+		if (dtype is not None) and (dtype != self.dtype):
+			self.dtype = dtype
+			_is_floating_dtype = is_floating_dtype(dtype)
+			_dtype_info = (torch.finfo if _is_floating_dtype else torch.iinfo)(dtype)
+			self.qmin, self.qmax = float(_dtype_info.min), float(_dtype_info.max)
 
 	def extra_repr(self):
 
-		return ("%s, dtype={}, quant_dim={}, quant_io={}" % ", ".join(iter_to_str(self.size()))).format(self.dtype, self.dim, self.quant_io)
+		return ("%s, dtype={}, quant_log_shift={}, quant_dim={}, quant_io={}" % ", ".join(iter_to_str(self.size()))).format(self.dtype, self.quant_log_shift, self.dim, self.quant_io)
 
 class Linear(nn.Linear):
 
-	def __init__(self, in_features, out_features, bias=True, quant_dim=None, quant_bias=False, quant_io=False, **kwargs):
+	def __init__(self, in_features, out_features, bias=True, quant_log_shift=0.0, quant_dim=None, quant_bias=False, quant_io=False, **kwargs):
 
 		super(Linear, self).__init__(in_features, out_features, bias=bias, **kwargs)
 
-		self.quant_bias, self.quant_dim, self.quant_io = quant_bias, quant_dim, quant_io
-		self.weight = QPara(data=self.weight, dim=quant_dim, quant_io=quant_io)
+		self.quant_bias, self.quant_log_shift, self.quant_dim, self.quant_io = quant_bias, quant_log_shift, quant_dim, quant_io
+		self.weight = QPara(data=self.weight, quant_log_shift=quant_log_shift, dim=quant_dim, quant_io=quant_io)
 		if quant_bias and (self.bias is not None):
-			self.bias = QPara(data=self.bias, dim=None, quant_io=quant_io)
+			self.bias = QPara(data=self.bias, quant_log_shift=quant_log_shift, dim=None, quant_io=quant_io)
 
 	def forward(self, x, **kwargs):
 
@@ -73,16 +82,16 @@ class Linear(nn.Linear):
 
 	def from_std(self, m):
 
-		self.weight(data=m.weight, dim=self.quant_dim)
+		self.weight(data=m.weight, quant_log_shift=self.quant_log_shift, dim=self.quant_dim, quant_io=False)
 		if m.bias is None:
 			if self.bias is not None:
 				self.register_parameter("bias", None)
 		else:
 			if self.quant_bias:
 				if self.bias is None:
-					self.bias = QPara(data=m.bias, dim=None, quant_io=self.quant_io)
+					self.bias = QPara(data=m.bias, quant_log_shift=self.quant_log_shift, dim=None, quant_io=self.quant_io)
 				else:
-					self.bias(data=m.bias, dim=None)
+					self.bias(data=m.bias, quant_log_shift=self.quant_log_shift, dim=None, quant_io=False)
 			else:
 				self.bias = m.bias
 		self.to(device=m.weight.device, dtype=m.weight.dtype, non_blocking=True)
@@ -101,18 +110,19 @@ class Linear(nn.Linear):
 			rs.weight.copy_(self.weight())
 			if _copy_bias:
 				rs.bias.copy_(self.bias())
-		rs.to(device=self.weight.scale.device, dtype=self.weight.scale.dtype, non_blocking=True)
+		rs.to(device=self.weight.qhyp.device, dtype=self.weight.qhyp.dtype, non_blocking=True)
 
 		return rs
 
 class Embedding(nn.Embedding):
 
-	def __init__(self, num_embeddings, embedding_dim, padding_idx=None, max_norm=None, norm_type=2.0, scale_grad_by_freq=False, sparse=False, _weight=None, quant_dim=None, quant_io=False, **kwargs):
+	def __init__(self, num_embeddings, embedding_dim, padding_idx=None, max_norm=None, norm_type=2.0, scale_grad_by_freq=False, sparse=False, _weight=None, quant_log_shift=0.0, quant_dim=None, quant_io=False, **kwargs):
 
 		super(Embedding, self).__init__(num_embeddings, embedding_dim, padding_idx=padding_idx, max_norm=max_norm, norm_type=norm_type, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse, _weight=_weight, **kwargs)
 
-		self.quant_dim, self.quant_io = quant_dim, quant_io
-		self.weight = QPara(data=self.weight, dim=quant_dim, quant_io=quant_io)
+		self.quant_dim, self.quant_log_shift, self.quant_io = quant_dim, quant_log_shift, quant_io
+		self.weight = QPara(data=self.weight, quant_log_shift=quant_log_shift, dim=quant_dim, quant_io=quant_io)
+		self.index_dim = 1 if self.weight.qhyp.dim() > self.weight.data.dim() else 0
 
 	def forward(self, x):
 
@@ -121,18 +131,18 @@ class Embedding(nn.Embedding):
 		if self.weight.dim == 0:
 			_flatten = x.dim() > 1
 			_i = x.view(-1) if _flatten else x
-			_s, _b = self.weight.scale.index_select(0, _i), self.weight.bias.index_select(0, _i)
+			_qhyp = self.weight.qhyp.index_select(self.index_dim, _i)
 			if _flatten:
-				_s, _b = _s.view(*x.size(), -1), _b.view(*x.size(), -1)
+				_qhyp = _qhyp.view(self.weight.qhyp.size(0), *x.size(), 1) if self.index_dim > 0 else _qhyp.view(*x.size(), 1)
 
-			return dequant(_, _s, _b)
+			return dequant(_, _qhyp)
 		else:
 
 			return self.weight.dequant(data=_)
 
 	def from_std(self, m):
 
-		self.weight(data=m.weight, dim=self.quant_dim)
+		self.weight(data=m.weight, quant_log_shift=self.quant_log_shift, dim=self.quant_dim, quant_io=False)
 		self.to(device=m.weight.device, dtype=m.weight.dtype, non_blocking=True)
 
 	def to_std(self):
@@ -140,21 +150,21 @@ class Embedding(nn.Embedding):
 		num_embeddings, embedding_dim = self.weight.size()
 		rs = nn.Embedding(num_embeddings, embedding_dim, padding_idx=self.padding_idx, max_norm=self.max_norm, norm_type=self.norm_type, scale_grad_by_freq=self.scale_grad_by_freq, sparse=self.sparse, _weight=nn.Parameter(self.weight()))
 
-		rs.to(device=self.weight.scale.device, dtype=self.weight.scale.dtype, non_blocking=True)
+		rs.to(device=self.weight.qhyp.device, dtype=self.weight.qhyp.dtype, non_blocking=True)
 
 		return rs
 
 class LayerNorm(LayerNormBase):
 
-	def __init__(self, normalized_shape, eps=ieps_ln_default, elementwise_affine=True, bias=True, device=None, dtype=None, quant_weight=False, quant_bias=False, quant_io=False, **kwargs):
+	def __init__(self, normalized_shape, eps=ieps_ln_default, elementwise_affine=True, bias=True, device=None, dtype=None, quant_log_shift=0.0, quant_weight=False, quant_bias=False, quant_io=False, **kwargs):
 
 		super(LayerNorm, self).__init__(normalized_shape, eps=eps, elementwise_affine=elementwise_affine, bias=bias, device=device, dtype=dtype)
 
-		self.quant_weight, self.quant_bias, self.quant_io = quant_weight, quant_bias, quant_io
+		self.quant_log_shift, self.quant_weight, self.quant_bias, self.quant_io = quant_log_shift, quant_weight, quant_bias, quant_io
 		if quant_weight and (self.weight is not None):
-			self.weight = QPara(data=self.weight, dim=None, quant_io=quant_io)
+			self.weight = QPara(data=self.weight, quant_log_shift=quant_log_shift, dim=None, quant_io=quant_io)
 		if quant_bias and (self.bias is not None):
-			self.bias = QPara(data=self.bias, dim=None, quant_io=quant_io)
+			self.bias = QPara(data=self.bias, quant_log_shift=quant_log_shift, dim=None, quant_io=quant_io)
 
 	def forward(self, x, **kwargs):
 
@@ -168,9 +178,9 @@ class LayerNorm(LayerNormBase):
 		else:
 			if self.quant_weight:
 				if self.weight is None:
-					self.weight = QPara(data=m.weight, dim=None, quant_io=self.quant_io)
+					self.weight = QPara(data=m.weight, quant_log_shift=self.quant_log_shift, dim=None, quant_io=self.quant_io)
 				else:
-					self.weight(data=m.weight, dim=None)
+					self.weight(data=m.weight, quant_log_shift=self.quant_log_shift, dim=None, quant_io=False)
 			else:
 				self.weight = m.weight
 		if m.bias is None:
@@ -179,9 +189,9 @@ class LayerNorm(LayerNormBase):
 		else:
 			if self.quant_bias:
 				if self.bias is None:
-					self.bias = QPara(data=m.bias, dim=None, quant_io=self.quant_io)
+					self.bias = QPara(data=m.bias, quant_log_shift=self.quant_log_shift, dim=None, quant_io=self.quant_io)
 				else:
-					self.bias(data=m.bias, dim=None)
+					self.bias(data=m.bias, quant_log_shift=self.quant_log_shift, dim=None, quant_io=False)
 			else:
 				self.bias = m.bias
 		if m.weight is not None:
@@ -189,7 +199,7 @@ class LayerNorm(LayerNormBase):
 
 	def to_std(self):
 
-		rs = LayerNormBase(self.weight.size(), eps=self.eps, elementwise_affine=self.weight is not None, bias=self.bias is not None, device=self.weight.scale.device, dtype=self.weight.scale.dtype)
+		rs = LayerNormBase(self.weight.size(), eps=self.eps, elementwise_affine=self.weight is not None, bias=self.bias is not None, device=self.weight.qhyp.device, dtype=self.weight.qhyp.dtype)
 		_copy_weight = False
 		if self.weight is not None:
 			if self.quant_weight:
@@ -209,19 +219,19 @@ class LayerNorm(LayerNormBase):
 				if _copy_bias:
 					rs.bias.copy_(self.bias())
 		if self.weight is not None:
-			rs.to(device=self.weight.scale.device, dtype=self.weight.scale.dtype, non_blocking=True)
+			rs.to(device=self.weight.qhyp.device, dtype=self.weight.qhyp.dtype, non_blocking=True)
 
 		return rs
 
 class RMSNorm(RMSNormBase):
 
-	def __init__(self, normalized_shape, eps=ieps_ln_default, elementwise_affine=True, device=None, dtype=None, quant_weight=False, quant_io=False, **kwargs):
+	def __init__(self, normalized_shape, eps=ieps_ln_default, elementwise_affine=True, device=None, dtype=None, quant_log_shift=0.0, quant_weight=False, quant_io=False, **kwargs):
 
 		super(RMSNorm, self).__init__(normalized_shape, eps=eps, elementwise_affine=elementwise_affine, device=device, dtype=dtype)
 
-		self.quant_weight, self.quant_io = quant_weight, quant_io
+		self.quant_log_shift, self.quant_weight, self.quant_io = quant_log_shift, quant_weight, quant_io
 		if quant_weight and (self.weight is not None):
-			self.weight = QPara(data=self.weight, dim=None, quant_io=quant_io)
+			self.weight = QPara(data=self.weight, quant_log_shift=quant_log_shift, dim=None, quant_io=quant_io)
 
 	def forward(self, x, **kwargs):
 
@@ -235,9 +245,9 @@ class RMSNorm(RMSNormBase):
 		else:
 			if self.quant_weight:
 				if self.weight is None:
-					self.weight = QPara(data=m.weight, dim=None, quant_io=self.quant_io)
+					self.weight = QPara(data=m.weight, quant_log_shift=self.quant_log_shift, dim=None, quant_io=self.quant_io)
 				else:
-					self.weight(data=m.weight, dim=None)
+					self.weight(data=m.weight, quant_log_shift=self.quant_log_shift, dim=None, quant_io=False)
 			else:
 				self.weight = m.weight
 		if m.weight is not None:
@@ -245,7 +255,7 @@ class RMSNorm(RMSNormBase):
 
 	def to_std(self):
 
-		rs = RMSNormBase(self.weight.size(), eps=self.eps, elementwise_affine=self.weight is not None, device=self.weight.scale.device, dtype=self.weight.scale.dtype)
+		rs = RMSNormBase(self.weight.size(), eps=self.eps, elementwise_affine=self.weight is not None, device=self.weight.qhyp.device, dtype=self.weight.qhyp.dtype)
 		if self.weight is not None:
 			if self.quant_weight:
 				with torch_no_grad():
@@ -253,6 +263,6 @@ class RMSNorm(RMSNormBase):
 			else:
 				rs.weight = self.weight
 		if self.weight is not None:
-			rs.to(device=self.weight.scale.device, dtype=self.weight.scale.dtype, non_blocking=True)
+			rs.to(device=self.weight.qhyp.device, dtype=self.weight.qhyp.dtype, non_blocking=True)
 
 		return rs

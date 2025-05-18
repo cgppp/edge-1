@@ -65,7 +65,7 @@ if use_cuda_bfmp:
 elif use_cuda_fp16:
 	mymodel.to(torch.float16, non_blocking=True)
 if qcnfg.use_quant:
-	mymodel = quant(mymodel, quant_linear=qcnfg.quant_linear, quant_embedding=qcnfg.quant_embedding, quant_normer=qcnfg.quant_normer, quant_dim=qcnfg.quant_dim, quant_weight=qcnfg.quant_normer_weight, quant_bias=qcnfg.quant_bias, quant_io=qcnfg.quant_io, name_cfunc=qcnfg.name_cfunc, keep_tying=True)[0]
+	mymodel = quant(mymodel, quant_linear=qcnfg.quant_linear, quant_embedding=qcnfg.quant_embedding, quant_normer=qcnfg.quant_normer, quant_log_shift=qcnfg.quant_log_shift, quant_dim=qcnfg.quant_dim, quant_weight=qcnfg.quant_normer_weight, quant_bias=qcnfg.quant_bias, quant_io=qcnfg.quant_io, name_cfunc=qcnfg.name_cfunc, keep_tying=True)[0]
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 

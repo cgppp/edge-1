@@ -5,7 +5,7 @@ from torch.nn import Module
 from torch.nn.functional import kl_div
 
 from utils.kd.base import renorm
-from utils.torch.comp import exist_any, torch_any_dim
+from utils.torch.comp import exist_any, torch_amax, torch_any_dim
 
 from cnfg.vocab.base import pad_id
 
@@ -91,7 +91,7 @@ def q_consis_p_ens(x, gold_ind_mask, p):
 
 def max_renorm(x, dim):
 
-	_ = x.amax(dim)
+	_ = torch_amax(x, dim=dim)
 
 	return _ / _.sum(-1, keepdim=True)
 
@@ -162,7 +162,7 @@ def get_kd_loss(classifier=None, final_predict=None, enc_kd_o=None, kd_o=None, g
 	# quality consistency parallel ensemble
 	#_p = q_consis_p_ens(_p, _gold_ind_mask, 0.7)
 	# max pooling, renorm is not necessary when remove_gold is True
-	#_p = renorm(_p.amax(-2), dim=-1)
+	#_p = renorm(torch_amax(_p, dim=-2), dim=-1)
 
 	if _fix_p:
 		_p = fix_gold(_p, _gold_ind_mask, min_gold_p)
