@@ -11,7 +11,7 @@ class Linear(nn.Linear):
 
 	def __init__(self, in_features, out_features, bias=True, lora_features=None, lora_alpha=None, scaling=1.0, update_bias=True, **kwargs):
 
-		super(Linear, self).__init__(in_features, out_features, bias=bias, **kwargs)
+		super(Linear, self).__init__(in_features, out_features, bias=bias)
 		self.weight.requires_grad_(False)
 		self.update_bias = update_bias
 		if self.bias is not None:
@@ -87,7 +87,7 @@ class Embedding(nn.Embedding):
 
 	def __init__(self, num_embeddings, embedding_dim, padding_idx=None, max_norm=None, norm_type=2.0, scale_grad_by_freq=False, sparse=False, _weight=None, lora_features=None, lora_alpha=None, scaling=1.0, **kwargs):
 
-		super(Embedding, self).__init__(num_embeddings, embedding_dim, padding_idx=padding_idx, max_norm=max_norm, norm_type=norm_type, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse, _weight=_weight, **kwargs)
+		super(Embedding, self).__init__(num_embeddings, embedding_dim, padding_idx=padding_idx, max_norm=max_norm, norm_type=norm_type, scale_grad_by_freq=scale_grad_by_freq, sparse=sparse, _weight=_weight)
 		self.weight.requires_grad_(False)
 		self.lora_features, self.scaling = lora_features, (scaling if lora_alpha is None else float(lora_alpha) / float(lora_features))
 		self.lora_wa = nn.Parameter(torch.empty(num_embeddings, lora_features, dtype=self.weight.dtype, device=self.weight.device))
