@@ -5,9 +5,9 @@ set -e -o pipefail -x
 # this script is to build the h5 file for the single input case (lm), generation is taken care of by adv/predict/plm/predict_qwen.py
 
 export cachedir=cache
-export dataid=llm/w14de
-
 export llmt=qwen/v3
+export dataid=llm/w14de/$llmt
+
 export tokenizer=/home/common/plm/Qwen/Qwen3-0.6B
 export template=lm
 export srcd=$cachedir/$dataid

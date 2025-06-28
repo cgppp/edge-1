@@ -5,9 +5,9 @@ set -e -o pipefail -x
 # use `from utils.fmt.plm.llmdec.dual import batch_padder` in `tools/plm/mkiodata.py`
 
 export cachedir=cache
-export dataid=llm/w14de
-
 export llmt=qwen/v3
+export dataid=llm/w14de/$llmt
+
 export tokenizer=/home/common/plm/Qwen/Qwen3-0.6B
 export template=instruct_task
 export srcd=$cachedir/$dataid
