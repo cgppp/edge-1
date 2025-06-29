@@ -4,7 +4,7 @@ import h5py
 import torch
 from collections.abc import Iterator
 
-from utils.fmt.base import dict_is_list, list2dict
+from utils.fmt.base import FileList, dict_is_list, list2dict
 from utils.torch.comp import tensor_numpy
 
 from cnfg.ihyp import h5_fileargs, h5modelwargs, hdf5_track_order, list_key_func
@@ -13,6 +13,8 @@ try:
 	h5py.get_config().track_order = hdf5_track_order
 except Exception as e:
 	pass
+
+h5Dataset = h5py.Dataset
 
 class h5File_swmr(h5py.File):
 
@@ -35,6 +37,16 @@ else:
 
 			self.close()
 
+class h5FileList(FileList):
+
+	def __init__(self, files, *inputs, file_func=h5File, **kwargs):
+
+		super(h5FileList, self).__init__(files, *inputs, file_func=file_func, **kwargs)
+
+def h5write_data(gwrt, k, v, h5args=h5modelwargs):
+
+		gwrt.create_dataset(k, data=tensor_numpy(v if v.device.type == "cpu" else v.cpu()) if isinstance(v, torch.Tensor) else v, **h5args)
+
 def h5write_dict(gwrt, dtw, h5args=h5modelwargs):
 
 	for k, v in dtw.items():
@@ -46,8 +58,7 @@ def h5write_dict(gwrt, dtw, h5args=h5modelwargs):
 			gwrt.create_group(k)
 			h5write_list(gwrt[k], _v, h5args=h5args)
 		else:
-			_ = _v if _v.device.type == "cpu" else _v.cpu()
-			gwrt.create_dataset(k, data=tensor_numpy(_), **h5args)
+			h5write_data(gwrt, k, _v, h5args=h5args)
 
 def h5write_list(gwrt, ltw, h5args=h5modelwargs):
 
@@ -79,7 +90,7 @@ def h5load_group(grd):
 
 	rsd = {}
 	for k, v in grd.items():
-		if isinstance(v, h5py.Dataset):
+		if isinstance(v, h5Dataset):
 			rsd[k] = torch.from_numpy(v[()])
 		else:
 			rsd[k] = h5load_group(v)
@@ -95,4 +106,4 @@ def h5load(fname, restore_list=True):
 
 	return rsd
 
-h5ensure_tensor = lambda x: torch.from_numpy(x[()]) if isinstance(x, h5py.Dataset) else x
+h5ensure_tensor = lambda x: torch.from_numpy(x[()]) if isinstance(x, h5Dataset) else x

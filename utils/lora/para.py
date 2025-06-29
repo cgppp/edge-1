@@ -1,6 +1,9 @@
 #encoding: utf-8
 
+import torch
+
 from utils.func import always_true as name_cfunc_full
+from utils.h5serial import h5Dataset
 from utils.torch.comp import torch_no_grad
 
 def lora_filter(pd, lwset=set(["lora_wa", "lora_wb"])):
@@ -18,14 +21,21 @@ def merge_lora(pd, inplace=False, transpose=True, name_cfunc=name_cfunc_full):
 				_lan, _lbn = "%slora_wa" % _, "%slora_wb" % _
 				if (_lan in pd) and (_lbn in pd):
 					_wa, _wb = pd[_lan], pd[_lbn]
+					if isinstance(_wa, h5Dataset):
+						_wa = torch.from_numpy(_wa[()])
+					if isinstance(_wb, h5Dataset):
+						_wb = torch.from_numpy(_wb[()])
 					_ = _wa.mm(_wb)
+					_p_size = tuple(p.shape)
 					if transpose:
 						_t = _.t()
-						if _t.size() == p.size():
+						if tuple(_t.shape) == _p_size:
 							_ = _t
 						_t = None
-					if _.size() == p.size():
-						rs[n] = p.add_(_) if inplace else p.add(_)
+					if tuple(_.shape) == _p_size:
+						_p = torch.from_numpy(p[()]) if isinstance(p, h5Dataset) else p
+						rs[n] = _p.add_(_) if inplace else _p.add(_)
+						_p = None
 						_exs.add(_lan)
 						_exs.add(_lbn)
 					else:

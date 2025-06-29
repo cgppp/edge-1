@@ -503,9 +503,9 @@ def pad_batch(i_d, mlen_i, pad_id=pad_id):
 
 class FileList(list):
 
-	def __init__(self, files, *inputs, **kwargs):
+	def __init__(self, files, *inputs, file_func=sys_open, **kwargs):
 
-		super(FileList, self).__init__(sys_open(fname, *inputs, **kwargs) for fname in files)
+		super(FileList, self).__init__(file_func(fname, *inputs, **kwargs) for fname in files)
 
 	def __enter__(self):
 

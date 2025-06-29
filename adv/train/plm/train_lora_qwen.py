@@ -269,7 +269,7 @@ if cnfg.tgt_emb is not None:
 	load_emb(cnfg.tgt_emb, mymodel.dec.wemb.weight, vocab_size, cnfg.scale_down_emb, cnfg.freeze_tgtemb)
 
 if lcnfg.save_base:
-	save_model(mymodel, wkdir + "base.h5", False, print_func=logger.info, ps_func=None)
+	save_model(mymodel, wkdir + "base.h5", False, print_func=logger.info, ps_func=None, h5args=h5zipargs)
 
 if lcnfg.lora_features is None:
 	save_model_ps_func = None
