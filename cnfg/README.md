@@ -203,6 +203,12 @@ clip_beam_with_lp = True
 # optimize speed even if it sacrifices reproduction
 performance_over_reproduction = True
 
+# optimize speed even if it may lead to overflow
+performance_over_overflow_risk = None
+
+# True if the training data has a same size, False for current batch loaders
+use_constant_tensor_size = False
+
 # use torch.inference_mode if supported
 use_inference_mode = True
 

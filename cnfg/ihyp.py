@@ -11,6 +11,7 @@ from cnfg.hyp import *
 # the use of deterministic algorithms
 use_deterministic = not performance_over_reproduction
 allow_tf32 = allow_fp16_reduction = performance_over_reproduction
+use_full_fp16_accumulation = None if performance_over_overflow_risk is None else (allow_fp16_reduction and performance_over_overflow_risk)
 use_bf4fp16 = True
 
 # biases
