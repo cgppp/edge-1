@@ -74,11 +74,11 @@ def replace_fp_norm(modin, print_func=print, lpnorms=set([LayerNorm, RMSNorm]), 
 		if _mtype == fpLayerNorm:
 			_device = get_module_devtyp(_module)[0]
 			_tmpm = LayerNorm(_module.normalized_shape, eps=_module.eps, elementwise_affine=_module.elementwise_affine, bias=_module.bias is not None, device=_device, dtype=torch.float32)
-			add_module(modin, _name, copy_module_parabuf(_module, _tmpm))
+			add_module(modin, _name, copy_module_parabuf(_module, _tmpm, sync_requires_grad=True))
 		elif _mtype == fpRMSNorm:
 			_device = get_module_devtyp(_module)[0]
 			_tmpm = RMSNorm(_module.normalized_shape, eps=_module.eps, elementwise_affine=_module.elementwise_affine, device=_device, dtype=torch.float32)
-			add_module(modin, _name, copy_module_parabuf(_module, _tmpm))
+			add_module(modin, _name, copy_module_parabuf(_module, _tmpm, sync_requires_grad=True))
 		elif isinstance(_module, (fpLayerNorm, fpRMSNorm,)) and (_mtype not in lpnorms):
 			if try_wrapper and hasattr(_module, "forward"):
 				_module.to(torch.float32, non_blocking=True)

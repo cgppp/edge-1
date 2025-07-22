@@ -34,4 +34,4 @@ class NMT(NMTBase):
 
 	def load_conn_from_file(self, fname):
 
-		load_tensor_attrd(self, h5load(fname, restore_list=False))
+		load_tensor_attrd(self, h5load(fname, restore_list=False), sync_requires_grad=False)

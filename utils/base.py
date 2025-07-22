@@ -273,7 +273,7 @@ def get_buffer_tying(modin):
 
 	return [nl for nl in _.values() if len(nl) > 1]
 
-def load_tensor_attr(m, strin, t, print_func=print, **kwargs):
+def load_tensor_attr(m, strin, t, sync_requires_grad=True, print_func=print, **kwargs):
 
 	_name_list = strin.split(".")
 	if len(_name_list) == 1:
@@ -282,6 +282,8 @@ def load_tensor_attr(m, strin, t, print_func=print, **kwargs):
 			if isinstance(_t, Tensor):
 				with torch_no_grad():
 					_t.copy_(t)
+					if sync_requires_grad and _t.is_floating_point() and t.is_floating_point():
+						_t.requires_grad_(t.requires_grad)
 			elif print_func is not None:
 				print_func(strin)
 		elif print_func is not None:
@@ -293,6 +295,8 @@ def load_tensor_attr(m, strin, t, print_func=print, **kwargs):
 			if isinstance(_t, Tensor):
 				with torch_no_grad():
 					_t.copy_(t)
+					if sync_requires_grad and _t.is_floating_point() and t.is_floating_point():
+						_t.requires_grad_(t.requires_grad)
 			elif print_func is not None:
 				print_func(strin)
 		elif print_func is not None:
@@ -300,27 +304,27 @@ def load_tensor_attr(m, strin, t, print_func=print, **kwargs):
 
 	return m
 
-def load_tensor_attrd(m, din, **kwargs):
+def load_tensor_attrd(m, din, sync_requires_grad=True, **kwargs):
 
 	for _k, _v in din.items():
-		load_tensor_attr(m, _k, _v, **kwargs)
+		load_tensor_attr(m, _k, _v, sync_requires_grad=sync_requires_grad, **kwargs)
 
 	return m
 
-def copy_module_parameter(src, tgt, **kwargs):
+def copy_module_parameter(src, tgt, sync_requires_grad=True, **kwargs):
 
-	return load_tensor_attrd(tgt, src.named_parameters(), **kwargs)
+	return load_tensor_attrd(tgt, src.named_parameters(), sync_requires_grad=sync_requires_grad, **kwargs)
 
-def copy_module_buffer(src, tgt, **kwargs):
+def copy_module_buffer(src, tgt, sync_requires_grad=True, **kwargs):
 
-	return load_tensor_attrd(tgt, src.named_buffers(), **kwargs)
+	return load_tensor_attrd(tgt, src.named_buffers(), sync_requires_grad=sync_requires_grad, **kwargs)
 
-def copy_module_parabuf(src, tgt, **kwargs):
+def copy_module_parabuf(src, tgt, sync_requires_grad=True, **kwargs):
 
 	_ = dict(src.named_parameters())
 	_.update(src.named_buffers())
 
-	return load_tensor_attrd(tgt, _, **kwargs)
+	return load_tensor_attrd(tgt, _, sync_requires_grad=sync_requires_grad, **kwargs)
 
 def is_buffer_persistent(m, strin, persistent=True, print_func=print, **kwargs):
 
