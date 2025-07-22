@@ -7,7 +7,7 @@ from utils.train.base import unfreeze_module
 
 def unfreeze_linear_bias(modin, name_cfunc=name_cfunc_full):
 
-	for _n, _m in modin.named_modules()::
+	for _n, _m in modin.named_modules():
 		if name_cfunc(_n) and isinstance(_m, Linear) and hasattr(_m, "bias") and hasattr(_m.bias, "requires_grad_"):
 			_m.bias.requires_grad_(True)
 
@@ -15,7 +15,7 @@ def unfreeze_linear_bias(modin, name_cfunc=name_cfunc_full):
 
 def unfreeze_normer(modin, name_cfunc=name_cfunc_full):
 
-	for _n, _m in modin.named_modules()::
+	for _n, _m in modin.named_modules():
 		if name_cfunc(_n) and isinstance(_m, normer_cls):
 			unfreeze_module(_m)
 
