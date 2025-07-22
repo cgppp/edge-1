@@ -19,7 +19,6 @@ from utils.h5serial import h5File
 from utils.init.base import init_model_params
 from utils.io import load_model_cpu, save_model, save_states
 from utils.lora.base import std2lora
-from utils.lora.para import lora_filter
 from utils.norm.mp.f import convert as make_mp_model
 from utils.plm.inference import get_h5g_common_prefix, prepare_states_bsize
 from utils.state.holder import Holder
@@ -29,6 +28,7 @@ from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
 from utils.tqdm import tqdm
 from utils.train.base import freeze_module, getlr, optm_step, optm_step_zero_grad_set_none, reset_Adam
 from utils.train.dss import dynamic_sample
+from utils.train.ft import rgrad_filter, unfreeze_linear_bias, unfreeze_normer
 from utils.train.llm import PMaskDataConverter
 
 import cnfg.lora as lcnfg
@@ -276,9 +276,13 @@ if lcnfg.lora_features is None:
 else:
 	freeze_module(mymodel)
 	mymodel = std2lora(mymodel, lora_features=lcnfg.lora_features, lora_alpha=lcnfg.lora_alpha, scaling=lcnfg.scaling, update_bias=lcnfg.update_bias, name_cfunc=lcnfg.name_cfunc, keep_lora_weight_tying=lcnfg.keep_lora_weight_tying)[0]
+	if lcnfg.fine_tune_linear_bias:
+		unfreeze_linear_bias(mymodel, name_cfunc=lcnfg.name_cfunc_lb)
+	if lcnfg.fine_tune_normer:
+		unfreeze_normer(mymodel, name_cfunc=lcnfg.name_cfunc_normer)
 	if lcnfg.lora_fine_tune_m is not None:
 		mymodel = load_model_cpu(lcnfg.lora_fine_tune_m, mymodel)
-	save_model_ps_func = lora_filter
+	save_model_ps_func = rgrad_filter
 
 if use_cuda_bfmp:
 	make_mp_model(mymodel)

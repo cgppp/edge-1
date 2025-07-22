@@ -10,5 +10,10 @@ update_bias = False
 name_cfunc = lambda mname: True
 keep_lora_weight_tying = True
 
+fine_tune_linear_bias = False
+fine_tune_normer = False
+name_cfunc_lb = lambda mname: True
+name_cfunc_normer = lambda mname: True
+
 prefix_ids = None
 find_common_prefix = True
