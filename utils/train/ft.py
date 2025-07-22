@@ -23,4 +23,4 @@ def unfreeze_normer(modin, name_cfunc=name_cfunc_full):
 
 def rgrad_filter(pd, **kwargs):
 
-	return {k: v for k, v in pd.items() if hasattr(v, "requires_grad") and v.requires_grad}
+	return {k: v for k, v in pd.items() if hasattr(v, "requires_grad") and v.requires_grad} if isinstance(pd, dict) else [_ for _ in pd if hasattr(_, "requires_grad") and _.requires_grad]

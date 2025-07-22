@@ -18,6 +18,7 @@ from utils.norm.mp.f import convert as make_mp_model
 from utils.plm.inference import get_h5g_common_prefix, prepare_states_bsize
 from utils.quant.s.base import quant
 from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
+from utils.torch.ext import squeeze_sum
 from utils.tqdm import tqdm
 from utils.train.llm import PMaskDataConverter
 
@@ -101,7 +102,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 		oi, pred_mask, ot = data_converter(seq_batch, seq_o, seq_o_sub_len=prefix_len)
 		with torch_autocast(enabled=use_amp):
 			output = mymodel(oi, word_prediction=True, pred_mask=pred_mask, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
-			loss = lossf(output, ot).view(ot.size(0), -1).sum(-1)
+			loss = squeeze_sum(lossf(output, ot).view(ot.size(0), -1), -1)
 			if pred_mask is not None:
 				loss = loss.new_zeros(oi.size(), dtype=loss.dtype, device=loss.device).masked_scatter_(pred_mask, loss).sum(-1)
 		if norm_token:

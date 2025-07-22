@@ -17,6 +17,7 @@ from utils.h5serial import h5File
 from utils.io import load_model_cpu
 from utils.norm.mp.f import convert as make_mp_model
 from utils.torch.comp import torch_autocast, torch_inference_mode
+from utils.torch.ext import squeeze_sum
 from utils.tqdm import tqdm
 
 import cnfg.base as cnfg
@@ -87,7 +88,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 			#.take(ot.view(-1) + torch.arange(0, vsize * ot.numel(), vsize, dtype=ot.dtype, device=ot.device)).view(bsize, seql)
 			loss = output.gather(dim=-1, index=ot)
 			_mask = ot.eq(pad_id)
-			loss = loss.masked_fill_(_mask, 0.0).sum(-1)
+			loss = squeeze_sum(loss.masked_fill_(_mask, 0.0), -1)
 		if norm_token:
 			lenv = (ot.size(-1) - _mask.to(torch.int32, non_blocking=True).sum(-1)).to(loss, non_blocking=True)
 			loss = loss / lenv

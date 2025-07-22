@@ -87,8 +87,10 @@ torch_aminmax = torch.aminmax if hasattr(torch, "aminmax") else torch_aminmax_cu
 
 def tensor_numpy(x, tensor_numpy_map=tensor_numpy_map, **kwargs):
 
-	_type = x.dtype
-	_x = x.to(tensor_numpy_map[_type], non_blocking=True) if _type in tensor_numpy_map else x
+	_x = x.detach()
+	_type = _x.dtype
+	if _type in tensor_numpy_map:
+		_x = _x.to(tensor_numpy_map[_type], non_blocking=True)
 
 	return _x.numpy(**kwargs)
 

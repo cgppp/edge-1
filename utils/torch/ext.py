@@ -49,6 +49,10 @@ def multinomial(x, num_samples, replacement=False, generator=None, dim=-1, **kwa
 
 	return out
 
+def squeeze_sum(x, dim=-1, **kwargs):
+
+	return x.squeeze(dim) if x.size(dim) == 1 else x.sum(dim)
+
 def exp_grow(start, end, k):
 
 	rs = torch.full((k,), (end / start) ** (1.0 / (k - 1)))

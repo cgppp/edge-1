@@ -54,8 +54,8 @@ def load_model_cpu_auto(modf, base_model, **kwargs):
 
 		return h5_reader_wrapper(modf, load_model_cpu_auto_ohf, base_model, **kwargs)
 
-mp_func_p = lambda m: [_t.data for _t in m.parameters()]
-mp_func_np = lambda m: {_k: _t.data for _k, _t in m.named_parameters()}
+mp_func_p = lambda m: list(m.parameters())
+mp_func_np = lambda m: dict(m.named_parameters())
 
 load_model_cpu = load_model_cpu_auto#load_model_cpu_np if hdf5_load_parameter_name else load_model_cpu_p
 mp_func = mp_func_np if hdf5_save_parameter_name else mp_func_p

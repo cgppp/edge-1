@@ -19,6 +19,7 @@ from utils.h5serial import h5File
 from utils.io import load_model_cpu
 from utils.norm.mp.f import convert as make_mp_model
 from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
+from utils.torch.ext import squeeze_sum
 from utils.tqdm import tqdm
 
 import cnfg.base as cnfg
@@ -93,7 +94,7 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 		ot = seq_o.narrow(1, 1, lo).contiguous()
 		with torch_autocast(enabled=use_amp):
 			output = mymodel(seq_batch, seq_o.narrow(1, 0, lo))
-			loss = lossf(output, ot).view(ot.size(0), -1).sum(-1)
+			loss = squeeze_sum(lossf(output, ot).view(ot.size(0), -1), -1)
 		if norm_token:
 			lenv = ot.ne(pad_id).to(torch.int32, non_blocking=True).sum(-1).to(loss, non_blocking=True)
 			loss = loss / lenv
