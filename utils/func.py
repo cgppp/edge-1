@@ -12,6 +12,31 @@ def always_false(*args, **kwargs):
 
 	return False
 
+def getattrks(obj, keys, default=None):
+
+	_o = obj
+	for _ in keys.split("."):
+		if hasattr(_o, _):
+			_o = getattr(_o, _, default)
+		else:
+			_o = default
+			break
+
+	return _o
+
+def hasattrks(obj, keys):
+
+	rs = True
+	_o = obj
+	for _ in keys.split("."):
+		if hasattr(_o, _):
+			_o = getattr(_o, _, None)
+		else:
+			rs = False
+			break
+
+	return rs
+
 def try_set(obj, key, value, skip_none=False, check_existence=True):
 
 	if skip_none and (value is None):

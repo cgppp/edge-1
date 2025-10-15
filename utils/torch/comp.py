@@ -2,7 +2,7 @@
 
 import torch
 
-from utils.func import identity_func, try_set
+from utils.func import getattrks, hasattrks, identity_func, try_set
 
 from cnfg.ihyp import allow_fp16_reduction, allow_tf32, enable_torch_check, torch_amp_autocast_device_type, use_bf4fp16, use_constant_tensor_size, use_deterministic, use_full_fp16_accumulation, use_inference_mode, use_torch_compile
 
@@ -10,16 +10,29 @@ secure_type_map = {torch.float16: torch.float64, torch.float32: torch.float64, t
 tensor_numpy_map = {}
 low_precision_floats = set([torch.float16])
 
-try:
-	if hasattr(torch, "set_float32_matmul_precision"):
-		torch.set_float32_matmul_precision("medium" if allow_fp16_reduction else ("high" if allow_tf32 else "highest"))
-	try_set(torch, "backends.cuda.matmul.allow_tf32", allow_tf32, skip_none=True)
-	try_set(torch, "backends.cudnn.allow_tf32", allow_tf32, skip_none=True)
-	try_set(torch, "backends.cuda.matmul.allow_fp16_reduced_precision_reduction", allow_fp16_reduction, skip_none=True)
-	try_set(torch, "backends.cuda.matmul.allow_bf16_reduced_precision_reduction", allow_fp16_reduction, skip_none=True)
-	try_set(torch, "backends.cuda.matmul.allow_fp16_accumulation", use_full_fp16_accumulation, skip_none=True)
-except Exception as e:
-	print(e)
+torch_has_cuda = getattrks(torch, "version.cuda", None)
+torch_has_hip = getattrks(torch, "version.hip", None)
+torch_has_xpu = getattrks(torch, "version.xpu", None)
+
+if torch_has_cuda:
+	try:
+		if hasattrks(torch, "backends.fp32_precision"):
+			try_set(torch, "backends.fp32_precision", "ieee", skip_none=True)
+			_fp32_precision = "tf32" if allow_tf32 else "ieee"
+			try_set(torch, "backends.cuda.matmul.fp32_precision", _fp32_precision, skip_none=True)
+			try_set(torch, "backends.cudnn.fp32_precision", _fp32_precision, skip_none=True)
+			try_set(torch, "backends.cudnn.conv.fp32_precision", _fp32_precision, skip_none=True)
+			try_set(torch, "backends.cudnn.rnn.fp32_precision", _fp32_precision, skip_none=True)
+		else:
+			if hasattr(torch, "set_float32_matmul_precision"):
+				torch.set_float32_matmul_precision("medium" if allow_fp16_reduction else ("high" if allow_tf32 else "highest"))
+			try_set(torch, "backends.cuda.matmul.allow_tf32", allow_tf32, skip_none=True)
+			try_set(torch, "backends.cudnn.allow_tf32", allow_tf32, skip_none=True)
+		try_set(torch, "backends.cuda.matmul.allow_fp16_reduced_precision_reduction", allow_fp16_reduction, skip_none=True)
+		try_set(torch, "backends.cuda.matmul.allow_bf16_reduced_precision_reduction", allow_fp16_reduction, skip_none=True)
+		try_set(torch, "backends.cuda.matmul.allow_fp16_accumulation", use_full_fp16_accumulation, skip_none=True)
+	except Exception as e:
+		print(e)
 
 if hasattr(torch.autograd, "set_multithreading_enabled"):
 	try:
