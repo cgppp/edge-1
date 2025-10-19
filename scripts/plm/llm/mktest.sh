@@ -28,7 +28,7 @@ export bpef=out.bpe
 
 mkdir -p $rsd
 
-export stif=$wkd/$srctf.ids$faext
+export stif=$tgtd/$srctf.ids$faext
 if $do_map; then
 	python tools/plm/map/$llmt.py $srcd/$srctf $tokenizer $stif $template
 fi
