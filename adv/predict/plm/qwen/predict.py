@@ -109,5 +109,5 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 			output = mymodel.decode(seq_batch, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
 		output = output.tolist()
 		for tran in output:
-			frs.write(ext_txt(tokenizer.decode(ext_ids(tran), skip_special_tokens=False, clean_up_tokenization_spaces=False).strip()).strip().encode("utf-8"))
-			frs.write(ens)
+			f.write(ext_txt(tokenizer.decode(ext_ids(tran), skip_special_tokens=False, clean_up_tokenization_spaces=False).strip()).strip().encode("utf-8"))
+			f.write(ens)
