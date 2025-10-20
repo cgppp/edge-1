@@ -104,7 +104,7 @@ class Decoder(DecoderBase):
 
 	def decode(self, inpute, beam_size=1, max_len=512, length_penalty=0.0, fill_pad=False, ilen=None, post_ilen_rs=True, states=None, **kwargs):
 
-		return self.beam_decode(inpute, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, fill_pad=fill_pad, ilen=None if all_is_same(ilen) else ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, max_len=max_len, fill_pad=fill_pad, ilen=ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs)
+		return self.beam_decode(inpute, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, fill_pad=fill_pad, ilen=None if (ilen is None) or all_is_same(ilen) else ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, max_len=max_len, fill_pad=fill_pad, ilen=ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs)
 
 	def get_sos_emb(self, inpute, bsize=None):
 
