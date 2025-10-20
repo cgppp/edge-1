@@ -3,11 +3,19 @@
 import torch
 from numbers import Number
 
-from utils.torch.comp import torch_amax
+from utils.torch.comp import torch_all_wodim, torch_amax
 
 from cnfg.ihyp import ieps_ln_default, ieps_upper_bound_default
 
 upper_one = 1.0 - ieps_upper_bound_default
+
+def all_is_same_flat(t):
+
+	_ = t.size(0)
+
+	return (_ < 2) or torch_all_wodim(t.narrow(0, 1, _ - 1).eq(t.select(0, 0))).item()
+
+all_is_same = lambda t: all_is_same_flat(t.view(-1) if t.dim() > 1 else t)
 
 def bmv(inputm, inputv):
 

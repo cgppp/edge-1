@@ -101,7 +101,7 @@ with sys_open(sys.argv[3], "rb") as fsrc, sys_open(sys.argv[1], "wb") as frs, to
 				seq_batch = seq_batch.to(cuda_device, non_blocking=True)
 			seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 			with torch_autocast(enabled=use_amp):
-				output = mymodel.decode(seq_batch, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, states=prefix_states)
+				output = mymodel.decode(seq_batch, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, post_ilen_rs=False, states=prefix_states)
 			output = ext_ids(output.squeeze().tolist())
 			frs.write(ext_txt(tokenizer.decode(output, skip_special_tokens=False, clean_up_tokenization_spaces=False).strip()).strip().encode("utf-8"))
 		frs.write(ens)

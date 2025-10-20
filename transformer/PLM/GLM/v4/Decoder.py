@@ -111,11 +111,14 @@ class Decoder(DecoderBase):
 	def greedy_decode(self, inpute, max_len=512, fill_pad=False, sample=False, top_k=1, top_p=0.0, temp=1.0, repetition_penalty=1.0, ilen=None, post_ilen_rs=True, states=None, **kwargs):
 
 		bsize, nquery = inpute.size()
+		_states = {} if states is None else states
+		_ = _states.get(0, (None, None,))[0]
+		_inpute_slen = _slen = 0 if _ is None else _.size(-1)
 		if ilen is None:
 			_nquery, _inpute = nquery, inpute
 		else:
 			_nquery = ilen.min().item()
-			_inpute = inpute.narrow(-1, 0, _nquery)
+			_inpute = inpute.narrow(-1, 0, _nquery - _inpute_slen)
 		out, _states = self.build_states(_inpute, states=states, return_last_hidden=True)
 		if self.pemb is not None:
 			sqrt_isize = sqrt(out.size(-1))
@@ -128,7 +131,7 @@ class Decoder(DecoderBase):
 			trans = wds if _use_repan else [wds]
 		else:
 			_ = ilen.gt(_nquery).unsqueeze(-1)
-			wds[_] = inpute.narrow(-1, _nquery, 1)[_]
+			wds[_] = inpute.narrow(-1, _nquery - _inpute_slen, 1)[_]
 			done_trans &= ~_
 			trans = wds.masked_fill(_, sos_id) if _use_repan else [wds]
 
@@ -156,7 +159,7 @@ class Decoder(DecoderBase):
 			_ni = i + 1
 			if _ni < nquery:
 				_ = ilen.gt(_ni).unsqueeze(-1)
-				wds[_] = inpute.narrow(-1, _ni, 1)[_]
+				wds[_] = inpute.narrow(-1, _ni - _inpute_slen, 1)[_]
 				_done_trans &= ~_
 				if _use_repan:
 					_ = wds.masked_fill(_, sos_id)
@@ -178,24 +181,27 @@ class Decoder(DecoderBase):
 
 		if not _use_repan:
 			trans = torch.cat(trans, 1)
-		if post_ilen_rs and (ilen is not None):
-			trans = [_t[_:] for _t, _ in zip(trans.tolist(), (ilen - _nquery).tolist())]
+		if post_ilen_rs:
+			trans = trans.tolist() if ilen is None else [_t[_:] for _t, _ in zip(trans.tolist(), (ilen - _nquery).tolist())]
 
 		return trans
 
 	def beam_decode(self, inpute, beam_size=8, max_len=512, length_penalty=0.0, return_all=False, clip_beam=clip_beam_with_lp, fill_pad=False, repetition_penalty=1.0, ilen=None, post_ilen_rs=True, states=None, **kwargs):
 
 		bsize, nquery = inpute.size()
+		_states = {} if states is None else states
 		beam_size2 = beam_size * beam_size
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
+		_ = _states.get(0, (None, None,))[0]
+		_inpute_slen = _slen = 0 if _ is None else _.size(-1)
 		if ilen is None:
 			_nquery, _inpute, _lpv_rs = nquery, inpute, None
 		else:
 			_nquery = ilen.min().item()
-			_inpute, _csteps = inpute.narrow(-1, 0, _nquery), (ilen - _nquery)
+			_inpute, _csteps = inpute.narrow(-1, 0, _nquery - _inpute_slen), (ilen - _nquery)
 			_lpv_rs = _csteps
-		out, _states = self.build_states(_inpute, states=states, return_last_hidden=True)
+		out, _states = self.build_states(_inpute, states=_states, return_last_hidden=True)
 		if self.pemb is not None:
 			sqrt_isize = sqrt(out.size(-1))
 
@@ -217,7 +223,7 @@ class Decoder(DecoderBase):
 			scores.masked_fill_(_, 0.0)
 			done_trans &= ~(_.squeeze(-1))
 			_ = _.expand(-1, -1, beam_size)
-			wds[_] = inpute.narrow(-1, _nquery, 1).unsqueeze(-1).expand(-1, -1, beam_size)[_]
+			wds[_] = inpute.narrow(-1, _nquery - _inpute_slen, 1).unsqueeze(-1).expand(-1, -1, beam_size)[_]
 			if _use_repan:
 				trans, wds = wds.masked_fill(_, sos_id).view(real_bsize, 1), wds.view(real_bsize, 1)
 			else:
@@ -279,12 +285,12 @@ class Decoder(DecoderBase):
 					_ = ilen.gt(_nstep).unsqueeze(-1)
 					sum_scores.masked_fill_(_, 0.0)
 					_rbm = _.repeat(1, beam_size).view(real_bsize, 1)
-					wds.masked_scatter_(_rbm, inpute.narrow(-1, _nstep, 1)[_].unsqueeze(-1).expand(-1, beam_size))
+					wds.masked_scatter_(_rbm, inpute.narrow(-1, _nstep - _inpute_slen, 1)[_].unsqueeze(-1).expand(-1, beam_size))
 					_done_trans &= (~_).repeat(1, beam_size).view(real_bsize)
 				else:
 					_rbm = None
 				_ = ilen.eq(_nstep)
-				if torch_any_wodim(_):
+				if torch_any_wodim(_).item():
 					wds.view(bsize, beam_size)[_] = _wds[_].select(1, 0)
 					sum_scores[_] = _scores[_].select(1, 0)
 				if _use_repan:
@@ -319,13 +325,13 @@ class Decoder(DecoderBase):
 		trans = trans.view(bsize, beam_size, -1)
 
 		if return_all:
-			if post_ilen_rs and (ilen is not None):
-				trans = [[_tu[_:] for _tu in _t] for _t, _ in zip(trans.tolist(), _csteps.tolist())]
+			if post_ilen_rs:
+				trans = trans.tolist() if ilen is None else [[_tu[_:] for _tu in _t] for _t, _ in zip(trans.tolist(), _csteps.tolist())]
 
 			return trans, scores
 		else:
 			trans = trans.select(1, 0)
-			if post_ilen_rs and (ilen is not None):
-				trans = [_t[_:] for _t, _ in zip(trans.tolist(), _csteps.tolist())]
+			if post_ilen_rs:
+				trans = trans.tolist() if ilen is None else [_t[_:] for _t, _ in zip(trans.tolist(), _csteps.tolist())]
 
 			return trans

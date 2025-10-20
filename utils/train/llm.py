@@ -3,7 +3,7 @@
 import torch
 from torch import nn
 
-from utils.fmt.base import all_eq
+from utils.torch.comp import torch_all_wodim
 
 from cnfg.ihyp import cache_len_default
 
@@ -29,7 +29,7 @@ class PMaskDataConverter(nn.Module):
 		oi, ot = seq_batch.narrow(1, 0, lo), seq_batch.narrow(1, 1, lo)
 		_is_lm = seq_o.dim() == 1
 		# for LM without padding
-		if _is_lm and all_eq(seq_o.tolist(), _seql):
+		if _is_lm and torch_all_wodim(seq_o.eq(_seql)).item():
 			pred_mask = None
 		else:
 			_ind = self.ind.narrow(0, 0, lo) if lo <= self.xseql else torch.arange(lo, dtype=self.ind.dtype, device=self.ind.device)

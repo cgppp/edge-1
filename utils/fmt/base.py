@@ -25,6 +25,8 @@ all_gt = lambda lin, value: all(lu > value for lu in lin)
 
 iter_all_eq = lambda a, b: (len(a) == len(b)) and all(_au == _bu for _au, _bu in zip(a, b))
 
+all_is_same = lambda lin: (len(lin) < 2) or all_eq(lin[1:], lin[0])
+
 class NullFile:
 
 	def __init__(self, name, mode="r", encoding=None, newlines=None, line_buffering=False, write_through=False, **kwargs):
