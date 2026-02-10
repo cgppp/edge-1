@@ -65,7 +65,8 @@ class MHPLSTMCore(nn.Module):
 			igh.masked_fill_(head_mask, 0.0)
 
 		cell = LGateFunc(fgate, igh, self.init_cx, True) if states is None else igh.addcmul_(fgate, self.init_cx if _init_state else states[-1])
-		out = self.trans_og(torch.cat((heads_input, cell), dim=-1).view(bsize, seql, -1, num_core_head, adim + cell.size(-1))).sigmoid() * cell
+		cdim = cell.size(-1)
+		out = self.trans_og(torch.cat((heads_input, cell), dim=-1).view(bsize, seql, -1, num_core_head, adim + cdim)).view(bsize, seql, nheads, cdim).sigmoid() * cell
 
 		return out if states is None else (out, (csum_state_return, cell,),)
 
