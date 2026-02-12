@@ -19,7 +19,7 @@ from utils.h5serial import h5File
 from utils.init.base import init_model_params
 from utils.io import load_model_cpu, save_model
 from utils.norm.mp.f import convert as make_mp_model
-from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
+from utils.torch.comp import GradScaler, torch_autocast, torch_compile, torch_inference_mode
 from utils.tqdm import tqdm
 from utils.train.base import optm_step, optm_step_zero_grad_set_none
 

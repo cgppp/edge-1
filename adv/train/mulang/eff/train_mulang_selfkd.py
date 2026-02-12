@@ -23,12 +23,13 @@ from utils.norm.mp.f import convert as make_mp_model
 from utils.state.holder import Holder
 from utils.state.pyrand import PyRandomState
 from utils.state.thrand import THRandomState
-from utils.torch.comp import torch_autocast, torch_compile, torch_inference_mode
+from utils.torch.comp import GradScaler, torch_autocast, torch_compile, torch_inference_mode
 from utils.tqdm import tqdm
 from utils.train.base import getlr, optm_step, optm_step_zero_grad_set_none, reset_Adam
 from utils.train.dss import dynamic_sample
 
 # cnfg.selfkd: from cnfg.mulang import *
+
 import cnfg.selfkd as cnfg
 from cnfg.ihyp import *
 from cnfg.vocab.base import pad_id
