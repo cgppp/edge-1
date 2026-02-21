@@ -2,7 +2,7 @@
 
 from torch import nn
 
-from modules.base import Dropout, PositionwiseFF
+from modules.base import PositionwiseFF
 from modules.hplstm.snhfn import ResBiHPLSTM
 from transformer.Encoder import Encoder as EncoderBase
 from utils.fmt.parser import parse_none

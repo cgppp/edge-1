@@ -5,7 +5,7 @@ from torch import nn
 # shall we keep scaling embeddings?
 #from math import sqrt
 
-from modules.base import Dropout, ResCrossAttn
+from modules.base import ResCrossAttn
 from modules.hplstm.snbase import ResHPLSTM
 from transformer.Decoder import Decoder as DecoderBase
 from utils.base import index_tensors, select_zero_

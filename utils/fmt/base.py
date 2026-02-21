@@ -99,7 +99,7 @@ class NullFile:
 
 is_null_file = lambda x: isinstance(x, NullFile)
 
-def sys_open(fname, mode="r", compresslevel=raw_cache_compression_level, **kwargs):
+def sys_open(fname, mode="r", compresslevel=raw_cache_compression_level, as_gz=False, as_bz=False, as_xz=False, **kwargs):
 
 	if fname == "-":
 		_ = sys.stdin if "r" in mode else sys.stdout
@@ -107,11 +107,11 @@ def sys_open(fname, mode="r", compresslevel=raw_cache_compression_level, **kwarg
 	elif fname == "/dev/null" or (not fname):
 		return NullFile(fname, mode=mode, **kwargs)
 	else:
-		if fname.endswith(".gz"):
+		if fname.endswith(".gz") or as_gz:
 			return gz_open(fname, mode=mode, compresslevel=compresslevel, **kwargs)
-		elif fname.endswith(".bz2"):
+		elif fname.endswith(".bz2") or as_bz:
 			return bz_open(fname, mode=mode, compresslevel=compresslevel, **kwargs)
-		elif fname.endswith(".xz"):
+		elif fname.endswith(".xz") or as_xz:
 			return xz_open(fname, mode=mode, **kwargs)
 		else:
 			return open(fname, mode=mode, **kwargs)
