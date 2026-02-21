@@ -9,7 +9,7 @@ from modules.hplstm.snbase import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase
 from utils.base import float2odd
 from utils.fmt.parser import parse_none
 from utils.hplstm.LGate import LGateFunc
-from utils.hplstm.RS1cumsum import RS1cumsumFunc
+from utils.hplstm.RS1cumsumstatnorm import RS1cumsumstatnorm
 from utils.torch.comp import torch_no_grad
 
 from cnfg.ihyp import *
@@ -37,17 +37,7 @@ class MHPLSTMCore(nn.Module):
 	def forward(self, heads_input, states=None, head_mask=None, **kwargs):
 
 		bsize, seql, nheads, adim = heads_input.size()
-		if states is None:
-			csum = self.normer_csum(RS1cumsumFunc(heads_input.detach()))
-		else:
-			_init_state = (states == "init")
-			if _init_state:
-				csum = self.normer_csum(heads_input.new_zeros(1, 1, nheads, adim)).expand(bsize, 1, nheads, adim)
-				csum_state_return = heads_input.detach()
-			else:
-				_csum_state = states[0]
-				csum = self.normer_csum(_csum_state)
-				csum_state_return = _csum_state + heads_input.detach()
+		csum, csum_state_return = RS1cumsumstatnorm(heads_input, self.normer_csum, states=states)
 		igate, fgate, hidden = self.trans_hid(torch.cat((heads_input, csum,), dim=-1)).view(bsize, seql, nheads, 3, -1).unbind(-2)
 		fgate = fgate.sigmoid()
 		hidden = self.act(hidden)
@@ -59,10 +49,11 @@ class MHPLSTMCore(nn.Module):
 			fgate = fgate.masked_fill(head_mask, 1.0)
 			igh.masked_fill_(head_mask, 0.0)
 
-		cell = LGateFunc(fgate, igh, self.init_cx, True) if states is None else igh.addcmul_(fgate, self.init_cx if _init_state else states[-1])
+		is_seq_input = seql > 1
+		cell = LGateFunc(fgate, igh, self.init_cx.unsqueeze(0).expand(bsize, nheads, -1) if states == "init" else states[-1].squeeze(1), True) if (states is None) or is_seq_input else igh.addcmul_(fgate, self.init_cx if states == "init" else states[-1])
 		out = self.trans_og(torch.cat((heads_input, cell), dim=-1)).sigmoid() * cell
 
-		return out if states is None else (out, (csum_state_return, cell,),)
+		return out if states is None else (out, (csum_state_return, cell.narrow(1, seql - 1, 1) if is_seq_input else cell,),)
 
 	def fix_init(self):
 

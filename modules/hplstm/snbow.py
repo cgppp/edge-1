@@ -38,10 +38,11 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 			fgate = fgate.masked_fill(head_mask, 1.0)
 			igh.masked_fill_(head_mask, 0.0)
 
-		cell = LGateFunc(fgate, igh, self.init_cx, True) if states is None else igh.addcmul_(fgate, self.init_cx if states == "init" else states)
+		is_seq_input = seql > 1
+		cell = LGateFunc(fgate, igh, self.init_cx.unsqueeze(0).expand(bsize, nheads, -1) if states == "init" else states[-1].squeeze(1), True) if (states is None) or is_seq_input else igh.addcmul_(fgate, self.init_cx if states == "init" else states[-1])
 		out = self.trans_og(torch.cat((heads_input, cell), dim=-1)).sigmoid() * cell
 
-		return out if states is None else (out, cell,)
+		return out if states is None else (out, cell.narrow(1, seql - 1, 1) if is_seq_input else cell,)
 
 class HPLSTM(HPLSTMBase):
 
