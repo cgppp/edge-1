@@ -13,7 +13,6 @@ except Exception as e:
 try:
 	import ml2cumsums_cuda
 except Exception as e:
-	import torch
 	if torch.cuda.is_available():
 		from torch.utils.cpp_extension import load
 		ml2cumsums_cuda = load(name="ml2cumsums_cuda", sources=["utils/cpp/hplstm/ml2cumsums_cuda.cpp", "utils/cpp/hplstm/ml2cumsums_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)

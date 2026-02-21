@@ -1,6 +1,5 @@
 #encoding: utf-8
 
-import torch
 from torch.autograd import Function
 
 from cnfg.ihyp import extra_compile_args, extra_cuda_compile_args
@@ -25,7 +24,7 @@ class cumsumFunction(Function):
 	@staticmethod
 	def forward(ctx, x, inplace=False):
 
-		return torch.cumsum(x, dim=1, out=(x if inplace else None))
+		return x.cumsum_(dim=1) if inplace else x.cumsum(dim=1)
 
 	@staticmethod
 	def backward(ctx, grad_out):

@@ -1,6 +1,5 @@
 #encoding: utf-8
 
-import torch
 from torch.autograd import Function
 
 from cnfg.ihyp import extra_compile_args, extra_cuda_compile_args
@@ -13,33 +12,36 @@ except Exception as e:
 try:
 	import ml2cumsums_cuda
 except Exception as e:
+	import torch
 	if torch.cuda.is_available():
 		from torch.utils.cpp_extension import load
 		ml2cumsums_cuda = load(name="ml2cumsums_cuda", sources=["utils/cpp/hplstm/ml2cumsums_cuda.cpp", "utils/cpp/hplstm/ml2cumsums_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
 	else:
 		ml2cumsums_cuda = None
 
-# memory friendly implementation of: _ = torch.cat((x.new_zeros(bsize, 1, nheads, adim), x.cumsum(1),), dim=1), (_.narrow(1, 0, seqlen), _.narrow(1, seqlen, 1))
-class RS1cumsumstatFunction(Function):
+class RS1cumsumistatFunction(Function):
 
 	@staticmethod
-	def forward(ctx, x):
+	def forward(ctx, x, state):
 
 		bsize, seqlen, nhead, isize = x.size()
 		if seqlen > 1:
 			_mem = x.new_empty(bsize, seqlen + 1, nhead, isize)
-			_mem.select(1, 0).zero_()
-			torch.cumsum(x, dim=1, out=_mem.narrow(1, 1, seqlen))
+			_mem.narrow(1, 0, 1).copy_(state)
+			_mem.narrow(1, 1, seqlen).copy_(x)
+			_mem.cumsum_(dim=1)
 			_out, _state = _mem.narrow(1, 0, seqlen), _mem.narrow(1, seqlen, 1)
 		else:
-			_out, _state = x.new_zeros(1, 1, 1, 1).expand(bsize, seqlen, nhead, isize), x
+			_out, _state = state, x + state
 
 		return _out, _state
 
 	@staticmethod
 	def backward(ctx, grad_out, grad_state):
 
-		if ctx.needs_input_grad[0]:
+		grad_x = grad_s = None
+		needs_grad_x, needs_grad_s = ctx.needs_input_grad[0:2]
+		if needs_grad_x:
 			bsize, seqlen, nhead, isize = grad_out.size()
 			if seqlen > 1:
 				grad_x = grad_out.new_empty(bsize, seqlen, nhead, isize)
@@ -53,10 +55,9 @@ class RS1cumsumstatFunction(Function):
 						clcumsum_cpp.backward(grad_x, 1)
 				else:
 					grad_x.narrow(1, 0, 1).add_(grad_state)
+		if needs_grad_s:
+			grad_s = (grad_x.narrow(1, 0, 1) + grad_out.narrow(1, 0, 1)) if needs_grad_x else grad_out.sum(dim=1, keepdim=True).add_(grad_state)
 
-				return grad_x
-			return grad_state
+		return grad_x, grad_s
 
-		return None
-
-RS1cumsumstatFunc = RS1cumsumstatFunction.apply
+RS1cumsumistatFunc = RS1cumsumistatFunction.apply
