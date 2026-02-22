@@ -52,7 +52,7 @@ class LGateFunction(Function):
 				else:
 					grad_igh, grad_init_cell = lgate_cpp.backward_no_fgate(grad_cell, fgate, 1)
 					grad_fgate = None
-			return grad_fgate if needs_grad_fgate else None, grad_igh if needs_grad_igh else None, grad_init_cell.sum(0) if needs_grad_init_cell else None, None
+			return grad_fgate if needs_grad_fgate else None, grad_igh if needs_grad_igh else None, grad_init_cell if needs_grad_init_cell else None, None
 		else:
 			return None, None, None, None
 

@@ -38,7 +38,7 @@ class LGateFunction(Function):
 			bsize, seqlen, nhead, isize = grad_cell.size()
 			grad_init_cell = init_cell.new_empty(bsize, nhead, isize)
 			grad_fgate, grad_igh, grad_init_cell = (lgates_cuda if grad_cell.is_cuda else lgates_cpp).backward(grad_cell, cell, fgate, init_cell, grad_fgate, grad_igh, grad_init_cell, bsize, seqlen, nhead, isize)
-			return grad_fgate if needs_grad_fgate else None, grad_igh if needs_grad_igh else None, grad_init_cell.sum(0) if needs_grad_init_cell else None, None
+			return grad_fgate if needs_grad_fgate else None, grad_igh if needs_grad_igh else None, grad_init_cell if needs_grad_init_cell else None, None
 		else:
 			return None, None, None, None
 
