@@ -6,7 +6,7 @@ from modules.hplstm.hfn import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, M
 from utils.base import float2odd
 from utils.fmt.parser import parse_none
 from utils.hplstm.LGate import LGateFunc
-from utils.hplstm.RS1MvAvg import RS1MvAvgFunc
+from utils.hplstm.RS1mvavgstatnorm import RS1mvavgstatnorm
 from utils.math import mvavg_dist2beta
 
 class MHPLSTMCore(MHPLSTMCoreBase):
@@ -20,17 +20,7 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 	def forward(self, heads_input, states=None, head_mask=None, **kwargs):
 
 		bsize, seql, nheads, adim = heads_input.size()
-		if states is None:
-			csum = self.normer_csum(RS1MvAvgFunc(heads_input.detach(), self.ma_beta))
-		else:
-			_init_state = (states == "init")
-			if _init_state:
-				csum = self.normer_csum(heads_input.new_zeros(1, 1, nheads, adim)).expand(bsize, 1, nheads, adim)
-				csum_state_return = heads_input.detach() * (1.0 - self.ma_beta)
-			else:
-				_csum_state = states[0]
-				csum = self.normer_csum(_csum_state)
-				csum_state_return = _csum_state.mul_(self.ma_beta).add_(heads_input.detach(), alpha=1.0 - self.ma_beta)
+		csum, csum_state_return = RS1mvavgstatnorm(heads_input, self.normer_csum, states=states, ma_beta=self.ma_beta)
 		gh_input = torch.cat((heads_input, csum,), dim=-1)
 		(igate, fgate,), hidden = self.normer_ifg(self.trans_ifg(gh_input).view(bsize, seql, nheads, 2, -1)).sigmoid().unbind(-2), self.trans_hid(gh_input)
 		igh = igate * hidden
@@ -38,10 +28,11 @@ class MHPLSTMCore(MHPLSTMCoreBase):
 			fgate = fgate.masked_fill(head_mask, 1.0)
 			igh.masked_fill_(head_mask, 0.0)
 
-		cell = LGateFunc(fgate, igh, self.init_cx, True) if states is None else igh.addcmul_(fgate, self.init_cx if _init_state else states[-1])
+		is_seq_input = seql > 1
+		cell = LGateFunc(fgate, igh, self.init_cx.unsqueeze(0).expand(bsize, nheads, -1) if states == "init" else states[-1].squeeze(1), True) if (states is None) or is_seq_input else igh.addcmul_(fgate, self.init_cx if states == "init" else states[-1])
 		out = self.trans_og(torch.cat((heads_input, cell), dim=-1)).sigmoid() * cell
 
-		return out if states is None else (out, (csum_state_return, cell,),)
+		return out if states is None else (out, (csum_state_return, cell.narrow(1, seql - 1, 1) if is_seq_input else cell,),)
 
 class HPLSTM(HPLSTMBase):
 
