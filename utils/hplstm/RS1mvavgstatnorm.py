@@ -11,11 +11,11 @@ def RS1mvavgstatnorm(x, normer, states=None, ma_beta=None, detach=True, contiguo
 	bsize, seql, nheads, adim = x.size()
 	_x = x.detach() if detach else x
 	if states is None:
-		csum, csum_state_return = normer(RS1MvAvgFunc(_x， ma_beta)), None
+		csum, csum_state_return = normer(RS1MvAvgFunc(_x, ma_beta)), None
 	else:
 		if states == "init":
 			if seql > 1:
-				csum, csum_state_return = RS1MvAvgstatFunc(_x， ma_beta)
+				csum, csum_state_return = RS1MvAvgstatFunc(_x, ma_beta)
 				csum = normer(csum)
 				if cont_state:
 					csum_state_return = csum_state_return.contiguous()
