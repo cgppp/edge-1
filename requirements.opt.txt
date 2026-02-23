@@ -3,6 +3,7 @@ subword-nmt>=0.3.8
 sacremoses>=0.0.53
 transformers>=5.1.0
 safetensors>=0.7.0
+ninja>=1.13.0
 unbabel-comet>=2.2.7
 protobuf>=6.33.5
 zstandard>=0.25.0

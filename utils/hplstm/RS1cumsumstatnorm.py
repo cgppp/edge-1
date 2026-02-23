@@ -5,7 +5,7 @@ import torch
 from utils.hplstm.RS1cumsum import RS1cumsumFunc
 from utils.hplstm.RS1cumsumstat import RS1cumsumstatFunc
 
-def RS1cumsumstatnorm(x, normer, states=None, detach=True, contiguous_state=False, **kwargs):
+def RS1cumsumstatnorm(x, normer, states=None, detach=False, contiguous_state=False, **kwargs):
 
 	bsize, seql, nheads, adim = x.size()
 	_x = x.detach() if detach else x

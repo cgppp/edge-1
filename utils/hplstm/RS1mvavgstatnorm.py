@@ -6,7 +6,7 @@ from utils.hplstm.MvAvgis import MvAvgiSFunc
 from utils.hplstm.RS1MvAvg import RS1MvAvgFunc
 from utils.hplstm.RS1MvAvgstat import RS1MvAvgstatFunc
 
-def RS1mvavgstatnorm(x, normer, states=None, ma_beta=None, detach=True, contiguous_state=False, **kwargs):
+def RS1mvavgstatnorm(x, normer, states=None, ma_beta=None, detach=False, contiguous_state=False, **kwargs):
 
 	bsize, seql, nheads, adim = x.size()
 	_x = x.detach() if detach else x
