@@ -3,8 +3,8 @@
 save_base = True
 lora_fine_tune_m = None
 
-lora_features = None
-lora_alpha = None
+lora_features = 8   # LoRA rank，常用 8/16/32
+lora_alpha = 16    # LoRA alpha，常用与 rank 相等或 2*rank
 scaling = 1.0
 update_bias = False
 name_cfunc = lambda mname: True

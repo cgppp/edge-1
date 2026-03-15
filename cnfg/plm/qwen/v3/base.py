@@ -3,17 +3,17 @@
 from cnfg.base import *
 
 model_name = "model"
-pre_trained_m = None
+pre_trained_m = "/home/common/plm/Qwen/Qwen3-8B/model.h5"
 
-bindDecoderEmb = True# True for 0.6/1.7/4B, False for 8/14B
+bindDecoderEmb = False# True for 0.6/1.7/4B, False for 8/14B
 
-isize = 1024# 1024 for 0.6B, 2048 for 1.7B, 2560 for 4B, 4096 for 8B, 5120 for 14B
-ff_hsize = 2 * 3072# 2 * (3072 for 0.6B, 6144 for 1.7B, 9728 for 4B, 12288 for 8B, 17408 for 14B)
-nhead = max(1, isize // 64)# 16 for 0.6/1.7B, 32 for 4/8B, 40 for 14B
+isize = 4096# 1024 for 0.6B, 2048 for 1.7B, 2560 for 4B, 4096 for 8B, 5120 for 14B
+ff_hsize = 2 * 12288# 2 * (3072 for 0.6B, 6144 for 1.7B, 9728 for 4B, 12288 for 8B, 17408 for 14B)
+nhead = 32# 16 for 0.6/1.7B, 32 for 4/8B, 40 for 14B
 attn_hsize = nhead * 128
 kv_nhead = 8# 8 for 0.6/1.7/4/8/14B
 
-nlayer = 28# 28 for 0.6/1.7B, 36 for 4/8B, 40 for 14B
+nlayer = 36# 28 for 0.6/1.7B, 36 for 4/8B, 40 for 14B
 
 drop = 0.0
 attn_drop = drop

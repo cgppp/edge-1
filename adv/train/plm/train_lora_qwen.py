@@ -1,4 +1,41 @@
 #encoding: utf-8
+"""
+Qwen3 基座 + LoRA 微调训练入口。
+
+从 HDF5（src/tgt 组，由 tools/plm/mkiodata_llmdec.py 生成）读入「指令+回答」序列与回答区间，
+用 PMaskDataConverter 只对回答区间算 loss，基座权重由 pre_trained_m 加载，再通过 std2lora 挂上 LoRA 仅训 LoRA 参数。
+
+支持通过环境变量覆盖配置（无需改 cnfg）：DATA_ID、PRE_TRAINED_M、LORA_RANK、LORA_ALPHA。
+推荐用法：在 task.sh 中设好上述变量后执行本脚本。
+"""
+
+import os
+
+# ----- 环境变量覆盖配置（便于 task.sh 传参，无需改 cnfg 文件） -----
+_data_id = os.environ.get("DATA_ID", "").strip()
+if _data_id:
+	import cnfg.base as _base_cnfg
+	_base_cnfg.data_id = _data_id
+	_base_cnfg.train_data = _base_cnfg.cache_dir + _data_id + "/train.h5"
+	_base_cnfg.dev_data = _base_cnfg.cache_dir + _data_id + "/dev.h5"
+_pre_trained_m = os.environ.get("PRE_TRAINED_M", "").strip()
+if _pre_trained_m:
+	import cnfg.plm.qwen.v3.base as _qwen_cnfg
+	_qwen_cnfg.pre_trained_m = _pre_trained_m
+_lora_rank = os.environ.get("LORA_RANK", "").strip()
+_lora_alpha = os.environ.get("LORA_ALPHA", "").strip()
+if _lora_rank or _lora_alpha:
+	import cnfg.lora as _lora_cnfg
+	if _lora_rank:
+		try:
+			_lora_cnfg.lora_features = int(_lora_rank)
+		except ValueError:
+			pass
+	if _lora_alpha:
+		try:
+			_lora_cnfg.lora_alpha = int(_lora_alpha)
+		except ValueError:
+			pass
 
 import torch
 from random import shuffle
@@ -37,24 +74,33 @@ from cnfg.plm.qwen.v3.ihyp import *
 from cnfg.vocab.plm.qwen.v3 import vocab_size
 
 def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm=32768, nreport=None, save_every=None, chkpf=None, state_holder=None, statesf=None, num_checkpoint=1, cur_checkid=0, report_eva=True, remain_steps=None, save_loss=False, save_checkp_epoch=False, scaler=None):
+	"""
+	一轮训练循环：按 tl 中的 batch key 遍历 HDF5，取 src/tgt，经 PMaskDataConverter 得到只对回答区间的 (oi, pred_mask, ot)，前向+loss+反向，累积到 tokens_optm 后 step 优化器。
 
+	参数: td=训练 HDF5 句柄, tl=本轮 batch key 列表("0","1",...), ed=验证 HDF5, nd=验证 batch 数,
+	      optm=优化器, lrsch=学习率调度, model=Qwen Decoder(+LoRA), lossf=LabelSmoothingLoss,
+	      mv_device=主设备, logger=日志, done_tokens=已累积 token 数(用于梯度累积),
+	      multi_gpu/multi_gpu_optimizer=多卡与优化器模式, tokens_optm=每多少 token 做一次 step,
+	      nreport=每多少 batch 打日志/做验证, save_every/chkpf/state_holder/statesf=checkpoint 与状态保存,
+	      num_checkpoint/cur_checkid=轮转 checkpoint 数与当前 id, report_eva=是否在 report 时跑验证,
+	      remain_steps=剩余训练步数(可为 None), save_loss=是否记录每 batch loss, save_checkp_epoch=是否按 epoch 存 checkpoint, scaler=AMP 梯度缩放.
+	返回: (平均 loss, 本轮结束时的 done_tokens, cur_checkid, 更新后的 remain_steps, 每 batch loss 字典或 None).
+	"""
 	sum_loss = part_loss = 0.0
 	sum_wd = part_wd = 0
 	_done_tokens, _cur_checkid, _cur_rstep, _use_amp = done_tokens, cur_checkid, remain_steps, scaler is not None
 	global minerr, minloss, wkdir, save_auto_clean, namin, save_model_ps_func, data_converter
 	model.train()
-	cur_b, _ls = 1, {} if save_loss else None
+	cur_b, _ls = 1, {} if save_loss else None   # cur_b=当前 batch 序号, _ls=每 batch 的 loss（若 save_loss）
 	src_grp, tgt_grp = td["src"], td["tgt"]
 	for i_d in tqdm(tl, mininterval=tqdm_mininterval):
-		seq_batch = torch.from_numpy(src_grp[i_d][()])
-		seq_o = torch.from_numpy(tgt_grp[i_d][()])
+		seq_batch = torch.from_numpy(src_grp[i_d][()])   # (batch, seq_len) 整段 token
+		seq_o = torch.from_numpy(tgt_grp[i_d][()])       # (batch, 2) 每行 [start+1, end+1]
 		lo = seq_o.size(1) - 1
 		if mv_device:
 			seq_batch = seq_batch.to(mv_device, non_blocking=True)
-			# seq_o device movement is handled by data_converter in case necessary
-			#seq_o = seq_o.to(mv_device, non_blocking=True)
 		seq_batch = seq_batch.to(torch.int64, non_blocking=True)
-		oi, pred_mask, ot = data_converter(seq_batch, seq_o)
+		oi, pred_mask, ot = data_converter(seq_batch, seq_o)   # 只对回答区间算 loss 的输入/ mask/ 目标
 
 		with torch_autocast(enabled=_use_amp):
 			output = model(oi, word_prediction=True, pred_mask=pred_mask)
@@ -68,7 +114,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		else:
 			scaler.scale(loss).backward()
 
-		wd_add = ot.numel()
+		wd_add = ot.numel()   # 本 batch 参与 loss 的 token 数
 		loss = output = oi = ot = seq_batch = seq_o = pred_mask = None
 		sum_loss += loss_add
 		if save_loss:
@@ -76,6 +122,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 		sum_wd += wd_add
 		_done_tokens += wd_add
 
+		# 梯度累积到 tokens_optm 后执行一次优化器 step
 		if _done_tokens >= tokens_optm:
 			optm_step(optm, model=model, scaler=scaler, multi_gpu=multi_gpu, multi_gpu_optimizer=multi_gpu_optimizer, zero_grad_none=optm_step_zero_grad_set_none)
 			_done_tokens = 0
@@ -95,6 +142,7 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 					break
 			lrsch.step()
 
+		# 每 nreport 个 batch 打日志，可选跑验证并保存最佳
 		if nreport is not None:
 			part_loss += loss_add
 			part_wd += wd_add
@@ -135,12 +183,18 @@ def train(td, tl, ed, nd, optm, lrsch, model, lossf, mv_device, logger, done_tok
 	return sum_loss / sum_wd, _done_tokens, _cur_checkid, _cur_rstep, _ls
 
 def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
-	r = w = 0
+	"""
+	在验证集上评估：遍历 nd 个 batch，用 data_converter 得到 (oi, pred_mask, ot)，前向算 loss 与准确 token 数。
+	参数: ed=验证 HDF5, nd=batch 数, model/lossf/mv_device/multi_gpu/use_amp 同训练。
+	返回: (平均 loss, 错误率百分比 即 (w-r)/w*100)。
+	"""
+	r = w = 0         # r=预测正确的 token 数, w=参与 loss 的 token 总数
 	sum_loss = 0.0
 	model.eval()
 	src_grp, tgt_grp = ed["src"], ed["tgt"]
 	global data_converter, prefix_ids, prefix_len
 	with torch_inference_mode():
+		# 若有固定 prefix（如指令前缀），先跑一遍得到 prefix_states 供后续 batch 复用
 		if prefix_ids:
 			seq_batch = torch.as_tensor(prefix_ids, dtype=torch.int32).unsqueeze(0)
 			if cuda_device:
@@ -178,19 +232,21 @@ def eva(ed, nd, model, lossf, mv_device, multi_gpu, use_amp=False):
 	return sum_loss / w, (w - r) / w * 100.0
 
 def hook_lr_update(optm, flags=None):
-
+	"""学习率/优化器重置钩子，内部调用 reset_Adam。"""
 	reset_Adam(optm, flags)
 
 def init_fixing(module):
-
+	"""对子模块若有 fix_init 则调用（如 LoRA 的 init_lora）。"""
 	if hasattr(module, "fix_init"):
 		module.fix_init()
 
 def load_fixing(module):
-
+	"""对子模块若有 fix_load 则调用（加载权重后的修正）。"""
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
+
+# ----- 从 cnfg 读取训练控制与路径 -----
 rid = cnfg.run_id
 earlystop = cnfg.earlystop
 maxrun = cnfg.maxrun
@@ -209,30 +265,28 @@ remain_steps = cnfg.training_steps
 
 wkdir = "".join((cnfg.exp_dir, cnfg.data_id, "/", cnfg.group_id, "/", rid, "/"))
 mkdir(wkdir)
-
 chkpf = None
 statesf = None
 if save_every is not None:
 	chkpf = wkdir + "checkpoint.h5"
 if cnfg.save_train_state:
 	statesf = wkdir + "train.states.t7"
-
 logger = get_logger(wkdir + "train.log")
 
+# ----- CUDA / 随机种子 / 多卡 -----
 use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 multi_gpu_optimizer = multi_gpu and cnfg.multi_gpu_optimizer
 
+# ----- 数据：PMaskDataConverter + 训练/验证 HDF5 -----
 data_converter = PMaskDataConverter(xseql=cache_len_default, device=cuda_device)
-
 td = h5File(cnfg.train_data, "r", **h5_fileargs)
 vd = h5File(cnfg.dev_data, "r", **h5_fileargs)
-
 ntrain = td["ndata"][()].item()
 nvalid = vd["ndata"][()].item()
+tl = [str(i) for i in range(ntrain)]   # 训练 batch key 列表 "0","1",...
 
-tl = [str(i) for i in range(ntrain)]
-
+# ----- 可选：prefix（固定前缀 token，验证时可复用 prefix_states） -----
 prefix_ids = lcnfg.prefix_ids
 if prefix_ids:
 	prefix_len = len(prefix_ids)
@@ -242,10 +296,12 @@ elif lcnfg.find_common_prefix:
 else:
 	prefix_len = None
 
+# ----- 构建 Qwen3 Decoder（NMT 实为单 Decoder，无 Encoder） -----
 logger.info("Design models with seed: %d" % torch.initial_seed())
 mymodel = NMT(cnfg.isize, vocab_size, cnfg.nlayer, fhsize=cnfg.ff_hsize, dropout=cnfg.drop, attn_drop=cnfg.attn_drop, act_drop=cnfg.act_drop, emb_w=None, num_head=cnfg.nhead, xseql=cache_len_default, ahsize=cnfg.attn_hsize, norm_output=cnfg.norm_output, bindemb=cnfg.bindDecoderEmb, num_kv_head=cnfg.kv_nhead, model_name=cnfg.model_name)
 fine_tune_m = cnfg.fine_tune_m
 
+# ----- 加载基座权重：优先 pre_trained_m（.h5/.bin），否则 fine_tune_m 或随机初始化 -----
 if fine_tune_m is None:
 	if cnfg.pre_trained_m is None:
 		mymodel = init_model_params(mymodel)
@@ -271,6 +327,7 @@ if cnfg.tgt_emb is not None:
 if lcnfg.save_base:
 	save_model(mymodel, wkdir + "base.h5", False, print_func=logger.info, ps_func=None, h5args=h5zipargs)
 
+# ----- LoRA：若配置了 lora_features 则冻结基座、替换为 LoRA 层，仅训 LoRA；save_model_ps_func 存 checkpoint 时只存可训练参数 -----
 if lcnfg.lora_features is None:
 	save_model_ps_func = None
 else:
@@ -282,21 +339,19 @@ else:
 		unfreeze_normer(mymodel, name_cfunc=lcnfg.name_cfunc_normer)
 	if lcnfg.lora_fine_tune_m is not None:
 		mymodel = load_model_cpu(lcnfg.lora_fine_tune_m, mymodel)
-	save_model_ps_func = rgrad_filter
+	save_model_ps_func = rgrad_filter   # 保存时只保存 requires_grad=True 的参数（即 LoRA）
 
+# ----- 设备与多卡 / AMP / 优化器 / 学习率调度 / 状态保存 Holder -----
 if use_cuda_bfmp:
 	make_mp_model(mymodel)
 	Optimizer = mp_optm_agent_wrapper(Optimizer)
 if cuda_device:
 	mymodel.to(cuda_device, non_blocking=True)
 	lossf.to(cuda_device, non_blocking=True)
-
 scaler = (MultiGPUGradScaler() if multi_gpu_optimizer else GradScaler()) if use_amp else None
-
 if multi_gpu:
 	mymodel = DataParallelMT(mymodel, device_ids=cuda_devices, output_device=cuda_device.index, host_replicate=True, gather_output=False)
 	lossf = DataParallelCriterion(lossf, device_ids=cuda_devices, output_device=cuda_device.index, replicate_once=True)
-
 if multi_gpu:
 	optimizer = mymodel.build_optimizer(Optimizer, lr=init_lr, betas=adam_betas_default, eps=ieps_adam_default, weight_decay=cnfg.weight_decay, amsgrad=use_ams, multi_gpu_optimizer=multi_gpu_optimizer, contiguous_parameters=contiguous_parameters)
 else:
@@ -315,9 +370,9 @@ cur_checkid = 0
 
 tminerr = inf_default
 
+# ----- 初始验证并保存 init / 或加载训练状态续训 -----
 minloss, minerr = eva(vd, nvalid, mymodel, lossf, cuda_device, multi_gpu, use_amp)
 logger.info("Init lr: %s, Dev Loss/Error: %.3f %.2f" % (" ".join(iter_to_str(getlr(optimizer))), minloss, minerr,))
-
 if fine_tune_m is None:
 	save_model(mymodel, wkdir + "init.h5", multi_gpu, print_func=logger.info, ps_func=save_model_ps_func)
 	logger.info("Initial model saved")
@@ -340,6 +395,7 @@ else:
 			save_states(state_holder.state_dict(update=False, **{"remain_steps": remain_steps, "checkpoint_id": cur_checkid}), statesf, print_func=logger.info)
 		logger.info("New best model saved")
 
+# ----- 动态样本选择（DSS）相关；不用则 dss_ws=0 -----
 if cnfg.dss_ws is not None and cnfg.dss_ws > 0.0 and cnfg.dss_ws < 1.0:
 	dss_ws = int(cnfg.dss_ws * ntrain)
 	_Dws = {}
@@ -354,8 +410,9 @@ else:
 	dss_rm = 0
 	_Dws = None
 
-namin = 0
+namin = 0   # 连续多少 epoch 未刷新最佳验证，用于 early stop
 
+# ----- 主训练循环：每 epoch shuffle tl，train -> eva -> 按条件保存 / early stop -----
 for i in range(1, maxrun + 1):
 	shuffle(tl)
 	free_cache(use_cuda)
@@ -399,7 +456,7 @@ for i in range(1, maxrun + 1):
 	if remain_steps is not None and remain_steps <= 0:
 		logger.info("Last training step reached")
 		break
-
+	# 动态样本选择：根据本 epoch 每 batch loss 变化更新下一轮 tl
 	if dss_ws > 0:
 		if _prev_Dws:
 			for _key, _value in _Dws.items():
@@ -409,10 +466,10 @@ for i in range(1, maxrun + 1):
 			tl = dynamic_sample(_crit_inc, dss_ws, dss_rm)
 		_prev_Dws = _Dws
 
+# ----- 收尾：未满 tokens_optm 的梯度 step 一次，保存 last.h5 与状态 -----
 if done_tokens > 0:
 	optm_step(optimizer, model=mymodel, scaler=scaler, multi_gpu=multi_gpu, multi_gpu_optimizer=multi_gpu_optimizer)
 	lrsch.step()
-
 save_model(mymodel, wkdir + "last.h5", multi_gpu, print_func=logger.info, ps_func=save_model_ps_func)
 if statesf is not None:
 	save_states(state_holder.state_dict(update=False, **{"remain_steps": remain_steps, "checkpoint_id": cur_checkid}), statesf, print_func=logger.info)
