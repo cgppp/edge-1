@@ -30,10 +30,21 @@ use_alibi = False
 use_fast_loss = True
 
 # configure maximum batch size w.r.t GPU memory
-max_tokens_gpu = 6144
+# Qwen3-8B + LoRA、单卡约 32GiB：过大易在 forward（classifier）或 backward 时 OOM。
+# 修改本段后必须对对应 cache/... 重新跑 mkiodata_llmdec.py 生成 train.h5/dev.h5，否则仍沿用旧 batch。
+max_tokens_gpu = 1536
 max_sentences_gpu = max_tokens_gpu // 6
 max_pad_tokens_sentence = 32
 normal_tokens_vs_pad_tokens = 4
+
+# ToolBench：长对话/工具调用多，单 batch token 更易顶满显存，再降一档。
+# 依赖训练/task 脚本已 export DATA_ID（如 task-2.sh）；生成 HDF5 时请在同环境下设 DATA_ID，使打包与训练一致。
+import os as _os
+if "toolbench" in _os.environ.get("DATA_ID", ""):
+	# ToolBench 的 src/tgt 在 sort 阶段上限为 1024 时，拼接总长度大约 <= 2048，
+	# 能显著降低 attention scores 的显存峰值；若仍 OOM 再降到 512 并进一步调整。
+	max_tokens_gpu = 1024
+	max_sentences_gpu = max_tokens_gpu // 6
 
 # For BPE (using full vocabulary), the special <unk> token will never appear and thus can be removed from the vocabulary. Otherwise, it should be set to True.
 use_unk = False

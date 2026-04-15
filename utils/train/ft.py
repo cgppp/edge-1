@@ -2,6 +2,8 @@
 
 from modules.base import Linear
 from modules.norm.base import normer_cls
+from modules.hplstm.snbase import HPLSTM
+from modules.hplstm.snbase import ResHPLSTM
 from utils.func import always_true as name_cfunc_full
 from utils.train.base import unfreeze_module
 
@@ -20,6 +22,21 @@ def unfreeze_normer(modin, name_cfunc=name_cfunc_full):
 			unfreeze_module(_m)
 
 	return modin
+	
+def unfreeze_hplstm(modin, name_cfunc=name_cfunc_full):
+	for _n, _m in modin.named_modules():
+		if name_cfunc(_n) and isinstance(_m, (HPLSTM, ResHPLSTM)):
+			unfreeze_module(_m)
+	return modin
+
+def unfreeze_reslstm(modin, name_cfunc=name_cfunc_full):
+
+	# Only unfreeze ResHPLSTM modules (used by Decoder_3 fusion scheme).
+	for _n, _m in modin.named_modules():
+		if name_cfunc(_n) and isinstance(_m, ResHPLSTM):
+			unfreeze_module(_m)
+	return modin
+
 
 def rgrad_filter(pd, **kwargs):
 

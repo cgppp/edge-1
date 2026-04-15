@@ -30,7 +30,8 @@ save_every = 1500
 num_checkpoint = 4
 epoch_start_checkpoint_save = 3
 
-tokens_optm = 25000
+# 单步优化前累积 token 上限；略降可减轻 optimizer step 附近显存峰值（仍 OOM 时再试 12000/8000）
+tokens_optm = 16000
 
 earlystop = 8
 maxrun = 128
@@ -42,7 +43,8 @@ report_eva = False
 use_cuda = True
 # Data Parallel multi-GPU support can be enabled with values like: "cuda:0, 1, 3". Set to None to use all GPUs.
 gpuid = "cuda:0"
-use_amp = False
+# 混合精度，显著降低激活与部分计算显存；若需全精度请将此处改为 False（环境变量仅支持 USE_AMP=1 打开，见 train_lora_qwen.py）
+use_amp = True
 multi_gpu_optimizer = True
 use_cuda_bfmp = True
 
@@ -70,7 +72,7 @@ label_smoothing = 0.1
 
 weight_decay = 0
 
-beam_size = 4
+beam_size = 1
 length_penalty = 0.0
 # use multi-gpu for translating or not. `predict.py` will take the last gpu rather than the first in case multi_gpu_decoding is set to False to avoid potential break due to out of memory, since the first gpu is the main device by default which takes more jobs.
 multi_gpu_decoding = False

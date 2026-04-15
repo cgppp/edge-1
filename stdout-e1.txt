@@ -1,0 +1,7 @@
+TASK=squad PRED_FILE=expm/llm/pubdatasets_squad_closed/std/base/pred_last.txt GOLD_FILE=cache/llm/pubdatasets_squad_closed/tgt.dev.txt DETAIL_FILE=expm/llm/pubdatasets_squad_closed/std/base/eval_detail.jsonl
+task=squad
+total=10550
+sum_score=110.000000
+mean_score=0.010427
+accuracy=0.010427
+detail_saved=expm/llm/pubdatasets_squad_closed/std/base/eval_detail.jsonl

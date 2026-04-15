@@ -1,0 +1,4 @@
+usage: run_eval.py [-h] --task
+                   {all_nq,gsm8k,math,medmcqa,mmlu,nq_std,nq_v1,pubmedqa,squad,tool,trivia}
+                   --pred PRED --gold GOLD [--detail DETAIL]
+run_eval.py: error: argument --task: invalid choice: 'nq' (choose from all_nq, gsm8k, math, medmcqa, mmlu, nq_std, nq_v1, pubmedqa, squad, tool, trivia)

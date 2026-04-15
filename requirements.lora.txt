@@ -1,5 +1,6 @@
 # 仅数据处理 + LoRA 训练所需，避免与 requirements.opt.txt 的 tokenizers/huggingface-hub 冲突
 pandas>=2.0.0
 pyarrow>=23.0.0
+datasets>=2.14.0
 transformers>=5.1.0
 safetensors>=0.7.0

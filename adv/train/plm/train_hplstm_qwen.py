@@ -1,14 +1,15 @@
 #encoding: utf-8
 """
-Qwen3 基座 + LoRA 微调训练入口。
+Qwen3 基座训练入口（按 `cnfg.lora.hplstm_fusion` 或环境变量 `HPLSTM_FUSION` 加载 `Decoder_1`/`Decoder_2`/`Decoder_3`）。
 
-从 HDF5（src/tgt 组，由 tools/plm/mkiodata_llmdec.py 生成）读入「指令+回答」序列与回答区间，
-用 PMaskDataConverter 只对回答区间算 loss，基座权重由 pre_trained_m 加载，再通过 std2lora 挂上 LoRA 仅训 LoRA 参数。
+- **默认（cnfg.lora.lora_features is None）**：冻结全部参数，**仅解冻**各层 `self.hplstm` 子模块，只训练 HPLSTM；checkpoint 用 `rgrad_filter` 只存 `requires_grad=True` 的参数。
+- **LoRA（lora_features 非空）**：`std2lora` 后只训 LoRA 等；可用环境变量 LORA_RANK、LORA_ALPHA。
 
-支持通过环境变量覆盖配置（无需改 cnfg）：DATA_ID、PRE_TRAINED_M、LORA_RANK、LORA_ALPHA。
-推荐用法：在 task.sh 中设好上述变量后执行本脚本。
+数据：HDF5 由 `mkiodata_llmdec.py` 生成；`PMaskDataConverter` 只对回答区间算 loss。
+环境变量：DATA_ID、PRE_TRAINED_M、LORA_RANK、LORA_ALPHA、HPLSTM_FUSION（A/B/C，对应 Decoder_1/2/3）。
 """
 
+import importlib
 import os
 
 # ----- 环境变量覆盖配置（便于 task.sh 传参，无需改 cnfg 文件） -----
@@ -41,6 +42,11 @@ if _use_amp_env in ("1", "true", "yes"):
 	import cnfg.base as _base_cnfg
 	_base_cnfg.use_amp = True
 
+_hplstm_fusion_env = os.environ.get("HPLSTM_FUSION", "").strip().upper()
+if _hplstm_fusion_env in ("A", "B", "C"):
+	import cnfg.lora as _lcnfg_fusion
+	_lcnfg_fusion.hplstm_fusion = _hplstm_fusion_env
+
 import torch
 from random import shuffle
 from torch.optim import Adam as Optimizer
@@ -51,7 +57,13 @@ from optm.agent import fp32_optm_agent_wrapper as mp_optm_agent_wrapper
 from parallel.base import DataParallelCriterion
 from parallel.optm import MultiGPUGradScaler
 from parallel.parallelMT import DataParallelMT
-from transformer.PLM.QWen.v3.Decoder import Decoder as NMT
+
+import cnfg.lora as _lcnfg_nmt
+_hplstm_fusion = str(getattr(_lcnfg_nmt, "hplstm_fusion", "B")).strip().upper()
+if _hplstm_fusion not in ("A", "B", "C"):
+	_hplstm_fusion = "B"
+NMT = importlib.import_module("transformer.PLM.QWen.v3.Decoder_%s" % {"A": "1", "B": "2", "C": "3"}[_hplstm_fusion]).Decoder
+
 from utils.base import free_cache, get_logger, mkdir, set_random_seed
 from utils.contpara import get_model_parameters
 from utils.fmt.base import iter_to_str
@@ -67,12 +79,12 @@ from utils.state.pyrand import PyRandomState
 from utils.state.thrand import THRandomState
 from utils.torch.comp import GradScaler, torch_autocast, torch_compile, torch_inference_mode
 from utils.tqdm import tqdm
-from utils.train.base import freeze_module, getlr, optm_step, optm_step_zero_grad_set_none, reset_Adam
+from utils.train.base import freeze_module, getlr, optm_step, optm_step_zero_grad_set_none, reset_Adam, unfreeze_module
 from utils.train.dss import dynamic_sample
-from utils.train.ft import rgrad_filter, unfreeze_linear_bias, unfreeze_normer
+from utils.train.ft import rgrad_filter, unfreeze_linear_bias, unfreeze_normer, unfreeze_hplstm, unfreeze_reslstm
 from utils.train.llm import PMaskDataConverter
 
-import cnfg.lora_1 as lcnfg
+import cnfg.lora as lcnfg  # 与上方 _lcnfg_nmt 同一模块；hplstm_fusion 已在 import NMT 前由环境变量可能覆盖
 import cnfg.plm.qwen.v3.base as cnfg
 from cnfg.plm.qwen.v3.ihyp import *
 from cnfg.vocab.plm.qwen.v3 import vocab_size
@@ -276,6 +288,10 @@ if save_every is not None:
 if cnfg.save_train_state:
 	statesf = wkdir + "train.states.t7"
 logger = get_logger(wkdir + "train.log")
+_hf = str(getattr(lcnfg, "hplstm_fusion", "B")).strip().upper()
+if _hf not in ("A", "B", "C"):
+	_hf = "B"
+logger.info("HPLSTM fusion scheme: %s (Decoder_%s.py)" % (_hf, {"A": "1", "B": "2", "C": "3"}[_hf]))
 
 # ----- CUDA / 随机种子 / 多卡 -----
 use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, use_cuda_bfmp=cnfg.use_cuda_bfmp)
@@ -317,7 +333,7 @@ else:
 	logger.info("Load pre-trained model from: " + fine_tune_m)
 	mymodel = load_model_cpu(fine_tune_m, mymodel)
 	mymodel.apply(load_fixing)
-# print(mymodel)
+
 #lossf = NLLLoss(ignore_index=-1, reduction="sum")
 lossf = LabelSmoothingLoss(vocab_size, cnfg.label_smoothing, ignore_index=-1, reduction="sum", forbidden_index=cnfg.forbidden_indexes)
 
@@ -331,21 +347,37 @@ if cnfg.tgt_emb is not None:
 if lcnfg.save_base:
 	save_model(mymodel, wkdir + "base.h5", False, print_func=logger.info, ps_func=None, h5args=h5zipargs)
 
-# ----- LoRA：若配置了 lora_features 则冻结基座、替换为 LoRA 层，仅训 LoRA；save_model_ps_func 存 checkpoint 时只存可训练参数 -----
-if lcnfg.lora_features is None:
-	save_model_ps_func = None
-else:
+# ----- 训练模式二选一：LoRA（lora_features 非空）/ 仅 HPLSTM（本脚本默认：lora_features 为空） -----
+# HPLSTM：先冻结全模型参数，再仅解冻各层 DecoderLayer 中名为 hplstm 的子模块（Decoder_1/2）；Decoder_3 用 reslstm。
+# LoRA：冻结后 std2lora 替换 Linear/Embedding，仅训 LoRA 分支。
+if lcnfg.lora_features is not None:
 	freeze_module(mymodel)
-	mymodel = std2lora(mymodel, lora_features=lcnfg.lora_features, lora_alpha=lcnfg.lora_alpha, scaling=lcnfg.scaling, update_bias=lcnfg.update_bias, name_cfunc=lcnfg.name_cfunc, keep_lora_weight_tying=lcnfg.keep_lora_weight_tying)[0]
-	
+	mymodel = std2lora(
+		mymodel,
+		lora_features=lcnfg.lora_features,
+		lora_alpha=lcnfg.lora_alpha,
+		scaling=lcnfg.scaling,
+		update_bias=lcnfg.update_bias,
+		name_cfunc=lcnfg.name_cfunc,
+		keep_lora_weight_tying=lcnfg.keep_lora_weight_tying,
+	)[0]
 	if lcnfg.fine_tune_linear_bias:
 		unfreeze_linear_bias(mymodel, name_cfunc=lcnfg.name_cfunc_lb)
 	if lcnfg.fine_tune_normer:
 		unfreeze_normer(mymodel, name_cfunc=lcnfg.name_cfunc_normer)
 	if lcnfg.lora_fine_tune_m is not None:
 		mymodel = load_model_cpu(lcnfg.lora_fine_tune_m, mymodel)
-	save_model_ps_func = rgrad_filter   # 保存时只保存 requires_grad=True 的参数（即 LoRA）
-# print(mymodel)
+	save_model_ps_func = rgrad_filter
+else:
+	freeze_module(mymodel)
+	if lcnfg.fine_tune_hplstm:
+		unfreeze_hplstm(mymodel)
+	if lcnfg.fine_tune_reslstm:
+		unfreeze_reslstm(mymodel)
+	save_model_ps_func = rgrad_filter
+
+
+
 # ----- 设备与多卡 / AMP / 优化器 / 学习率调度 / 状态保存 Holder -----
 if use_cuda_bfmp:
 	make_mp_model(mymodel)

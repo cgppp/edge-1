@@ -4,7 +4,7 @@
 并记录每条样本的 [指令长度, 总长度]，供后续写成 HDF5（src 组 + tgt 组）或直接做 batch 训练。
 
 与 tools/plm/mkiodata_llmdec.py 的写入格式一致：每条样本 = 指令 token 序列 + 回答 token 序列，
-tgt 侧用 [lid, lgth] 表示回答区间在拼接序列中的起止（0-based 为 [lid, lgth)，1-based 存为 start+1=lid+1, end+1=lgth+1）。
+tgt 侧 HDF5 直接存 **[lid, lgth]** 两数，语义为拼接序列上半开区间 **[lid, lgth)**（0-based）。
 """
 
 from math import ceil
@@ -60,7 +60,7 @@ def batch_loader(finput, ftarget, bsize, maxpad, maxpart, maxtoken, minbsize, ge
 		# 当前 batch 还能容纳本条样本：未满 minbsize，或长度未超且未满 _bsize
 		if (nd < minbsize) or (lgth <= maxlen and nd < _bsize):
 			rsi.append(i_d + td)       # 拼接：指令 + 回答
-			rsl.append([lid, lgth])    # 记录区间，供 tgt 写 [start+1, end+1] 即 [lid+1, lgth+1]
+			rsl.append([lid, lgth])    # 记录区间，供 tgt 原样写 [lid, lgth]
 			if lgth > mlen_i:
 				mlen_i = lgth
 			nd += 1

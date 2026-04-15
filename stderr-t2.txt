@@ -1,0 +1,962 @@
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 4.768 37.94
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 117, in train
+    loss.backward()
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/_tensor.py", line 630, in backward
+    torch.autograd.backward(
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/autograd/__init__.py", line 364, in backward
+    _engine_run_backward(
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/autograd/graph.py", line 865, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.40 GiB
+Requested               : 258.21 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 11.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 4.744 37.95
+Initial model saved
+Average loss over 2023615 tokens: 4.285
+Average loss over 2048793 tokens: 3.400
+Average loss over 2035748 tokens: 3.011
+Average loss over 2060995 tokens: 2.825
+Average loss over 2040745 tokens: 2.713
+Average loss over 2064720 tokens: 2.647
+Average loss over 2021779 tokens: 2.615
+Average loss over 2055730 tokens: 2.581
+Average loss over 2066949 tokens: 2.562
+Average loss over 2055872 tokens: 2.547
+Average loss over 2070728 tokens: 2.531
+Average loss over 2035155 tokens: 2.521
+Average loss over 2066576 tokens: 2.520
+Average loss over 2037690 tokens: 2.503
+Average loss over 912077 tokens: 2.496
+Epoch: 1, train loss: 2.793, valid loss/error: 2.528 25.80
+New best model saved
+Average loss over 2031933 tokens: 2.496
+Average loss over 2048356 tokens: 2.489
+Average loss over 2063451 tokens: 2.487
+Average loss over 2050832 tokens: 2.481
+Average loss over 2019548 tokens: 2.475
+Average loss over 2050596 tokens: 2.470
+Average loss over 2055672 tokens: 2.468
+Average loss over 2062077 tokens: 2.463
+Average loss over 2048136 tokens: 2.461
+Average loss over 2057779 tokens: 2.456
+Average loss over 2037884 tokens: 2.453
+Average loss over 2031544 tokens: 2.452
+Average loss over 2055392 tokens: 2.448
+Average loss over 2070132 tokens: 2.451
+Average loss over 913840 tokens: 2.449
+Epoch: 2, train loss: 2.467, valid loss/error: 2.471 24.77
+New best model saved
+Average loss over 2063131 tokens: 2.444
+Average loss over 2065253 tokens: 2.441
+Average loss over 2057389 tokens: 2.440
+Average loss over 2059044 tokens: 2.444
+Average loss over 2037360 tokens: 2.439
+Average loss over 2047066 tokens: 2.434
+Average loss over 2084395 tokens: 2.435
+Average loss over 2030572 tokens: 2.430
+Average loss over 2027580 tokens: 2.430
+Average loss over 2037152 tokens: 2.433
+Average loss over 2059795 tokens: 2.422
+Average loss over 2038315 tokens: 2.429
+Average loss over 2052741 tokens: 2.425
+Average loss over 2030400 tokens: 2.424
+Average loss over 906979 tokens: 2.432
+Epoch: 3, train loss: 2.433, valid loss/error: 2.448 24.33
+New best model saved
+Average loss over 2044039 tokens: 2.419
+Average loss over 2047139 tokens: 2.418
+Average loss over 2065424 tokens: 2.417
+Average loss over 2035116 tokens: 2.419
+Average loss over 2046870 tokens: 2.424
+Average loss over 2059553 tokens: 2.415
+Average loss over 2044075 tokens: 2.420
+Average loss over 2046166 tokens: 2.414
+Average loss over 2049224 tokens: 2.414
+Average loss over 2021411 tokens: 2.416
+Average loss over 2066478 tokens: 2.409
+Average loss over 2071835 tokens: 2.405
+Average loss over 2045466 tokens: 2.405
+Average loss over 2044711 tokens: 2.414
+Average loss over 909665 tokens: 2.414
+Epoch: 4, train loss: 2.415, valid loss/error: 2.432 24.00
+New best model saved
+Average loss over 2038683 tokens: 2.404
+Average loss over 2054744 tokens: 2.406
+Average loss over 2057374 tokens: 2.407
+Average loss over 2053827 tokens: 2.397
+Average loss over 2028026 tokens: 2.404
+Average loss over 2052537 tokens: 2.398
+Average loss over 2085809 tokens: 2.402
+Average loss over 2045556 tokens: 2.402
+Average loss over 2013009 tokens: 2.403
+Average loss over 2062626 tokens: 2.402
+Average loss over 2053542 tokens: 2.398
+Average loss over 2048655 tokens: 2.403
+Average loss over 2041037 tokens: 2.400
+Average loss over 2041744 tokens: 2.399
+Average loss over 920003 tokens: 2.397
+Epoch: 5, train loss: 2.402, valid loss/error: 2.420 23.76
+New best model saved
+Average loss over 2051498 tokens: 2.398
+Average loss over 2043210 tokens: 2.391
+Average loss over 2061545 tokens: 2.395
+Average loss over 2025193 tokens: 2.394
+Average loss over 2069508 tokens: 2.392
+Average loss over 2041615 tokens: 2.395
+Average loss over 2058044 tokens: 2.393
+Average loss over 2026889 tokens: 2.385
+Average loss over 2033044 tokens: 2.394
+Average loss over 2047442 tokens: 2.392
+Average loss over 2082463 tokens: 2.386
+Average loss over 2045155 tokens: 2.389
+Average loss over 2048363 tokens: 2.393
+Average loss over 2057040 tokens: 2.388
+Average loss over 906163 tokens: 2.384
+Epoch: 6, train loss: 2.392, valid loss/error: 2.411 23.58
+New best model saved
+Average loss over 2031258 tokens: 2.381
+Average loss over 2041954 tokens: 2.385
+Average loss over 2040947 tokens: 2.390
+Average loss over 2073455 tokens: 2.382
+Average loss over 2042164 tokens: 2.391
+Average loss over 2074778 tokens: 2.384
+Average loss over 2028972 tokens: 2.380
+Average loss over 2046478 tokens: 2.388
+Average loss over 2037673 tokens: 2.382
+Average loss over 2026826 tokens: 2.383
+Average loss over 2078318 tokens: 2.382
+Average loss over 2057579 tokens: 2.377
+Average loss over 2070607 tokens: 2.378
+Average loss over 2042017 tokens: 2.390
+Average loss over 904146 tokens: 2.378
+Epoch: 7, train loss: 2.384, valid loss/error: 2.404 23.47
+New best model saved
+Average loss over 2081541 tokens: 2.376
+Average loss over 2045001 tokens: 2.374
+Average loss over 2066824 tokens: 2.371
+Average loss over 2052407 tokens: 2.380
+Average loss over 2065520 tokens: 2.382
+Average loss over 2050053 tokens: 2.375
+Average loss over 2037614 tokens: 2.382
+Average loss over 2047974 tokens: 2.384
+Average loss over 2047772 tokens: 2.376
+Average loss over 2016251 tokens: 2.376
+Average loss over 2051486 tokens: 2.373
+Average loss over 2004113 tokens: 2.374
+Average loss over 2048444 tokens: 2.383
+Average loss over 2074664 tokens: 2.368
+Average loss over 907508 tokens: 2.368
+Epoch: 8, train loss: 2.377, valid loss/error: 2.396 23.34
+New best model saved
+Average loss over 2037384 tokens: 2.370
+Average loss over 2028001 tokens: 2.375
+Average loss over 2045748 tokens: 2.369
+Average loss over 2032856 tokens: 2.367
+Average loss over 2037293 tokens: 2.374
+Average loss over 2079924 tokens: 2.374
+Average loss over 2047200 tokens: 2.370
+Average loss over 2054402 tokens: 2.372
+Average loss over 2044445 tokens: 2.375
+Average loss over 2067618 tokens: 2.367
+Average loss over 2064379 tokens: 2.368
+Average loss over 2043836 tokens: 2.372
+Average loss over 2057209 tokens: 2.367
+Average loss over 2052408 tokens: 2.365
+Average loss over 904469 tokens: 2.366
+Epoch: 9, train loss: 2.370, valid loss/error: 2.391 23.23
+New best model saved
+Average loss over 2079428 tokens: 2.362
+Average loss over 2042518 tokens: 2.370
+Average loss over 2061648 tokens: 2.366
+Average loss over 2068266 tokens: 2.369
+Average loss over 2051403 tokens: 2.362
+Average loss over 2049737 tokens: 2.367
+Average loss over 2038165 tokens: 2.369
+Average loss over 2043645 tokens: 2.360
+Average loss over 2050361 tokens: 2.364
+Average loss over 2045656 tokens: 2.361
+Average loss over 2007485 tokens: 2.363
+Average loss over 2058284 tokens: 2.366
+Average loss over 2033860 tokens: 2.361
+Average loss over 2049085 tokens: 2.365
+Average loss over 917631 tokens: 2.366
+Epoch: 10, train loss: 2.365, valid loss/error: 2.385 23.11
+New best model saved
+Average loss over 2058406 tokens: 2.360
+Average loss over 2022149 tokens: 2.359
+Average loss over 2045022 tokens: 2.360
+Average loss over 2048611 tokens: 2.360
+Average loss over 2055656 tokens: 2.366
+Average loss over 2030053 tokens: 2.361
+Average loss over 2039459 tokens: 2.360
+Average loss over 2041835 tokens: 2.358
+Average loss over 2068696 tokens: 2.358
+Average loss over 2031170 tokens: 2.362
+Average loss over 2037308 tokens: 2.359
+Average loss over 2084255 tokens: 2.358
+Average loss over 2061231 tokens: 2.361
+Average loss over 2065239 tokens: 2.352
+Average loss over 908082 tokens: 2.357
+Epoch: 11, train loss: 2.360, valid loss/error: 2.380 23.07
+New best model saved
+Average loss over 2057459 tokens: 2.358
+Average loss over 2036936 tokens: 2.355
+Average loss over 2047456 tokens: 2.361
+Average loss over 2035441 tokens: 2.351
+Average loss over 2035709 tokens: 2.356
+Average loss over 2057661 tokens: 2.351
+Average loss over 2052449 tokens: 2.355
+Average loss over 2050080 tokens: 2.353
+Average loss over 2059070 tokens: 2.347
+Average loss over 2063551 tokens: 2.358
+Average loss over 2045965 tokens: 2.357
+Average loss over 2046624 tokens: 2.352
+Average loss over 2047450 tokens: 2.356
+Average loss over 2045192 tokens: 2.360
+Average loss over 916129 tokens: 2.353
+Epoch: 12, train loss: 2.355, valid loss/error: 2.376 22.93
+New best model saved
+Average loss over 2066046 tokens: 2.341
+Average loss over 2053499 tokens: 2.349
+Average loss over 2055756 tokens: 2.355
+Average loss over 2026815 tokens: 2.354
+Average loss over 2041018 tokens: 2.353
+Average loss over 2033970 tokens: 2.354
+Average loss over 2034917 tokens: 2.352
+Average loss over 2042422 tokens: 2.346
+Average loss over 2052971 tokens: 2.352
+Average loss over 2045796 tokens: 2.349
+Average loss over 2065893 tokens: 2.347
+Average loss over 2048381 tokens: 2.349
+Average loss over 2048015 tokens: 2.352
+Average loss over 2058153 tokens: 2.355
+Average loss over 923520 tokens: 2.345
+Epoch: 13, train loss: 2.350, valid loss/error: 2.371 22.87
+New best model saved
+Average loss over 2047423 tokens: 2.345
+Average loss over 2051577 tokens: 2.351
+Average loss over 2057755 tokens: 2.346
+Average loss over 2064282 tokens: 2.349
+Average loss over 2073172 tokens: 2.350
+Average loss over 2019921 tokens: 2.345
+Average loss over 2028119 tokens: 2.345
+Average loss over 2058698 tokens: 2.348
+Average loss over 2054671 tokens: 2.348
+Average loss over 2037143 tokens: 2.346
+Average loss over 2027777 tokens: 2.345
+Average loss over 2056229 tokens: 2.345
+Average loss over 2051684 tokens: 2.342
+Average loss over 2065161 tokens: 2.346
+Average loss over 903560 tokens: 2.340
+Epoch: 14, train loss: 2.346, valid loss/error: 2.367 22.83
+New best model saved
+Average loss over 2047603 tokens: 2.348
+Average loss over 2046211 tokens: 2.336
+Average loss over 2048258 tokens: 2.341
+Average loss over 2028334 tokens: 2.345
+Average loss over 2055595 tokens: 2.341
+Average loss over 2060043 tokens: 2.341
+Average loss over 2037164 tokens: 2.343
+Average loss over 2066190 tokens: 2.342
+Average loss over 2052266 tokens: 2.343
+Average loss over 2065666 tokens: 2.345
+Average loss over 2036107 tokens: 2.344
+Average loss over 2026556 tokens: 2.342
+Average loss over 2076631 tokens: 2.335
+Average loss over 2040715 tokens: 2.345
+Average loss over 909833 tokens: 2.347
+Epoch: 15, train loss: 2.342, valid loss/error: 2.364 22.74
+New best model saved
+Average loss over 2061380 tokens: 2.339
+Average loss over 2054058 tokens: 2.342
+Average loss over 2040853 tokens: 2.339
+Average loss over 2063839 tokens: 2.340
+Average loss over 2043647 tokens: 2.338
+Average loss over 2033145 tokens: 2.339
+Average loss over 2028905 tokens: 2.339
+Average loss over 2045557 tokens: 2.337
+Average loss over 2045882 tokens: 2.339
+Average loss over 2045079 tokens: 2.336
+Average loss over 2058648 tokens: 2.336
+Average loss over 2069344 tokens: 2.341
+Average loss over 2057470 tokens: 2.341
+Average loss over 2038932 tokens: 2.337
+Average loss over 910433 tokens: 2.340
+Epoch: 16, train loss: 2.339, valid loss/error: 2.361 22.69
+New best model saved
+Average loss over 2070129 tokens: 2.329
+Average loss over 2049570 tokens: 2.343
+Average loss over 2042242 tokens: 2.338
+Average loss over 2017336 tokens: 2.333
+Average loss over 2053587 tokens: 2.339
+Average loss over 2070321 tokens: 2.332
+Average loss over 2054174 tokens: 2.339
+Average loss over 2063496 tokens: 2.332
+Average loss over 2033321 tokens: 2.337
+Average loss over 2034143 tokens: 2.333
+Average loss over 2054566 tokens: 2.332
+Average loss over 2057075 tokens: 2.339
+Average loss over 2062034 tokens: 2.332
+Average loss over 2027214 tokens: 2.337
+Average loss over 907964 tokens: 2.329
+Epoch: 17, train loss: 2.335, valid loss/error: 2.358 22.65
+New best model saved
+Average loss over 2058685 tokens: 2.327
+Average loss over 2057455 tokens: 2.335
+Average loss over 2052409 tokens: 2.336
+Average loss over 2062042 tokens: 2.331
+Average loss over 2023328 tokens: 2.338
+Average loss over 2058652 tokens: 2.333
+Average loss over 2040524 tokens: 2.329
+Average loss over 2059118 tokens: 2.337
+Average loss over 2043719 tokens: 2.327
+Average loss over 2073859 tokens: 2.330
+Average loss over 2041511 tokens: 2.331
+Average loss over 2054255 tokens: 2.328
+Average loss over 2047766 tokens: 2.334
+Average loss over 2032882 tokens: 2.336
+Average loss over 890967 tokens: 2.325
+Epoch: 18, train loss: 2.332, valid loss/error: 2.355 22.56
+New best model saved
+Average loss over 2035784 tokens: 2.334
+Average loss over 2067249 tokens: 2.328
+Average loss over 2045307 tokens: 2.327
+Average loss over 2023049 tokens: 2.334
+Average loss over 2061265 tokens: 2.330
+Average loss over 2035130 tokens: 2.324
+Average loss over 2074218 tokens: 2.327
+Average loss over 2070959 tokens: 2.332
+Average loss over 2049694 tokens: 2.331
+Average loss over 2032799 tokens: 2.330
+Average loss over 2041005 tokens: 2.328
+Average loss over 2070010 tokens: 2.331
+Average loss over 2033425 tokens: 2.329
+Average loss over 2047946 tokens: 2.322
+Average loss over 909332 tokens: 2.330
+Epoch: 19, train loss: 2.329, valid loss/error: 2.353 22.55
+New best model saved
+Average loss over 2032694 tokens: 2.326
+Average loss over 2052167 tokens: 2.320
+Average loss over 2046901 tokens: 2.329
+Average loss over 2053857 tokens: 2.331
+Average loss over 2068010 tokens: 2.326
+Average loss over 2055761 tokens: 2.323
+Average loss over 2053630 tokens: 2.326
+Average loss over 2049144 tokens: 2.328
+Average loss over 2064208 tokens: 2.321
+Average loss over 2074555 tokens: 2.327
+Average loss over 2041243 tokens: 2.328
+Average loss over 2034606 tokens: 2.326
+Average loss over 2034206 tokens: 2.327
+Average loss over 2037433 tokens: 2.323
+Average loss over 898757 tokens: 2.336
+Epoch: 20, train loss: 2.326, valid loss/error: 2.349 22.49
+New best model saved
+Average loss over 2068604 tokens: 2.329
+Average loss over 2058864 tokens: 2.323
+Average loss over 2058729 tokens: 2.325
+Average loss over 2053222 tokens: 2.325
+Average loss over 2059739 tokens: 2.320
+Average loss over 2040769 tokens: 2.323
+Average loss over 2046149 tokens: 2.318
+Average loss over 2016854 tokens: 2.324
+Average loss over 2081951 tokens: 2.323
+Average loss over 2048966 tokens: 2.329
+Average loss over 2049849 tokens: 2.318
+Average loss over 2058057 tokens: 2.324
+Average loss over 2036875 tokens: 2.319
+Average loss over 2005309 tokens: 2.324
+Average loss over 913235 tokens: 2.326
+Epoch: 21, train loss: 2.323, valid loss/error: 2.348 22.47
+New best model saved
+Average loss over 2020840 tokens: 2.322
+Average loss over 2037424 tokens: 2.320
+Average loss over 2037526 tokens: 2.317
+Average loss over 2063189 tokens: 2.316
+Average loss over 2055619 tokens: 2.326
+Average loss over 2045994 tokens: 2.321
+Average loss over 2039184 tokens: 2.327
+Average loss over 2062110 tokens: 2.321
+Average loss over 2036555 tokens: 2.318
+Average loss over 2027076 tokens: 2.325
+Average loss over 2066401 tokens: 2.316
+Average loss over 2065349 tokens: 2.318
+Average loss over 2060172 tokens: 2.320
+Average loss over 2068303 tokens: 2.321
+Average loss over 911430 tokens: 2.319
+Epoch: 22, train loss: 2.321, valid loss/error: 2.345 22.41
+New best model saved
+Average loss over 2049137 tokens: 2.320
+Average loss over 2040398 tokens: 2.315
+Average loss over 2018512 tokens: 2.316
+Average loss over 2062281 tokens: 2.319
+Average loss over 2062433 tokens: 2.318
+Average loss over 2053273 tokens: 2.319
+Average loss over 2035030 tokens: 2.316
+Average loss over 2030413 tokens: 2.317
+Average loss over 2066148 tokens: 2.314
+Average loss over 2055356 tokens: 2.315
+Average loss over 2055413 tokens: 2.324
+Average loss over 2056909 tokens: 2.324
+Average loss over 2053234 tokens: 2.317
+Average loss over 2046559 tokens: 2.319
+Average loss over 912076 tokens: 2.310
+Epoch: 23, train loss: 2.318, valid loss/error: 2.342 22.37
+New best model saved
+Average loss over 2035960 tokens: 2.314
+Average loss over 2030826 tokens: 2.319
+Average loss over 2042469 tokens: 2.316
+Average loss over 2037974 tokens: 2.317
+Average loss over 2039496 tokens: 2.312
+Average loss over 2065109 tokens: 2.313
+Average loss over 2019600 tokens: 2.314
+Average loss over 2079350 tokens: 2.315
+Average loss over 2075140 tokens: 2.319
+Average loss over 2070329 tokens: 2.315
+Average loss over 2041292 tokens: 2.318
+Average loss over 2015296 tokens: 2.321
+Average loss over 2089229 tokens: 2.313
+Average loss over 2053342 tokens: 2.307
+Average loss over 901760 tokens: 2.321
+Epoch: 24, train loss: 2.315, valid loss/error: 2.340 22.31
+New best model saved
+Average loss over 2064035 tokens: 2.313
+Average loss over 2059840 tokens: 2.308
+Average loss over 2046442 tokens: 2.315
+Average loss over 2047594 tokens: 2.313
+Average loss over 2037778 tokens: 2.317
+Average loss over 2043423 tokens: 2.320
+Average loss over 2052426 tokens: 2.314
+Average loss over 2044532 tokens: 2.313
+Average loss over 2045906 tokens: 2.305
+Average loss over 2062108 tokens: 2.312
+Average loss over 2036975 tokens: 2.317
+Average loss over 2053681 tokens: 2.309
+Average loss over 2025794 tokens: 2.317
+Average loss over 2063496 tokens: 2.310
+Average loss over 913142 tokens: 2.309
+Epoch: 25, train loss: 2.313, valid loss/error: 2.338 22.27
+New best model saved
+Average loss over 2049526 tokens: 2.315
+Average loss over 2046283 tokens: 2.307
+Average loss over 2061717 tokens: 2.312
+Average loss over 2034637 tokens: 2.316
+Average loss over 2069904 tokens: 2.306
+Average loss over 2029039 tokens: 2.311
+Average loss over 2058511 tokens: 2.306
+Average loss over 2040857 tokens: 2.311
+Average loss over 2041786 tokens: 2.314
+Average loss over 2052570 tokens: 2.320
+Average loss over 2039223 tokens: 2.302
+Average loss over 2036576 tokens: 2.307
+Average loss over 2077227 tokens: 2.310
+Average loss over 2059288 tokens: 2.308
+Average loss over 900028 tokens: 2.313
+Epoch: 26, train loss: 2.310, valid loss/error: 2.336 22.22
+New best model saved
+Average loss over 2062481 tokens: 2.305
+Average loss over 2060247 tokens: 2.312
+Average loss over 2023665 tokens: 2.309
+Average loss over 2066133 tokens: 2.306
+Average loss over 2040665 tokens: 2.313
+Average loss over 2039996 tokens: 2.304
+Average loss over 2046595 tokens: 2.304
+Average loss over 2045135 tokens: 2.308
+Average loss over 2068283 tokens: 2.311
+Average loss over 2045835 tokens: 2.307
+Average loss over 2030155 tokens: 2.315
+Average loss over 2059432 tokens: 2.306
+Average loss over 2065701 tokens: 2.305
+Average loss over 2032227 tokens: 2.309
+Average loss over 910622 tokens: 2.313
+Epoch: 27, train loss: 2.308, valid loss/error: 2.334 22.16
+New best model saved
+Average loss over 2051065 tokens: 2.307
+Average loss over 2038864 tokens: 2.314
+Average loss over 2051751 tokens: 2.302
+Average loss over 2039471 tokens: 2.310
+Average loss over 2055276 tokens: 2.300
+Average loss over 2052034 tokens: 2.303
+Average loss over 2041280 tokens: 2.308
+Average loss over 2048191 tokens: 2.301
+Average loss over 2044090 tokens: 2.306
+Average loss over 2063402 tokens: 2.309
+Average loss over 2039283 tokens: 2.311
+Average loss over 2036674 tokens: 2.304
+Average loss over 2046624 tokens: 2.301
+Average loss over 2079643 tokens: 2.308
+Average loss over 909524 tokens: 2.307
+Epoch: 28, train loss: 2.306, valid loss/error: 2.332 22.15
+New best model saved
+Average loss over 2061851 tokens: 2.301
+Average loss over 2046919 tokens: 2.305
+Average loss over 2057793 tokens: 2.299
+Average loss over 2056105 tokens: 2.308
+Average loss over 2039572 tokens: 2.303
+Average loss over 2054110 tokens: 2.302
+Average loss over 2058232 tokens: 2.303
+Average loss over 2078729 tokens: 2.307
+Average loss over 2047837 tokens: 2.306
+Average loss over 2036644 tokens: 2.305
+Average loss over 2021945 tokens: 2.302
+Average loss over 2041450 tokens: 2.309
+Average loss over 2046952 tokens: 2.303
+Average loss over 2048063 tokens: 2.303
+Average loss over 900970 tokens: 2.302
+Epoch: 29, train loss: 2.304, valid loss/error: 2.330 22.12
+New best model saved
+Average loss over 2051071 tokens: 2.302
+Average loss over 2037073 tokens: 2.308
+Average loss over 2040033 tokens: 2.300
+Average loss over 2045743 tokens: 2.302
+Average loss over 2037341 tokens: 2.302
+Average loss over 2042252 tokens: 2.297
+Average loss over 2036166 tokens: 2.304
+Average loss over 2027624 tokens: 2.302
+Average loss over 2054610 tokens: 2.306
+Average loss over 2054804 tokens: 2.303
+Average loss over 2044558 tokens: 2.303
+Average loss over 2063081 tokens: 2.297
+Average loss over 2073935 tokens: 2.304
+Average loss over 2071412 tokens: 2.298
+Average loss over 917469 tokens: 2.302
+Epoch: 30, train loss: 2.302, valid loss/error: 2.329 22.09
+New best model saved
+Average loss over 2050402 tokens: 2.302
+Average loss over 2072906 tokens: 2.295
+Average loss over 2042916 tokens: 2.299
+Average loss over 2055784 tokens: 2.300
+Average loss over 2059943 tokens: 2.298
+Average loss over 2051272 tokens: 2.304
+Average loss over 2062032 tokens: 2.300
+Average loss over 2045027 tokens: 2.300
+Average loss over 2059298 tokens: 2.297
+Average loss over 2011689 tokens: 2.298
+Average loss over 2053859 tokens: 2.306
+Average loss over 2039774 tokens: 2.297
+Average loss over 2052093 tokens: 2.307
+Average loss over 2034104 tokens: 2.300
+Average loss over 906073 tokens: 2.296
+Epoch: 31, train loss: 2.300, valid loss/error: 2.328 22.10
+New best model saved
+Average loss over 2074647 tokens: 2.298
+Average loss over 2041935 tokens: 2.294
+Average loss over 2064925 tokens: 2.294
+Average loss over 2058949 tokens: 2.297
+Average loss over 2062035 tokens: 2.295
+Average loss over 2015432 tokens: 2.300
+Average loss over 2049240 tokens: 2.300
+Average loss over 2053110 tokens: 2.299
+Average loss over 2041815 tokens: 2.303
+Average loss over 2042201 tokens: 2.304
+Average loss over 2049409 tokens: 2.294
+Average loss over 2026548 tokens: 2.303
+Average loss over 2036612 tokens: 2.301
+Average loss over 2036953 tokens: 2.297
+Average loss over 943361 tokens: 2.291
+Epoch: 32, train loss: 2.298, valid loss/error: 2.326 22.01
+New best model saved
+Average loss over 2044938 tokens: 2.292
+Average loss over 2043179 tokens: 2.296
+Average loss over 2046037 tokens: 2.295
+Average loss over 2067543 tokens: 2.299
+Average loss over 2055887 tokens: 2.300
+Average loss over 2055347 tokens: 2.300
+Average loss over 2044738 tokens: 2.293
+Average loss over 2093101 tokens: 2.298
+Average loss over 2015574 tokens: 2.295
+Average loss over 2038329 tokens: 2.296
+Average loss over 2052541 tokens: 2.298
+Average loss over 2038354 tokens: 2.292
+Average loss over 2047702 tokens: 2.301
+Average loss over 2039816 tokens: 2.297
+Average loss over 914086 tokens: 2.295
+Epoch: 33, train loss: 2.296, valid loss/error: 2.324 22.01
+New best model saved
+Average loss over 2048026 tokens: 2.296
+Average loss over 2079172 tokens: 2.301
+Average loss over 2035036 tokens: 2.294
+Average loss over 2060720 tokens: 2.297
+Average loss over 2046887 tokens: 2.294
+Average loss over 2055532 tokens: 2.290
+Average loss over 2023319 tokens: 2.294
+Average loss over 2021864 tokens: 2.297
+Average loss over 2043758 tokens: 2.293
+Average loss over 2049783 tokens: 2.296
+Average loss over 2044824 tokens: 2.294
+Average loss over 2031078 tokens: 2.293
+Average loss over 2057650 tokens: 2.299
+Average loss over 2076978 tokens: 2.288
+Average loss over 922545 tokens: 2.298
+Epoch: 34, train loss: 2.295, valid loss/error: 2.323 22.01
+New best model saved
+Average loss over 2063315 tokens: 2.290
+Average loss over 2053486 tokens: 2.298
+Average loss over 2041273 tokens: 2.290
+Average loss over 2040245 tokens: 2.299
+Average loss over 2045689 tokens: 2.287
+Average loss over 2047505 tokens: 2.293
+Average loss over 2057528 tokens: 2.298
+Average loss over 2046409 tokens: 2.285
+Average loss over 2040243 tokens: 2.292
+Average loss over 2045648 tokens: 2.294
+Average loss over 2060846 tokens: 2.290
+Average loss over 2071406 tokens: 2.297
+Average loss over 2023832 tokens: 2.293
+Average loss over 2052356 tokens: 2.295
+Average loss over 907391 tokens: 2.294
+Epoch: 35, train loss: 2.293, valid loss/error: 2.320 21.92
+New best model saved
+Average loss over 2051799 tokens: 2.292
+Average loss over 2050554 tokens: 2.290
+Average loss over 2076081 tokens: 2.293
+Average loss over 2036691 tokens: 2.293
+Average loss over 2058174 tokens: 2.291
+Average loss over 2039511 tokens: 2.291
+Average loss over 2035544 tokens: 2.292
+Average loss over 2054099 tokens: 2.296
+Average loss over 2062838 tokens: 2.291
+Average loss over 2035497 tokens: 2.288
+Average loss over 2025848 tokens: 2.292
+Average loss over 2047643 tokens: 2.292
+Average loss over 2054362 tokens: 2.298
+Average loss over 2053047 tokens: 2.285
+Average loss over 915484 tokens: 2.284
+Epoch: 36, train loss: 2.291, valid loss/error: 2.319 21.93
+New best model saved
+Average loss over 2051781 tokens: 2.289
+Average loss over 2024403 tokens: 2.291
+Average loss over 2075528 tokens: 2.289
+Average loss over 2047154 tokens: 2.293
+Average loss over 2036429 tokens: 2.290
+Average loss over 2044151 tokens: 2.287
+Average loss over 2051966 tokens: 2.294
+Average loss over 2034057 tokens: 2.291
+Average loss over 2079598 tokens: 2.285
+Average loss over 2085070 tokens: 2.293
+Average loss over 2051452 tokens: 2.290
+Average loss over 2036696 tokens: 2.288
+Average loss over 2042763 tokens: 2.287
+Average loss over 2034951 tokens: 2.289
+Average loss over 901173 tokens: 2.294
+Epoch: 37, train loss: 2.290, valid loss/error: 2.319 21.91
+New best model saved
+Average loss over 2032446 tokens: 2.287
+Average loss over 2047279 tokens: 2.292
+Average loss over 2032605 tokens: 2.288
+Average loss over 2056571 tokens: 2.287
+Average loss over 2046430 tokens: 2.291
+Average loss over 2057740 tokens: 2.287
+Average loss over 2055485 tokens: 2.287
+Average loss over 2072006 tokens: 2.292
+Average loss over 2034071 tokens: 2.290
+Average loss over 2034067 tokens: 2.288
+Average loss over 2065684 tokens: 2.292
+Average loss over 2049336 tokens: 2.286
+Average loss over 2031154 tokens: 2.283
+Average loss over 2071068 tokens: 2.286
+Average loss over 911230 tokens: 2.290
+Epoch: 38, train loss: 2.288, valid loss/error: 2.317 21.93
+New best model saved
+Average loss over 2038752 tokens: 2.289
+Average loss over 2069790 tokens: 2.284
+Average loss over 2020015 tokens: 2.286
+Average loss over 2082783 tokens: 2.285
+Average loss over 2038551 tokens: 2.288
+Average loss over 2055806 tokens: 2.286
+Average loss over 2062801 tokens: 2.289
+Average loss over 2029112 tokens: 2.287
+Average loss over 2055423 tokens: 2.291
+Average loss over 2044401 tokens: 2.288
+Average loss over 2067823 tokens: 2.283
+Average loss over 2034199 tokens: 2.284
+Average loss over 2049431 tokens: 2.291
+Average loss over 2042157 tokens: 2.284
+Average loss over 906128 tokens: 2.285
+Epoch: 39, train loss: 2.287, valid loss/error: 2.316 21.84
+New best model saved
+Average loss over 2041508 tokens: 2.292
+Average loss over 2055413 tokens: 2.290
+Average loss over 2022397 tokens: 2.280
+Average loss over 2067919 tokens: 2.287
+Average loss over 2039040 tokens: 2.282
+Average loss over 2083069 tokens: 2.286
+Average loss over 2058323 tokens: 2.286
+Average loss over 2041195 tokens: 2.286
+Average loss over 2054762 tokens: 2.282
+Average loss over 2045597 tokens: 2.285
+Average loss over 2077845 tokens: 2.285
+Average loss over 2034014 tokens: 2.286
+Average loss over 2045975 tokens: 2.285
+Average loss over 2029960 tokens: 2.285
+Average loss over 900155 tokens: 2.283
+Epoch: 40, train loss: 2.285, valid loss/error: 2.316 21.90
+New best model saved
+Average loss over 2072422 tokens: 2.283
+Average loss over 2040086 tokens: 2.283
+Average loss over 2072050 tokens: 2.287
+Average loss over 2053262 tokens: 2.280
+Average loss over 2046998 tokens: 2.284
+Average loss over 2061069 tokens: 2.286
+Average loss over 2032952 tokens: 2.282
+Average loss over 2041225 tokens: 2.284
+Average loss over 2080029 tokens: 2.283
+Average loss over 2034527 tokens: 2.282
+Average loss over 2065134 tokens: 2.286
+Average loss over 2018933 tokens: 2.283
+Average loss over 2030277 tokens: 2.286
+Average loss over 2040726 tokens: 2.282
+Average loss over 907482 tokens: 2.289
+Epoch: 41, train loss: 2.284, valid loss/error: 2.314 21.84
+New best model saved
+Average loss over 2049514 tokens: 2.279
+Average loss over 2039836 tokens: 2.288
+Average loss over 2036536 tokens: 2.280
+Average loss over 2050043 tokens: 2.280
+Average loss over 2066530 tokens: 2.287
+Average loss over 2058943 tokens: 2.281
+Average loss over 2054534 tokens: 2.282
+Average loss over 2059705 tokens: 2.279
+Average loss over 2058558 tokens: 2.283
+Average loss over 2030169 tokens: 2.282
+Average loss over 2037335 tokens: 2.279
+Average loss over 2070598 tokens: 2.285
+Average loss over 2047588 tokens: 2.283
+Average loss over 2023860 tokens: 2.282
+Average loss over 913423 tokens: 2.292
+Epoch: 42, train loss: 2.282, valid loss/error: 2.313 21.79
+New best model saved
+Average loss over 2051482 tokens: 2.280
+Average loss over 2057004 tokens: 2.280
+Average loss over 2065965 tokens: 2.280
+Average loss over 2045934 tokens: 2.278
+Average loss over 2028858 tokens: 2.282
+Average loss over 2059667 tokens: 2.284
+Average loss over 2068410 tokens: 2.278
+Average loss over 2035017 tokens: 2.283
+Average loss over 2038293 tokens: 2.281
+Average loss over 2058327 tokens: 2.286
+Average loss over 2043646 tokens: 2.284
+Average loss over 2045499 tokens: 2.279
+Average loss over 2039303 tokens: 2.281
+Average loss over 2058477 tokens: 2.278
+Average loss over 901290 tokens: 2.284
+Epoch: 43, train loss: 2.281, valid loss/error: 2.313 21.85
+New best model saved
+Average loss over 2049139 tokens: 2.279
+Average loss over 2030140 tokens: 2.281
+Average loss over 2025954 tokens: 2.272
+Average loss over 2030720 tokens: 2.278
+Average loss over 2070404 tokens: 2.280
+Average loss over 2051343 tokens: 2.282
+Average loss over 2059101 tokens: 2.278
+Average loss over 2048946 tokens: 2.279
+Average loss over 2045533 tokens: 2.280
+Average loss over 2057233 tokens: 2.282
+Average loss over 2053257 tokens: 2.279
+Average loss over 2057876 tokens: 2.279
+Average loss over 2067979 tokens: 2.282
+Average loss over 2038083 tokens: 2.282
+Average loss over 911464 tokens: 2.285
+Epoch: 44, train loss: 2.280, valid loss/error: 2.312 21.78
+New best model saved
+Average loss over 2041812 tokens: 2.277
+Average loss over 2064686 tokens: 2.274
+Average loss over 2050303 tokens: 2.283
+Average loss over 2042696 tokens: 2.277
+Average loss over 2042497 tokens: 2.277
+Average loss over 2051641 tokens: 2.282
+Average loss over 2073179 tokens: 2.276
+Average loss over 2058028 tokens: 2.277
+Average loss over 2050911 tokens: 2.278
+Average loss over 2033183 tokens: 2.274
+Average loss over 2057902 tokens: 2.279
+Average loss over 2033982 tokens: 2.285
+Average loss over 2047437 tokens: 2.279
+Average loss over 2020350 tokens: 2.278
+Average loss over 928565 tokens: 2.283
+Epoch: 45, train loss: 2.278, valid loss/error: 2.310 21.74
+New best model saved
+Average loss over 2061528 tokens: 2.280
+Average loss over 2056726 tokens: 2.277
+Average loss over 2055750 tokens: 2.273
+Average loss over 2078149 tokens: 2.272
+Average loss over 2041026 tokens: 2.278
+Average loss over 2029628 tokens: 2.284
+Average loss over 2043297 tokens: 2.274
+Average loss over 2026246 tokens: 2.282
+Average loss over 2058967 tokens: 2.273
+Average loss over 2071925 tokens: 2.275
+Average loss over 2034371 tokens: 2.281
+Average loss over 2016533 tokens: 2.278
+Average loss over 2058628 tokens: 2.279
+Average loss over 2054704 tokens: 2.274
+Average loss over 909694 tokens: 2.282
+Epoch: 46, train loss: 2.277, valid loss/error: 2.310 21.79
+Average loss over 2046464 tokens: 2.270
+Average loss over 2057085 tokens: 2.278
+Average loss over 2045844 tokens: 2.281
+Average loss over 2052931 tokens: 2.277
+Average loss over 2069038 tokens: 2.269
+Average loss over 2064569 tokens: 2.277
+Average loss over 2044305 tokens: 2.279
+Average loss over 2042268 tokens: 2.272
+Average loss over 2047023 tokens: 2.278
+Average loss over 2034660 tokens: 2.280
+Average loss over 2035377 tokens: 2.278
+Average loss over 2056034 tokens: 2.279
+Average loss over 2049014 tokens: 2.276
+Average loss over 2051586 tokens: 2.271
+Average loss over 900974 tokens: 2.273
+Epoch: 47, train loss: 2.276, valid loss/error: 2.309 21.72
+New best model saved
+Average loss over 2040630 tokens: 2.277
+Average loss over 2060211 tokens: 2.271
+Average loss over 2063285 tokens: 2.278
+Average loss over 2027330 tokens: 2.278
+Average loss over 2078423 tokens: 2.274
+Average loss over 2046258 tokens: 2.274
+Average loss over 2044874 tokens: 2.271
+Average loss over 2045273 tokens: 2.273
+Average loss over 2053435 tokens: 2.272
+Average loss over 2040705 tokens: 2.275
+Average loss over 2045566 tokens: 2.279
+Average loss over 2049993 tokens: 2.274
+Average loss over 2063743 tokens: 2.278
+Average loss over 2047923 tokens: 2.272
+Average loss over 889523 tokens: 2.274
+Epoch: 48, train loss: 2.275, valid loss/error: 2.308 21.73
+New best model saved
+Average loss over 2048157 tokens: 2.267
+Average loss over 2056087 tokens: 2.272
+Average loss over 2045584 tokens: 2.273
+Average loss over 2052820 tokens: 2.272
+Average loss over 2056283 tokens: 2.278
+Average loss over 2043020 tokens: 2.271
+Average loss over 2068030 tokens: 2.275
+Average loss over 2031268 tokens: 2.274
+Average loss over 2036905 tokens: 2.275
+Average loss over 2025310 tokens: 2.273
+Average loss over 2057840 tokens: 2.275
+Average loss over 2049771 tokens: 2.273
+Average loss over 2050608 tokens: 2.275
+Average loss over 2061417 tokens: 2.275
+Average loss over 914072 tokens: 2.272
+Epoch: 49, train loss: 2.273, valid loss/error: 2.307 21.69
+New best model saved
+Average loss over 2065701 tokens: 2.275
+Average loss over 2042196 tokens: 2.269
+Average loss over 2053381 tokens: 2.271
+Average loss over 2044798 tokens: 2.274
+Average loss over 2070984 tokens: 2.276
+Average loss over 2052698 tokens: 2.274
+Average loss over 2047430 tokens: 2.273
+Average loss over 2072285 tokens: 2.274
+Average loss over 2049664 tokens: 2.271
+Average loss over 2041958 tokens: 2.268
+Average loss over 2025409 tokens: 2.276
+Average loss over 2005696 tokens: 2.274
+Average loss over 2058041 tokens: 2.265
+Average loss over 2037275 tokens: 2.271
+Average loss over 929656 tokens: 2.275
+Epoch: 50, train loss: 2.272, valid loss/error: 2.307 21.70
+Average loss over 2056404 tokens: 2.270
+Average loss over 2046244 tokens: 2.269
+Average loss over 2044759 tokens: 2.274
+Average loss over 2066908 tokens: 2.270
+Average loss over 2068092 tokens: 2.270
+Average loss over 2023277 tokens: 2.276
+Average loss over 2051491 tokens: 2.266
+Average loss over 2044064 tokens: 2.271
+Average loss over 2042383 tokens: 2.271
+Average loss over 2047493 tokens: 2.269
+Average loss over 2047645 tokens: 2.275
+Average loss over 2035413 tokens: 2.274
+Average loss over 2036843 tokens: 2.269
+Average loss over 2072494 tokens: 2.270
+Average loss over 913662 tokens: 2.269
+Epoch: 51, train loss: 2.271, valid loss/error: 2.305 21.68
+New best model saved
+Average loss over 2051832 tokens: 2.270
+Average loss over 2038231 tokens: 2.270
+Average loss over 2038317 tokens: 2.273
+Average loss over 2066209 tokens: 2.266
+Average loss over 2031992 tokens: 2.273
+Average loss over 2073542 tokens: 2.271
+Average loss over 2065190 tokens: 2.267
+Average loss over 2056521 tokens: 2.272
+Average loss over 2049442 tokens: 2.266
+Average loss over 2040849 tokens: 2.266
+Average loss over 2057373 tokens: 2.275
+Average loss over 2052407 tokens: 2.271
+Average loss over 2052076 tokens: 2.269
+Average loss over 2036462 tokens: 2.268
+Average loss over 886729 tokens: 2.273
+Epoch: 52, train loss: 2.270, valid loss/error: 2.305 21.64
+New best model saved
+Average loss over 2083323 tokens: 2.263
+Average loss over 2046389 tokens: 2.274
+Average loss over 2048098 tokens: 2.265
+Average loss over 2042363 tokens: 2.266
+Average loss over 2045598 tokens: 2.268
+Average loss over 2041879 tokens: 2.272
+Average loss over 2021223 tokens: 2.267
+Average loss over 2041643 tokens: 2.272
+Average loss over 2072792 tokens: 2.270
+Average loss over 2026461 tokens: 2.266
+Average loss over 2043150 tokens: 2.269
+Average loss over 2058770 tokens: 2.268
+Average loss over 2051459 tokens: 2.273
+Average loss over 2056333 tokens: 2.270
+Average loss over 917691 tokens: 2.264
+Epoch: 53, train loss: 2.269, valid loss/error: 2.304 21.68
+New best model saved
+Average loss over 2037655 tokens: 2.276
+Average loss over 2061387 tokens: 2.269
+Average loss over 2076671 tokens: 2.265
+Average loss over 2060891 tokens: 2.268
+Average loss over 2066694 tokens: 2.265
+Average loss over 2062840 tokens: 2.270
+Average loss over 2036902 tokens: 2.266
+Average loss over 2051122 tokens: 2.263
+Average loss over 2050263 tokens: 2.268
+Average loss over 2054810 tokens: 2.271
+Average loss over 2037841 tokens: 2.267
+Average loss over 2047836 tokens: 2.262
+Average loss over 2025900 tokens: 2.264
+Average loss over 2019559 tokens: 2.272
+Average loss over 906801 tokens: 2.267
+Epoch: 54, train loss: 2.268, valid loss/error: 2.304 21.68
+New best model saved
+Average loss over 2059616 tokens: 2.266
+Average loss over 2045545 tokens: 2.268
+Average loss over 2067062 tokens: 2.269
+Average loss over 2071925 tokens: 2.264
+Average loss over 2055955 tokens: 2.267
+Average loss over 2030668 tokens: 2.268
+Average loss over 2033699 tokens: 2.267
+Average loss over 2032106 tokens: 2.264
+Average loss over 2082299 tokens: 2.271
+Average loss over 2048199 tokens: 2.263
+Average loss over 2062325 tokens: 2.266
+Average loss over 2042201 tokens: 2.266
+Average loss over 2032141 tokens: 2.264
+Average loss over 1288381 tokens: 2.265
+Epoch: 55, train loss: 2.266, valid loss/error: 2.304 21.63
+New best model saved
+Last training step reached
+model saved

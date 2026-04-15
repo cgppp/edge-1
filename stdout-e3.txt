@@ -1,0 +1,7 @@
+TASK=nq_v1 PRED_FILE=expm/llm/pubdatasets_nq_closed/std/base/pred_last.txt GOLD_FILE=cache/llm/pubdatasets_nq_closed/tgt.dev.txt DETAIL_FILE=expm/llm/pubdatasets_nq_closed/std/base/eval_detail.jsonl
+task=nq_v1
+total=4462
+sum_score=16.000000
+mean_score=0.003586
+accuracy=0.003586
+detail_saved=expm/llm/pubdatasets_nq_closed/std/base/eval_detail.jsonl

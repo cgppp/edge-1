@@ -4,7 +4,7 @@
 
 输出 HDF5 结构（与 utils/train/llm.py 的 PMaskDataConverter、utils/fmt/plm/llmdec/dual.py 约定一致）：
 - src 组：key 为 "0","1",...；每 key 对应一个 (batch_size, seq_len) 的 token 矩阵，每条样本为「指令 token + 回答 token」经 pad 对齐。
-- tgt 组：同 key；每 key 对应 (batch_size, 2)，每行为该条样本回答区间在拼接序列中的 [start+1, end+1]（1-based），供训练时只对回答算 loss。
+- tgt 组：同 key；每 key 对应 (batch_size, 2)，每行为该条样本回答区间在拼接序列中的 [lid, lgth]（与 dual：半开区间 [lid, lgth) 的端点），供训练时只对回答算 loss。
 - ndata：标量，写入的 batch 总数。
 
 用法（命令行）:
@@ -107,13 +107,13 @@ def handle(finput, ftarget, frs, minbsize=1, expand_for_mulgpu=True, bsize=max_s
 	# ----- 打开 HDF5，创建 src / tgt 组，逐 batch 写入 -----
 	with h5File(frs, "w", **h5_fileargs) as rsf:
 		src_grp = rsf.create_group("src")   # 存每个 batch 的 token 矩阵
-		tgt_grp = rsf.create_group("tgt")   # 存每个 batch 的 [start+1, end+1] 矩阵
+		tgt_grp = rsf.create_group("tgt")   # 存每个 batch 的 [lid, lgth]（与 dual 一致）
 		curd = 0                             # 当前已写入的 batch 编号，同时用作 dataset 的 key（"0","1",...）
 		for i_d, ll in batch_padder(finput, ftarget, _bsize, maxpad, maxpart, _maxtoken, minbsize, pad_id=pad_id):
 			# i_d: 当前 batch 的 token 矩阵 (batch_size, seq_len)，每条样本为「指令+回答」拼接并 pad 对齐
 			# ll: 与 i_d 一一对应的 list of [lid, lgth]，lid=指令长度，lgth=总长度；回答区间 0-based 为 [lid, lgth)
 			rid = np_array(i_d, dtype=np_int32)   # 转为 numpy 以写入 HDF5
-			rtd = np_array([[lid + 1, lgth + 1] for lid, lgth in ll], dtype=np_int32)  # 转为 1-based [start+1, end+1]，与 PMaskDataConverter 约定一致
+			rtd = np_array([[lid, lgth] for lid, lgth in ll], dtype=np_int32)  # 与 dual / PMaskDataConverter(seq_o-1) 约定一致
 			wid = str(curd)   # dataset 的 key，如 "0", "1", ...
 			src_grp.create_dataset(wid, data=rid, **h5datawargs)
 			tgt_grp.create_dataset(wid, data=rtd, **h5datawargs)

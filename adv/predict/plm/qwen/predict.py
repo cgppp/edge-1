@@ -3,6 +3,7 @@
 # usage: python predict.py $rsf $/path/to/tokenizer $model
 
 import sys
+import os
 import torch
 from transformers import AutoTokenizer
 
@@ -48,7 +49,14 @@ def load_fixing(module):
 use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 
-td = h5File(cnfg.test_data, "r", **h5_fileargs)
+data_id = os.environ.get("DATA_ID")
+if data_id:
+	cache_dir = getattr(cnfg, "cache_dir", "cache/")
+	test_data = cache_dir + data_id + "/test.h5"
+else:
+	test_data = cnfg.test_data
+
+td = h5File(test_data, "r", **h5_fileargs)
 
 ntest = td["ndata"][()].item()
 

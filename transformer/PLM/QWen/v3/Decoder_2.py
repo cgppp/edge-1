@@ -9,10 +9,9 @@ Qwen3 Decoder-only 结构：单层 DecoderLayer（Self-Attn + FFN）与完整 De
 - 加载基座权重：train_lora_qwen.py 先 load_plm(pre_trained_m)，会逐层调用本文件 DecoderLayer.load_plm，从 .h5/.bin 的 state_dict 按 key 拷贝到本层；
   若启用 LoRA，之后会再对整网做 std2lora（见 utils/lora/base.py），把部分 Linear/Embedding 换成 LoRA 版。
 
-本文件定义：
-- DecoderLayer：一层 Qwen3 Transformer block（input_layernorm -> self_attn -> post_attention_layernorm -> mlp），
-  含 load_plm：把 HuggingFace 风格 key（如 model.layers.{i}.self_attn.q_proj.weight）映射到本层子模块。
-- Decoder：继承 LLMDecoder，结构为 wemb + N×DecoderLayer + out_normer + classifier；并实现 build_states、greedy_decode、beam_decode、_get_subsequent_mask，供推理/验证用。
+本文件定义（LORA_LAYER_SELECTION_GUIDE §11 方案 B）：
+- DecoderLayer：`ResSelfAttn` → `HPLSTM(attn_out)` → 残差 `attn_out + h` → `ff`。
+- 另见 `Decoder_1.py`（A）、`Decoder_3.py`（C）。
 """
 
 import torch
@@ -23,6 +22,8 @@ from torch import nn
 # 项目内模块：Dropout、RMSNorm、Qwen3 的 FFN 与自注意力
 from modules.base import Dropout
 from modules.norm.base import RMSNorm
+from modules.hplstm.snbase import HPLSTM
+from modules.hplstm.snbase import ResHPLSTM
 from modules.plm.qwen.v3 import PositionwiseFF, ResSelfAttn
 # 基类：DecoderLayer 只要求 isize/fhsize 等；Decoder 继承 LLMDecoder，forward 在基类里
 from transformer.Decoder import DecoderLayer as DecoderLayerBase
@@ -45,10 +46,7 @@ from cnfg.vocab.plm.qwen.v3 import eos_id, pad_id, sos_id
 
 class DecoderLayer(DecoderLayerBase):
 	"""
-	单层 Qwen3 Transformer block，数据流为：
-	  input_layernorm -> self_attn (q/k/v/o，可选 q_norm/k_norm) -> post_attention_layernorm -> mlp (gate/up + down)。
-	训练时：整段序列一次过，走 self_attn(inputo) -> ff(context)。
-	推理/验证自回归时：走 query_unit 模式，每步用上一步的 hidden 作为 query_unit，inputo 为上一段的 KV states。
+	方案 B：attn_out = ResSelfAttn(...)；h = HPLSTM(attn_out)；context = attn_out + h；再 ff。
 	"""
 
 	def __init__(self, isize, fhsize=None, dropout=0.0, attn_drop=0.0, act_drop=None, num_head=8, ahsize=None, norm_residual=norm_residual_default, k_rel_pos=use_k_relative_position_decoder, max_bucket_distance=relative_position_max_bucket_distance_decoder, num_kv_head=None, add_attn_qkv_bias=add_attn_qkv_bias, add_self_attn_qknorm=add_self_attn_qknorm, sliding_window=sliding_window, disable_ffn_bias=disable_ffn_bias, model_name="model", **kwargs):
@@ -62,8 +60,10 @@ class DecoderLayer(DecoderLayerBase):
 		self.self_attn = ResSelfAttn(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance, num_kv_head=num_kv_head, add_attn_qkv_bias=add_attn_qkv_bias, add_self_attn_qknorm=add_self_attn_qknorm, sliding_window=sliding_window)
 		# FFN：SwiGLU 风格 gate/up -> act -> down，含 post_attention_layernorm
 		self.ff = PositionwiseFF(isize, hsize=_fhsize, dropout=dropout, act_drop=act_drop, norm_residual=norm_residual, disable_ffn_bias=disable_ffn_bias)
-		# self.normer = RMSNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
-		# self.hplstm=HPLSTM(isize, hsize=_ahsize, num_head=num_head, dropout=attn_drop, norm_residual=norm_residual, k_rel_pos=k_rel_pos, uni_direction_reduction=True, max_bucket_distance=max_bucket_distance, num_kv_head=num_kv_head, add_attn_qkv_bias=add_attn_qkv_bias, add_self_attn_qknorm=add_self_attn_qknorm, sliding_window=sliding_window)
+		self.normer = RMSNorm(isize, eps=ieps_ln_default, elementwise_affine=enable_ln_parameters)
+		# 见 modules/hplstm/base.HPLSTM；与 ResSelfAttn 同 num_head / act_drop 即可，其余 kwargs 勿乱传以免 MHPLSTMCore 报错
+		self.hplstm = HPLSTM(isize, num_head=num_head, act_drop=attn_drop)
+		self.reslstm = ResHPLSTM(isize, num_head=num_head, dropout=dropout, act_drop=act_drop, HPLSTM=HPLSTM)
 
 	def forward(self, inputo, tgt_pad_mask=None, query_unit=None, slen=None, sliding_window_khead=None, **kwargs):
 		"""
@@ -75,6 +75,8 @@ class DecoderLayer(DecoderLayerBase):
 			context = self.self_attn(inputo, mask=tgt_pad_mask, slen=slen, sliding_window_khead=sliding_window_khead)
 		else:
 			context, states_return = self.self_attn(query_unit, mask=tgt_pad_mask, states=inputo, slen=slen, sliding_window_khead=sliding_window_khead)
+		h = self.hplstm(context)
+		context = context + h
 		context = self.ff(context)
 		return context if query_unit is None else (context, states_return,)
 
@@ -226,9 +228,7 @@ class Decoder(DecoderBase):
 			trans = wds if _use_repan else [wds]
 		else:
 			_ = ilen.gt(_nquery).unsqueeze(-1)
-			_start = _nquery - _inpute_slen
-			if (_.any().item()) and (0 <= _start < inpute.size(-1)):
-				wds[_] = inpute.narrow(-1, _start, 1)[_]
+			wds[_] = inpute.narrow(-1, _nquery - _inpute_slen, 1)[_]
 			done_trans &= ~_
 			trans = wds.masked_fill(_, sos_id) if _use_repan else [wds]
 
@@ -330,9 +330,7 @@ class Decoder(DecoderBase):
 			scores.masked_fill_(_, 0.0)
 			done_trans &= ~(_.squeeze(-1))
 			_ = _.expand(-1, -1, beam_size)
-			_start = _nquery - _inpute_slen
-			if (_.any().item()) and (0 <= _start < inpute.size(-1)):
-				wds[_] = inpute.narrow(-1, _start, 1).unsqueeze(-1).expand(-1, -1, beam_size)[_]
+			wds[_] = inpute.narrow(-1, _nquery - _inpute_slen, 1).unsqueeze(-1).expand(-1, -1, beam_size)[_]
 			if _use_repan:
 				trans, wds = wds.masked_fill(_, sos_id).view(real_bsize, 1), wds.view(real_bsize, 1)
 			else:

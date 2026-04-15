@@ -1,0 +1,1944 @@
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 17, in <module>
+    import cnfg.base as _base_cnfg
+ModuleNotFoundError: No module named 'cnfg'
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 17, in <module>
+    import cnfg.base as _base_cnfg
+ModuleNotFoundError: No module named 'cnfg'
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 374, in <module>
+    minloss, minerr = eva(vd, nvalid, mymodel, lossf, cuda_device, multi_gpu, use_amp)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 219, in eva
+    output = model(oi, word_prediction=True, pred_mask=pred_mask, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 33, in forward
+    out = self.wemb(inputo)
+          ^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/lora/base.py", line 147, in forward
+    out.add_(nnFunc.embedding(x.view(-1), self.lora_wa, self.padding_idx, self.max_norm, self.norm_type, self.scale_grad_by_freq, self.sparse).mm(self.lora_wb).view(out.size()), alpha=self.scaling)
+                              ^^^^^^^^^^
+RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+
+Session terminated, killing shell...Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: nan 38.41
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 419, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 106, in train
+    output = model(oi, word_prediction=True, pred_mask=pred_mask)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 49, in forward
+    out = net(out, tgt_pad_mask=_mask, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/QWen/v3/Decoder.py", line 50, in forward
+    context = self.self_attn(inputo, mask=tgt_pad_mask, slen=slen, sliding_window_khead=sliding_window_khead)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/base.py", line 742, in forward
+    outs = self.net(_iQ, *inputs, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/plm/qwen/v3.py", line 43, in forward
+    real_iQ = self.q_normer(real_iQ)
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/norm/mp/f.py", line 17, in forward
+    return rms_norm(x.to(torch.float32, non_blocking=True), self.normalized_shape, self.weight, self.eps).to(x.dtype, non_blocking=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/functional.py", line 2954, in rms_norm
+    return torch.rms_norm(input, normalized_shape, weight, eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.34 GiB
+Requested               : 71.25 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 32.25 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 5.953 30.74
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 419, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 106, in train
+    output = model(oi, word_prediction=True, pred_mask=pred_mask)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 49, in forward
+    out = net(out, tgt_pad_mask=_mask, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/QWen/v3/Decoder.py", line 53, in forward
+    
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/base.py", line 57, in forward
+    out = self.net(_out)
+          ^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/lora/base.py", line 56, in forward
+    out.add_(x.view(-1, x.size(-1)).mm(self.lora_wa).mm(self.lora_wb).view(out.size()), alpha=self.scaling)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.15 GiB
+Requested               : 226.50 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 32.25 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 75, in <module>
+    import cnfg.lora_1 as lcnfg
+ModuleNotFoundError: No module named 'cnfg.lora_1'
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 75, in <module>
+    import cnfg.lora_1 as lcnfg
+ModuleNotFoundError: No module named 'cnfg.lora_1'
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 6.038 43.78
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 110, in train
+    output = model(oi, word_prediction=True, pred_mask=pred_mask)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 49, in forward
+    out = net(out, tgt_pad_mask=_mask, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/QWen/v3/Decoder.py", line 79, in forward
+    context = self.ff(context)
+              ^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/base.py", line 55, in forward
+    _out = self.normer(x)
+           ^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/norm/mp/f.py", line 17, in forward
+    return rms_norm(x.to(torch.float32, non_blocking=True), self.normalized_shape, self.weight, self.eps).to(x.dtype, non_blocking=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/functional.py", line 2954, in rms_norm
+    return torch.rms_norm(input, normalized_shape, weight, eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.34 GiB
+Requested               : 60.00 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 4.747 37.92
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 110, in train
+    output = model(oi, word_prediction=True, pred_mask=pred_mask)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 49, in forward
+    out = net(out, tgt_pad_mask=_mask, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/QWen/v3/Decoder.py", line 79, in forward
+    context = self.ff(context)
+              ^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/base.py", line 57, in forward
+    out = self.net(_out)
+          ^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.13 GiB
+Requested               : 256.50 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+
+Session terminated, killing shell...Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/utils/hplstm/LGate.py", line 8, in <module>
+    import lgatev_cpp
+ModuleNotFoundError: No module named 'lgatev_cpp'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 72, in <module>
+    from utils.train.ft import rgrad_filter, unfreeze_linear_bias, unfreeze_normer
+  File "/home/gpchen/lora/transformer-edge/utils/train/ft.py", line 5, in <module>
+    from modules.hplstm.snbase import HPLSTM
+  File "/home/gpchen/lora/transformer-edge/modules/hplstm/snbase.py", line 9, in <module>
+    from modules.hplstm.base import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, ResHPLSTM as ResHPLSTMBase
+  File "/home/gpchen/lora/transformer-edge/modules/hplstm/base.py", line 11, in <module>
+    from utils.hplstm.LGate import LGateFunc
+  File "/home/gpchen/lora/transformer-edge/utils/hplstm/LGate.py", line 11, in <module>
+    lgatev_cpp = load(name="lgatev_cpp", sources=["utils/cpp/hplstm/lgatev.cpp"], extra_cflags=extra_compile_args)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 1767, in load
+    return _jit_compile(
+           ^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 2207, in _jit_compile
+    _write_ninja_file_and_build_library(
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 2318, in _write_ninja_file_and_build_library
+    verify_ninja_availability()
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 2381, in verify_ninja_availability
+    raise RuntimeError("Ninja is required to load C++ extensions (pip install ninja to get it)")
+RuntimeError: Ninja is required to load C++ extensions (pip install ninja to get it)
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/utils/hplstm/LGate.py", line 8, in <module>
+    import lgatev_cpp
+ModuleNotFoundError: No module named 'lgatev_cpp'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 72, in <module>
+    from utils.train.ft import rgrad_filter, unfreeze_linear_bias, unfreeze_normer
+  File "/home/gpchen/lora/transformer-edge/utils/train/ft.py", line 5, in <module>
+    from modules.hplstm.snbase import HPLSTM
+  File "/home/gpchen/lora/transformer-edge/modules/hplstm/snbase.py", line 9, in <module>
+    from modules.hplstm.base import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, ResHPLSTM as ResHPLSTMBase
+  File "/home/gpchen/lora/transformer-edge/modules/hplstm/base.py", line 11, in <module>
+    from utils.hplstm.LGate import LGateFunc
+  File "/home/gpchen/lora/transformer-edge/utils/hplstm/LGate.py", line 11, in <module>
+    lgatev_cpp = load(name="lgatev_cpp", sources=["utils/cpp/hplstm/lgatev.cpp"], extra_cflags=extra_compile_args)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 1767, in load
+    return _jit_compile(
+           ^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 2207, in _jit_compile
+    _write_ninja_file_and_build_library(
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 2318, in _write_ninja_file_and_build_library
+    verify_ninja_availability()
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 2381, in verify_ninja_availability
+    raise RuntimeError("Ninja is required to load C++ extensions (pip install ninja to get it)")
+RuntimeError: Ninja is required to load C++ extensions (pip install ninja to get it)
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/utils/hplstm/LGate.py", line 13, in <module>
+    import lgates_cuda
+ModuleNotFoundError: No module named 'lgates_cuda'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 72, in <module>
+    from utils.train.ft import rgrad_filter, unfreeze_linear_bias, unfreeze_normer
+  File "/home/gpchen/lora/transformer-edge/utils/train/ft.py", line 5, in <module>
+    from modules.hplstm.snbase import HPLSTM
+  File "/home/gpchen/lora/transformer-edge/modules/hplstm/snbase.py", line 9, in <module>
+    from modules.hplstm.base import BiHPLSTM as BiHPLSTMBase, HPLSTM as HPLSTMBase, ResHPLSTM as ResHPLSTMBase
+  File "/home/gpchen/lora/transformer-edge/modules/hplstm/base.py", line 11, in <module>
+    from utils.hplstm.LGate import LGateFunc
+  File "/home/gpchen/lora/transformer-edge/utils/hplstm/LGate.py", line 18, in <module>
+    lgates_cuda = load(name="lgates_cuda", sources=["utils/cpp/hplstm/lgates_cuda.cpp", "utils/cpp/hplstm/lgates_cuda_kernel.cu"], extra_cflags=extra_compile_args, extra_cuda_cflags=extra_cuda_compile_args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 1767, in load
+    return _jit_compile(
+           ^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 2207, in _jit_compile
+    _write_ninja_file_and_build_library(
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 2328, in _write_ninja_file_and_build_library
+    extra_ldflags = _prepare_ldflags(
+                    ^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 2436, in _prepare_ldflags
+    if (not os.path.exists(_join_cuda_home(extra_lib_dir)) and
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/utils/cpp_extension.py", line 3102, in _join_cuda_home
+    raise OSError('CUDA_HOME environment variable is not set. '
+OSError: CUDA_HOME environment variable is not set. Please set it to your CUDA install root.
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 6.039 43.78
+Initial model saved
+Average loss over 707137 tokens: 8.424
+Epoch: 1, train loss: 8.424, valid loss/error: 5.465 42.96
+New best model saved
+Average loss over 707137 tokens: 6.094
+Epoch: 2, train loss: 6.094, valid loss/error: 4.351 36.79
+New best model saved
+Average loss over 707137 tokens: 4.671
+Epoch: 3, train loss: 4.671, valid loss/error: 3.999 34.52
+New best model saved
+Average loss over 707137 tokens: 4.197
+Epoch: 4, train loss: 4.197, valid loss/error: 3.729 33.22
+New best model saved
+Average loss over 707137 tokens: 3.838
+Epoch: 5, train loss: 3.838, valid loss/error: 3.513 32.14
+New best model saved
+Average loss over 707137 tokens: 3.602
+Epoch: 6, train loss: 3.602, valid loss/error: 3.378 31.98
+New best model saved
+Average loss over 707137 tokens: 3.488
+Epoch: 7, train loss: 3.488, valid loss/error: 3.295 32.23
+New best model saved
+Average loss over 707137 tokens: 3.392
+Epoch: 8, train loss: 3.392, valid loss/error: 3.219 32.59
+New best model saved
+Average loss over 707137 tokens: 3.306
+Epoch: 9, train loss: 3.306, valid loss/error: 3.183 33.92
+New best model saved
+Average loss over 707137 tokens: 3.245
+Epoch: 10, train loss: 3.245, valid loss/error: 3.161 34.68
+New best model saved
+Average loss over 707137 tokens: 3.198
+Epoch: 11, train loss: 3.198, valid loss/error: 3.154 34.89
+New best model saved
+Average loss over 707137 tokens: 3.155
+Epoch: 12, train loss: 3.155, valid loss/error: 3.162 34.96
+Average loss over 707137 tokens: 3.114
+Epoch: 13, train loss: 3.114, valid loss/error: 3.172 35.12
+Average loss over 707137 tokens: 3.076
+Epoch: 14, train loss: 3.076, valid loss/error: 3.195 35.27
+Average loss over 707137 tokens: 3.043
+Epoch: 15, train loss: 3.043, valid loss/error: 3.219 35.32
+Average loss over 707137 tokens: 3.021
+Epoch: 16, train loss: 3.021, valid loss/error: 3.269 35.36
+Average loss over 707137 tokens: 3.005
+Epoch: 17, train loss: 3.005, valid loss/error: 3.301 35.46
+Average loss over 707137 tokens: 2.993
+Epoch: 18, train loss: 2.993, valid loss/error: 3.297 35.55
+Average loss over 707137 tokens: 2.981
+Epoch: 19, train loss: 2.981, valid loss/error: 3.325 35.67
+early stop
+model saved
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 4.743 37.93
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 110, in train
+    output = model(oi, word_prediction=True, pred_mask=pred_mask)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 49, in forward
+    out = net(out, tgt_pad_mask=_mask, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/QWen/v3/Decoder.py", line 79, in forward
+    context = self.ff(context)
+              ^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/base.py", line 57, in forward
+    out = self.net(_out)
+          ^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.40 GiB
+Requested               : 112.78 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 4.743 37.93
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 110, in train
+    output = model(oi, word_prediction=True, pred_mask=pred_mask)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 49, in forward
+    out = net(out, tgt_pad_mask=_mask, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/QWen/v3/Decoder.py", line 78, in forward
+    context = self.ff(context)
+              ^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/base.py", line 57, in forward
+    out = self.net(_out)
+          ^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.40 GiB
+Requested               : 112.78 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 363, in <module>
+    optimizer = Optimizer(get_model_parameters(mymodel, contiguous_parameters=contiguous_parameters), lr=init_lr, betas=adam_betas_default, eps=ieps_adam_default, weight_decay=cnfg.weight_decay, amsgrad=use_ams)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/optm/wrapper.py", line 12, in constructor
+    return outer(inner, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/optm/agent.py", line 59, in __init__
+    super(FP32OptmAgent, self).__init__(Optm, params, *args, cfunc=lambda x: x.to(torch.float32, non_blocking=True), **kwargs)
+  File "/home/gpchen/lora/transformer-edge/optm/agent.py", line 18, in __init__
+    self.optm = Optm(self.params, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/optim/adam.py", line 102, in __init__
+    super().__init__(params, defaults)
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/optim/optimizer.py", line 403, in __init__
+    raise ValueError("optimizer got an empty parameter list")
+ValueError: optimizer got an empty parameter list
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+
+Session terminated, killing shell...Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 4.310 14.91
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 117, in train
+    loss.backward()
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/_tensor.py", line 630, in backward
+    torch.autograd.backward(
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/autograd/__init__.py", line 364, in backward
+    _engine_run_backward(
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/autograd/graph.py", line 865, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 29.94 GiB
+Requested               : 463.96 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 4.743 37.93
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 110, in train
+    output = model(oi, word_prediction=True, pred_mask=pred_mask)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 61, in forward
+    out = self.lsm(self.classifier(out))
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.31 GiB
+Requested               : 562.20 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 4.310 14.91
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 117, in train
+    loss.backward()
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/_tensor.py", line 630, in backward
+    torch.autograd.backward(
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/autograd/__init__.py", line 364, in backward
+    _engine_run_backward(
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/autograd/graph.py", line 865, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 29.94 GiB
+Requested               : 463.96 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Init lr: 1e-05, Dev Loss/Error: 4.743 37.93
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 110, in train
+    output = model(oi, word_prediction=True, pred_mask=pred_mask)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 61, in forward
+    out = self.lsm(self.classifier(out))
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.31 GiB
+Requested               : 562.20 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/predict/plm/qwen/predict.py", line 64, in <module>
+    td = h5File(cnfg.test_data, "r", **h5_fileargs)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/utils/h5serial.py", line 23, in __init__
+    super(h5File_swmr, self).__init__(name, mode=mode, swmr=swmr if _ else False, **kwargs)
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/h5py/_hl/files.py", line 555, in __init__
+    fid = make_fid(name, mode, userblock_size, fapl, fcpl, swmr=swmr)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/h5py/_hl/files.py", line 232, in make_fid
+    fid = h5f.open(name, flags, fapl=fapl)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py/h5f.pyx", line 106, in h5py.h5f.open
+FileNotFoundError: [Errno 2] Unable to synchronously open file (unable to open file: name = 'cache/w14ed32/dev.h5', errno = 2, error message = 'No such file or directory', flags = 40, o_flags = 0)
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          Init lr: 1e-05, Dev Loss/Error: 10.898 56.95
+Initial model saved
+                                                                                                     Average loss over 804954 tokens: 10.644
+Epoch: 1, train loss: 10.644, valid loss/error: 8.956 56.53
+New best model saved
+Average loss over 804954 tokens: 7.526
+Epoch: 2, train loss: 7.526, valid loss/error: 6.399 54.98
+New best model saved
+Init lr: 1e-05, Dev Loss/Error: 4.744 37.95
+Initial model saved
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 424, in <module>
+    terr, done_tokens, cur_checkid, remain_steps, _Dws = train(td, tl, vd, nvalid, optimizer, lrsch, mymodel, lossf, cuda_device, logger, done_tokens, multi_gpu, multi_gpu_optimizer, tokens_optm, batch_report, save_every, chkpf, state_holder, statesf, num_checkpoint, cur_checkid, report_eva, remain_steps, dss_ws > 0, i >= start_chkp_save, scaler)
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_lora_qwen.py", line 110, in train
+    output = model(oi, word_prediction=True, pred_mask=pred_mask)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 49, in forward
+    out = net(out, tgt_pad_mask=_mask, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/QWen/v3/Decoder.py", line 75, in forward
+    context = self.self_attn(inputo, mask=tgt_pad_mask, slen=slen, sliding_window_khead=sliding_window_khead)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/base.py", line 742, in forward
+    outs = self.net(_iQ, *inputs, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/modules/plm/qwen/v3.py", line 73, in forward
+    scores = real_iQ.view(bsize, kv_nheads, -1, nquery, adim).matmul(real_iK.unsqueeze(2))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.32 GiB
+Requested               : 354.79 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 11.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Average loss over 804954 tokens: 5.784
+Epoch: 3, train loss: 5.784, valid loss/error: 5.215 51.52
+New best model saved
+Average loss over 804954 tokens: 4.676
+Epoch: 4, train loss: 4.676, valid loss/error: 4.398 45.76
+New best model saved
+Average loss over 804954 tokens: 4.173
+Epoch: 5, train loss: 4.173, valid loss/error: 4.079 44.00
+New best model saved
+Average loss over 804954 tokens: 3.796
+Epoch: 6, train loss: 3.796, valid loss/error: 3.650 41.66
+New best model saved
+Average loss over 804954 tokens: 3.476
+Epoch: 7, train loss: 3.476, valid loss/error: 3.500 40.56
+New best model saved
+Average loss over 804954 tokens: 3.370
+Epoch: 8, train loss: 3.370, valid loss/error: 3.418 39.73
+New best model saved
+Average loss over 804954 tokens: 3.297
+Epoch: 9, train loss: 3.297, valid loss/error: 3.356 39.08
+New best model saved
+Design models with seed: 666666
+Average loss over 804954 tokens: 3.243
+Epoch: 10, train loss: 3.243, valid loss/error: 3.318 38.47
+New best model saved
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Average loss over 804954 tokens: 3.211
+Epoch: 11, train loss: 3.211, valid loss/error: 3.292 38.12
+New best model saved
+Average loss over 804954 tokens: 3.188
+Epoch: 12, train loss: 3.188, valid loss/error: 3.271 37.87
+New best model saved
+Init lr: 1e-05, Dev Loss/Error: 4.319 14.91
+Initial model saved
+Average loss over 804954 tokens: 3.169
+Epoch: 13, train loss: 3.169, valid loss/error: 3.254 37.55
+New best model saved
+Average loss over 2012229 tokens: 3.645
+Average loss over 804954 tokens: 3.153
+Epoch: 14, train loss: 3.153, valid loss/error: 3.241 37.32
+New best model saved
+Average loss over 1989125 tokens: 2.537
+Average loss over 804954 tokens: 3.142
+Epoch: 15, train loss: 3.142, valid loss/error: 3.228 37.22
+New best model saved
+Average loss over 2006629 tokens: 2.028
+Average loss over 804954 tokens: 3.131
+Epoch: 16, train loss: 3.131, valid loss/error: 3.219 37.24
+New best model saved
+Average loss over 2009058 tokens: 1.904
+Average loss over 804954 tokens: 3.122
+Epoch: 17, train loss: 3.122, valid loss/error: 3.212 37.10
+New best model saved
+Average loss over 1994558 tokens: 1.809
+Average loss over 804954 tokens: 3.114
+Epoch: 18, train loss: 3.114, valid loss/error: 3.202 37.06
+New best model saved
+Average loss over 1993161 tokens: 1.790
+Average loss over 804954 tokens: 3.106
+Epoch: 19, train loss: 3.106, valid loss/error: 3.194 36.89
+New best model saved
+Average loss over 1995713 tokens: 1.777
+Average loss over 804954 tokens: 3.099
+Epoch: 20, train loss: 3.099, valid loss/error: 3.189 36.93
+New best model saved
+Average loss over 2001904 tokens: 1.765
+Average loss over 804954 tokens: 3.093
+Epoch: 21, train loss: 3.093, valid loss/error: 3.184 36.85
+New best model saved
+Average loss over 1998763 tokens: 1.760
+Average loss over 804954 tokens: 3.087
+Epoch: 22, train loss: 3.087, valid loss/error: 3.177 36.79
+New best model saved
+Average loss over 1994750 tokens: 1.752
+Average loss over 804954 tokens: 3.082
+Epoch: 23, train loss: 3.082, valid loss/error: 3.175 36.78
+New best model saved
+Average loss over 2007583 tokens: 1.747
+Average loss over 804954 tokens: 3.077
+Epoch: 24, train loss: 3.077, valid loss/error: 3.169 36.72
+New best model saved
+Average loss over 1997021 tokens: 1.741
+Average loss over 804954 tokens: 3.073
+Epoch: 25, train loss: 3.073, valid loss/error: 3.165 36.65
+New best model saved
+Average loss over 2005864 tokens: 1.739
+Average loss over 1995989 tokens: 1.735
+Average loss over 804954 tokens: 3.068
+Epoch: 26, train loss: 3.068, valid loss/error: 3.162 36.66
+New best model saved
+Average loss over 1996939 tokens: 1.732
+Average loss over 804954 tokens: 3.064
+Epoch: 27, train loss: 3.064, valid loss/error: 3.158 36.54
+New best model saved
+                                        Average loss over 804954 tokens: 3.061
+Epoch: 28, train loss: 3.061, valid loss/error: 3.155 36.47
+New best model saved
+                                        Average loss over 804954 tokens: 3.057
+Epoch: 29, train loss: 3.057, valid loss/error: 3.151 36.44
+New best model saved
+                                        Average loss over 804954 tokens: 3.053
+Epoch: 30, train loss: 3.053, valid loss/error: 3.146 36.54
+New best model saved
+                                        Average loss over 804954 tokens: 3.051
+Epoch: 31, train loss: 3.051, valid loss/error: 3.143 36.42
+New best model saved
+                                        Average loss over 804954 tokens: 3.047
+Epoch: 32, train loss: 3.047, valid loss/error: 3.140 36.44
+New best model saved
+                                        Average loss over 804954 tokens: 3.044
+Epoch: 33, train loss: 3.044, valid loss/error: 3.140 36.40
+New best model saved
+                                        Average loss over 804954 tokens: 3.041
+Epoch: 34, train loss: 3.041, valid loss/error: 3.137 36.34
+New best model saved
+                                        Average loss over 804954 tokens: 3.038
+Epoch: 35, train loss: 3.038, valid loss/error: 3.134 36.33
+New best model saved
+                                        Average loss over 804954 tokens: 3.036
+Epoch: 36, train loss: 3.036, valid loss/error: 3.132 36.23
+New best model saved
+                                        Average loss over 804954 tokens: 3.033
+Epoch: 37, train loss: 3.033, valid loss/error: 3.129 36.26
+New best model saved
+                                        Average loss over 804954 tokens: 3.031
+Epoch: 38, train loss: 3.031, valid loss/error: 3.127 36.25
+New best model saved
+                                        Average loss over 804954 tokens: 3.029
+Epoch: 39, train loss: 3.029, valid loss/error: 3.125 36.16
+New best model saved
+                                        Average loss over 804954 tokens: 3.026
+Epoch: 40, train loss: 3.026, valid loss/error: 3.125 36.21
+New best model saved
+                                        Average loss over 804954 tokens: 3.024
+Epoch: 41, train loss: 3.024, valid loss/error: 3.123 36.17
+New best model saved
+                                        Average loss over 804954 tokens: 3.022
+Epoch: 42, train loss: 3.022, valid loss/error: 3.120 36.12
+New best model saved
+                                                                                                                                                               Average loss over 804954 tokens: 3.020
+Epoch: 43, train loss: 3.020, valid loss/error: 3.118 36.13
+New best model saved
+                                        Average loss over 804954 tokens: 3.017
+Epoch: 44, train loss: 3.017, valid loss/error: 3.117 36.06
+New best model saved
+                                        Average loss over 804954 tokens: 3.016
+Epoch: 45, train loss: 3.016, valid loss/error: 3.116 36.07
+New best model saved
+                                        Average loss over 804954 tokens: 3.014
+Epoch: 46, train loss: 3.014, valid loss/error: 3.113 36.07
+New best model saved
+                                        Average loss over 804954 tokens: 3.012
+Epoch: 47, train loss: 3.012, valid loss/error: 3.112 36.03
+New best model saved
+                                        Average loss over 804954 tokens: 3.010
+Epoch: 48, train loss: 3.010, valid loss/error: 3.111 36.02
+New best model saved
+                                        Average loss over 804954 tokens: 3.009
+Epoch: 49, train loss: 3.009, valid loss/error: 3.110 36.04
+New best model saved
+                                        Average loss over 804954 tokens: 3.007
+Epoch: 50, train loss: 3.007, valid loss/error: 3.109 36.01
+New best model saved
+                                        Average loss over 804954 tokens: 3.005
+Epoch: 51, train loss: 3.005, valid loss/error: 3.108 36.01
+New best model saved
+                                        Average loss over 804954 tokens: 3.004
+Epoch: 52, train loss: 3.004, valid loss/error: 3.107 35.97
+New best model saved
+                                        Average loss over 804954 tokens: 3.002
+Epoch: 53, train loss: 3.002, valid loss/error: 3.107 35.99
+New best model saved
+                                        Average loss over 804954 tokens: 3.000
+Epoch: 54, train loss: 3.000, valid loss/error: 3.104 35.90
+New best model saved
+                                        Average loss over 804954 tokens: 2.998
+Epoch: 55, train loss: 2.998, valid loss/error: 3.103 35.86
+New best model saved
+                                        Average loss over 804954 tokens: 2.997
+Epoch: 56, train loss: 2.997, valid loss/error: 3.102 35.88
+New best model saved
+                                        Average loss over 804954 tokens: 2.995
+Epoch: 57, train loss: 2.995, valid loss/error: 3.100 35.92
+New best model saved
+                                                                                Average loss over 804954 tokens: 2.994
+Epoch: 58, train loss: 2.994, valid loss/error: 3.101 35.86
+                                        Average loss over 804954 tokens: 2.992
+Epoch: 59, train loss: 2.992, valid loss/error: 3.099 35.83
+New best model saved
+                                        Average loss over 804954 tokens: 2.991
+Epoch: 60, train loss: 2.991, valid loss/error: 3.098 35.79
+New best model saved
+                                        Average loss over 804954 tokens: 2.990
+Epoch: 61, train loss: 2.990, valid loss/error: 3.096 35.76
+New best model saved
+                                        Average loss over 804954 tokens: 2.988
+Epoch: 62, train loss: 2.988, valid loss/error: 3.096 35.81
+New best model saved
+                                        Average loss over 804954 tokens: 2.987
+Epoch: 63, train loss: 2.987, valid loss/error: 3.095 35.81
+New best model saved
+                                        Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/predict/plm/qwen/predict.py", line 151, in <module>
+    output = mymodel.decode(seq_batch, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, ilen=seq_o, post_ilen_rs=True, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 107, in decode
+    return self.beam_decode(inpute, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, fill_pad=fill_pad, ilen=None if (ilen is None) or all_is_same(ilen) else ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, max_len=max_len, fill_pad=fill_pad, ilen=ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/QWen/v3/Decoder.py", line 327, in beam_decode
+    _ = ilen.gt(_nquery).view(bsize, 1, 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: shape '[42, 1, 1]' is invalid for input of size 84
+Average loss over 804954 tokens: 2.985
+Epoch: 64, train loss: 2.985, valid loss/error: 3.095 35.73
+New best model saved
+                                        Average loss over 804954 tokens: 2.984
+Epoch: 65, train loss: 2.984, valid loss/error: 3.093 35.80
+New best model saved
+                                        Average loss over 804954 tokens: 2.983
+Epoch: 66, train loss: 2.983, valid loss/error: 3.093 35.70
+New best model saved
+                                        Average loss over 804954 tokens: 2.981
+Epoch: 67, train loss: 2.981, valid loss/error: 3.091 35.71
+New best model saved
+                                        Average loss over 804954 tokens: 2.980
+Epoch: 68, train loss: 2.980, valid loss/error: 3.091 35.70
+New best model saved
+                                        Average loss over 804954 tokens: 2.979
+Epoch: 69, train loss: 2.979, valid loss/error: 3.092 35.67
+New best model saved
+                                        Average loss over 804954 tokens: 2.977
+Epoch: 70, train loss: 2.977, valid loss/error: 3.089 35.64
+New best model saved
+                                        Average loss over 804954 tokens: 2.977
+Epoch: 71, train loss: 2.977, valid loss/error: 3.089 35.71
+                                        Average loss over 804954 tokens: 2.975
+Epoch: 72, train loss: 2.975, valid loss/error: 3.090 35.66
+                                                                                Average loss over 804954 tokens: 2.974
+Epoch: 73, train loss: 2.974, valid loss/error: 3.087 35.58
+New best model saved
+                                        Average loss over 804954 tokens: 2.973
+Epoch: 74, train loss: 2.973, valid loss/error: 3.086 35.64
+New best model saved
+                                        Average loss over 804954 tokens: 2.972
+Epoch: 75, train loss: 2.972, valid loss/error: 3.088 35.60
+                                        Average loss over 804954 tokens: 2.970
+Epoch: 76, train loss: 2.970, valid loss/error: 3.085 35.54
+New best model saved
+                                        Average loss over 804954 tokens: 2.969
+Epoch: 77, train loss: 2.969, valid loss/error: 3.087 35.58
+                                        Average loss over 804954 tokens: 2.968
+Epoch: 78, train loss: 2.968, valid loss/error: 3.083 35.58
+New best model saved
+                                        Average loss over 804954 tokens: 2.966
+Epoch: 79, train loss: 2.966, valid loss/error: 3.084 35.62
+                                        Average loss over 804954 tokens: 2.965
+Epoch: 80, train loss: 2.965, valid loss/error: 3.084 35.56
+                                        Average loss over 804954 tokens: 2.964
+Epoch: 81, train loss: 2.964, valid loss/error: 3.085 35.51
+New best model saved
+                                        Average loss over 804954 tokens: 2.962
+Epoch: 82, train loss: 2.962, valid loss/error: 3.084 35.52
+                                        Average loss over 804954 tokens: 2.962
+Epoch: 83, train loss: 2.962, valid loss/error: 3.084 35.49
+New best model saved
+                                        Average loss over 804954 tokens: 2.961
+Epoch: 84, train loss: 2.961, valid loss/error: 3.083 35.52
+New best model saved
+                                        Average loss over 804954 tokens: 2.959
+Epoch: 85, train loss: 2.959, valid loss/error: 3.081 35.52
+New best model saved
+                                        Average loss over 804954 tokens: 2.958
+Epoch: 86, train loss: 2.958, valid loss/error: 3.081 35.51
+New best model saved
+                                        Average loss over 804954 tokens: 2.957
+Epoch: 87, train loss: 2.957, valid loss/error: 3.081 35.54
+New best model saved
+                                        Average loss over 804954 tokens: 2.956
+Epoch: 88, train loss: 2.956, valid loss/error: 3.080 35.47
+New best model saved
+                                        Average loss over 804954 tokens: 2.955
+Epoch: 89, train loss: 2.955, valid loss/error: 3.081 35.56
+                                        Average loss over 804954 tokens: 2.954
+Epoch: 90, train loss: 2.954, valid loss/error: 3.080 35.47
+New best model saved
+                                        Average loss over 804954 tokens: 2.952
+Epoch: 91, train loss: 2.952, valid loss/error: 3.078 35.51
+New best model saved
+                                        Average loss over 804954 tokens: 2.951
+Epoch: 92, train loss: 2.951, valid loss/error: 3.078 35.50
+                                        Average loss over 804954 tokens: 2.950
+Epoch: 93, train loss: 2.950, valid loss/error: 3.076 35.54
+New best model saved
+                                                                                Average loss over 804954 tokens: 2.949
+Epoch: 94, train loss: 2.949, valid loss/error: 3.077 35.55
+Average loss over 2001584 tokens: 1.693
+Average loss over 804954 tokens: 2.948
+Epoch: 95, train loss: 2.948, valid loss/error: 3.078 35.48
+Average loss over 1995128 tokens: 1.694
+Average loss over 804954 tokens: 2.947
+Epoch: 96, train loss: 2.947, valid loss/error: 3.077 35.48
+Average loss over 2002482 tokens: 1.692
+Average loss over 804954 tokens: 2.946
+Epoch: 97, train loss: 2.946, valid loss/error: 3.076 35.47
+New best model saved
+Average loss over 2007021 tokens: 1.692
+Average loss over 804954 tokens: 2.945
+Epoch: 98, train loss: 2.945, valid loss/error: 3.078 35.41
+New best model saved
+Average loss over 1991641 tokens: 1.694
+Average loss over 804954 tokens: 2.944
+Epoch: 99, train loss: 2.944, valid loss/error: 3.075 35.44
+New best model saved
+Average loss over 2002659 tokens: 1.692
+Average loss over 804954 tokens: 2.943
+Epoch: 100, train loss: 2.943, valid loss/error: 3.075 35.50
+Average loss over 1999359 tokens: 1.693
+Average loss over 804954 tokens: 2.942
+Epoch: 101, train loss: 2.942, valid loss/error: 3.074 35.47
+New best model saved
+Average loss over 1991352 tokens: 1.693
+Average loss over 804954 tokens: 2.940
+Epoch: 102, train loss: 2.940, valid loss/error: 3.074 35.42
+Average loss over 1994273 tokens: 1.693
+Average loss over 804954 tokens: 2.940
+Epoch: 103, train loss: 2.940, valid loss/error: 3.074 35.40
+New best model saved
+Average loss over 1993792 tokens: 1.692
+Average loss over 1120576 tokens: 1.693
+Epoch: 3, train loss: 1.694, valid loss/error: 1.691 5.71
+New best model saved
+Average loss over 804954 tokens: 2.938
+Epoch: 104, train loss: 2.938, valid loss/error: 3.074 35.36
+New best model saved
+Average loss over 2001847 tokens: 1.691
+Average loss over 804954 tokens: 2.937
+Epoch: 105, train loss: 2.937, valid loss/error: 3.074 35.31
+New best model saved
+Average loss over 1999756 tokens: 1.691
+Average loss over 804954 tokens: 2.936
+Epoch: 106, train loss: 2.936, valid loss/error: 3.076 35.37
+Average loss over 1993604 tokens: 1.691
+Average loss over 804954 tokens: 2.935
+Epoch: 107, train loss: 2.935, valid loss/error: 3.073 35.34
+New best model saved
+Average loss over 1995370 tokens: 1.692
+Average loss over 804954 tokens: 2.934
+Epoch: 108, train loss: 2.934, valid loss/error: 3.075 35.36
+Average loss over 1999347 tokens: 1.693
+Average loss over 804954 tokens: 2.933
+Epoch: 109, train loss: 2.933, valid loss/error: 3.073 35.39
+New best model saved
+Average loss over 2000547 tokens: 1.690
+Average loss over 804954 tokens: 2.932
+Epoch: 110, train loss: 2.932, valid loss/error: 3.073 35.33
+New best model saved
+Average loss over 2001185 tokens: 1.692
+Average loss over 2003664 tokens: 1.690
+Average loss over 804954 tokens: 2.931
+Epoch: 111, train loss: 2.931, valid loss/error: 3.073 35.35
+New best model saved
+Average loss over 2007705 tokens: 1.693
+Average loss over 804954 tokens: 2.930
+Epoch: 112, train loss: 2.930, valid loss/error: 3.073 35.32
+New best model saved
+Average loss over 2007201 tokens: 1.690
+Average loss over 804954 tokens: 2.929
+Epoch: 113, train loss: 2.929, valid loss/error: 3.073 35.34
+Average loss over 1998103 tokens: 1.690
+Average loss over 804954 tokens: 2.928
+Epoch: 114, train loss: 2.928, valid loss/error: 3.070 35.39
+New best model saved
+Average loss over 1995599 tokens: 1.691
+Average loss over 804954 tokens: 2.927
+Epoch: 115, train loss: 2.927, valid loss/error: 3.071 35.37
+Average loss over 2002581 tokens: 1.690
+Average loss over 804954 tokens: 2.927
+Epoch: 116, train loss: 2.927, valid loss/error: 3.073 35.43
+Average loss over 2001090 tokens: 1.690
+Average loss over 804954 tokens: 2.925
+Epoch: 117, train loss: 2.925, valid loss/error: 3.074 35.38
+Average loss over 1993607 tokens: 1.690
+Average loss over 804954 tokens: 2.924
+Epoch: 118, train loss: 2.924, valid loss/error: 3.072 35.42
+Average loss over 1998112 tokens: 1.691
+Average loss over 804954 tokens: 2.923
+Epoch: 119, train loss: 2.923, valid loss/error: 3.073 35.37
+Average loss over 1996206 tokens: 1.690
+Average loss over 1992589 tokens: 1.690
+Average loss over 804954 tokens: 2.922
+Epoch: 120, train loss: 2.922, valid loss/error: 3.071 35.30
+New best model saved
+                                        Average loss over 804954 tokens: 2.921
+Epoch: 121, train loss: 2.921, valid loss/error: 3.073 35.33
+                                        Average loss over 804954 tokens: 2.920
+Epoch: 122, train loss: 2.920, valid loss/error: 3.071 35.37
+                                        Average loss over 804954 tokens: 2.919
+Epoch: 123, train loss: 2.919, valid loss/error: 3.072 35.34
+                                        Average loss over 804954 tokens: 2.918
+Epoch: 124, train loss: 2.918, valid loss/error: 3.071 35.28
+New best model saved
+                                        Average loss over 804954 tokens: 2.917
+Epoch: 125, train loss: 2.917, valid loss/error: 3.072 35.35
+                                        Average loss over 804954 tokens: 2.916
+Epoch: 126, train loss: 2.916, valid loss/error: 3.070 35.36
+                                        Average loss over 804954 tokens: 2.915
+Epoch: 127, train loss: 2.915, valid loss/error: 3.073 35.33
+                                                                                Average loss over 804954 tokens: 2.914
+Epoch: 128, train loss: 2.914, valid loss/error: 3.072 35.26
+New best model saved
+model saved
+Average loss over 1994552 tokens: 1.690
+Average loss over 1997934 tokens: 1.689
+Average loss over 1992728 tokens: 1.690
+Average loss over 2003753 tokens: 1.688
+Average loss over 2006106 tokens: 1.689
+Average loss over 2003903 tokens: 1.689
+Average loss over 1118444 tokens: 1.690
+Epoch: 4, train loss: 1.690, valid loss/error: 1.689 5.65
+New best model saved
+Average loss over 2006906 tokens: 1.688
+Average loss over 1985478 tokens: 1.687
+Average loss over 2004991 tokens: 1.687
+Average loss over 1996573 tokens: 1.687
+Average loss over 1996827 tokens: 1.688
+Average loss over 1991161 tokens: 1.687
+Average loss over 1999383 tokens: 1.688
+Average loss over 1998905 tokens: 1.690
+Average loss over 1998487 tokens: 1.688
+Average loss over 2007978 tokens: 1.687
+Average loss over 1994566 tokens: 1.688
+Average loss over 1991543 tokens: 1.688
+Average loss over 2002555 tokens: 1.688
+Average loss over 2011617 tokens: 1.687
+Average loss over 1992573 tokens: 1.687
+Average loss over 2013281 tokens: 1.688
+Average loss over 2008952 tokens: 1.687
+Average loss over 1989892 tokens: 1.688
+Average loss over 1990935 tokens: 1.687
+Average loss over 2002092 tokens: 1.687
+Average loss over 1999196 tokens: 1.687
+Average loss over 2002362 tokens: 1.688
+Average loss over 1993914 tokens: 1.688
+Average loss over 2000653 tokens: 1.688
+Average loss over 2019389 tokens: 1.688
+Average loss over 2005943 tokens: 1.688
+Average loss over 2005899 tokens: 1.687
+Average loss over 2006664 tokens: 1.685
+Average loss over 2009394 tokens: 1.684
+Average loss over 1991812 tokens: 1.688
+Average loss over 1998739 tokens: 1.687
+Average loss over 1997891 tokens: 1.687
+Average loss over 2004655 tokens: 1.687
+Average loss over 1112428 tokens: 1.688
+Epoch: 5, train loss: 1.687, valid loss/error: 1.686 5.60
+New best model saved
+Average loss over 2001505 tokens: 1.686
+Average loss over 1988744 tokens: 1.685
+Average loss over 2010705 tokens: 1.686
+Average loss over 2007590 tokens: 1.687
+Average loss over 1998633 tokens: 1.686
+Average loss over 1999112 tokens: 1.686
+Average loss over 2001385 tokens: 1.686
+Average loss over 2006514 tokens: 1.685
+Average loss over 1993002 tokens: 1.685
+Average loss over 2002350 tokens: 1.684
+Average loss over 1999121 tokens: 1.685
+Average loss over 1996949 tokens: 1.683
+Average loss over 2015062 tokens: 1.685
+Average loss over 1998565 tokens: 1.686
+Average loss over 1993554 tokens: 1.686
+Average loss over 2009405 tokens: 1.686
+Average loss over 2010170 tokens: 1.686
+Average loss over 2014601 tokens: 1.685
+Average loss over 2002523 tokens: 1.686
+Average loss over 2012695 tokens: 1.685
+Average loss over 2007632 tokens: 1.685
+Average loss over 1986373 tokens: 1.685
+Average loss over 1999324 tokens: 1.687
+Average loss over 2008949 tokens: 1.684
+Average loss over 1993091 tokens: 1.685
+Average loss over 1994333 tokens: 1.686
+Average loss over 1993213 tokens: 1.685
+Average loss over 2002755 tokens: 1.684
+Average loss over 1997299 tokens: 1.685
+Average loss over 1988932 tokens: 1.685
+Average loss over 1999852 tokens: 1.684
+Average loss over 2003300 tokens: 1.683
+Average loss over 1985573 tokens: 1.684
+Average loss over 1110823 tokens: 1.686
+Epoch: 6, train loss: 1.685, valid loss/error: 1.685 5.55
+New best model saved
+Average loss over 2009078 tokens: 1.686
+Average loss over 2008577 tokens: 1.682
+Average loss over 1993083 tokens: 1.684
+Average loss over 1995562 tokens: 1.682
+Average loss over 2013391 tokens: 1.683
+Average loss over 1998027 tokens: 1.682
+Average loss over 2011091 tokens: 1.683
+Average loss over 1984419 tokens: 1.684
+Average loss over 2004673 tokens: 1.683
+Average loss over 1988897 tokens: 1.684
+Average loss over 2005693 tokens: 1.683
+Average loss over 2010802 tokens: 1.683
+Average loss over 2006025 tokens: 1.684
+Average loss over 1989395 tokens: 1.683
+Average loss over 1986593 tokens: 1.683
+Average loss over 1996276 tokens: 1.683
+Average loss over 2004036 tokens: 1.684
+Average loss over 1999913 tokens: 1.684
+Average loss over 1995722 tokens: 1.684
+Average loss over 1999053 tokens: 1.681
+Average loss over 2001032 tokens: 1.684
+Average loss over 2005170 tokens: 1.685
+Average loss over 2003608 tokens: 1.682
+Average loss over 2001678 tokens: 1.682
+Average loss over 1997669 tokens: 1.683
+Average loss over 2000654 tokens: 1.683
+Average loss over 1989978 tokens: 1.684
+Average loss over 2002121 tokens: 1.684
+Average loss over 2015545 tokens: 1.684
+Average loss over 1984930 tokens: 1.684
+Average loss over 2010749 tokens: 1.681
+Average loss over 1995456 tokens: 1.684
+Average loss over 2006691 tokens: 1.684
+Average loss over 1118047 tokens: 1.681
+Epoch: 7, train loss: 1.683, valid loss/error: 1.683 5.52
+New best model saved
+Average loss over 2008575 tokens: 1.680
+Average loss over 2005331 tokens: 1.682
+Average loss over 2008289 tokens: 1.681
+Average loss over 1998834 tokens: 1.683
+Average loss over 1991617 tokens: 1.681
+Average loss over 1999106 tokens: 1.682
+Average loss over 1991396 tokens: 1.683
+Average loss over 2009379 tokens: 1.681
+Average loss over 1998386 tokens: 1.683
+Average loss over 2013120 tokens: 1.681
+Average loss over 2009963 tokens: 1.682
+Average loss over 1992106 tokens: 1.684
+Average loss over 1997847 tokens: 1.683
+Average loss over 2008016 tokens: 1.681
+Average loss over 2010644 tokens: 1.682
+Average loss over 1993409 tokens: 1.682
+Average loss over 2005067 tokens: 1.682
+Average loss over 1995240 tokens: 1.682
+Average loss over 2002260 tokens: 1.682
+Average loss over 2010719 tokens: 1.682
+Average loss over 2003017 tokens: 1.681
+Average loss over 2005761 tokens: 1.680
+Average loss over 1999901 tokens: 1.682
+Average loss over 1997054 tokens: 1.683
+Average loss over 2003318 tokens: 1.681
+Average loss over 1997668 tokens: 1.682
+Average loss over 1990622 tokens: 1.681
+Average loss over 1997857 tokens: 1.682
+Average loss over 1990441 tokens: 1.681
+Average loss over 1996250 tokens: 1.682
+Average loss over 1999976 tokens: 1.683
+Average loss over 2004246 tokens: 1.681
+Average loss over 1981117 tokens: 1.680
+Average loss over 1117102 tokens: 1.680
+Epoch: 8, train loss: 1.682, valid loss/error: 1.682 5.49
+New best model saved
+Average loss over 1993249 tokens: 1.680
+Average loss over 2006532 tokens: 1.680
+Average loss over 2010661 tokens: 1.682
+Average loss over 1993125 tokens: 1.681
+Average loss over 2012052 tokens: 1.682
+Average loss over 1993458 tokens: 1.682
+Average loss over 1998176 tokens: 1.680
+Average loss over 1994193 tokens: 1.679
+Average loss over 1987608 tokens: 1.680
+Average loss over 2001063 tokens: 1.682
+Average loss over 1994431 tokens: 1.679
+Average loss over 2009077 tokens: 1.680
+Average loss over 2002953 tokens: 1.680
+Average loss over 2005766 tokens: 1.679
+Average loss over 1998742 tokens: 1.681
+Average loss over 1995233 tokens: 1.679
+Average loss over 1998346 tokens: 1.679
+Average loss over 2004718 tokens: 1.681
+Average loss over 1996744 tokens: 1.682
+Average loss over 2004262 tokens: 1.680
+Average loss over 2007036 tokens: 1.682
+Average loss over 2001064 tokens: 1.679
+Average loss over 1999621 tokens: 1.680
+Average loss over 1991156 tokens: 1.679
+Average loss over 1990239 tokens: 1.681
+Average loss over 2006532 tokens: 1.680
+Average loss over 1997393 tokens: 1.680
+Average loss over 2005959 tokens: 1.679
+Average loss over 2005939 tokens: 1.680
+Average loss over 2008336 tokens: 1.680
+Average loss over 1998874 tokens: 1.682
+Average loss over 1989707 tokens: 1.680
+Average loss over 2012987 tokens: 1.678
+Average loss over 1118402 tokens: 1.680
+Epoch: 9, train loss: 1.680, valid loss/error: 1.680 5.47
+New best model saved
+Average loss over 2017075 tokens: 1.681
+Average loss over 2006587 tokens: 1.680
+Average loss over 2023155 tokens: 1.677
+Average loss over 2012223 tokens: 1.679
+Average loss over 1996625 tokens: 1.678
+Average loss over 1986768 tokens: 1.678
+Average loss over 1998661 tokens: 1.680
+Average loss over 1994740 tokens: 1.678
+Average loss over 2007435 tokens: 1.679
+Average loss over 1997246 tokens: 1.678
+Average loss over 2010926 tokens: 1.679
+Average loss over 1988734 tokens: 1.680
+Average loss over 2014898 tokens: 1.679
+Average loss over 2004766 tokens: 1.680
+Average loss over 1988938 tokens: 1.680
+Average loss over 1997356 tokens: 1.679
+Average loss over 2001325 tokens: 1.680
+Average loss over 1991566 tokens: 1.678
+Average loss over 2009163 tokens: 1.679
+Average loss over 1994716 tokens: 1.681
+Average loss over 1989081 tokens: 1.678
+Average loss over 2006772 tokens: 1.680
+Average loss over 1993132 tokens: 1.678
+Average loss over 1999818 tokens: 1.680
+Average loss over 1996596 tokens: 1.679
+Average loss over 2008512 tokens: 1.679
+Average loss over 2004988 tokens: 1.678
+Average loss over 2001841 tokens: 1.680
+Average loss over 1997603 tokens: 1.678
+Average loss over 1995799 tokens: 1.679
+Average loss over 1987942 tokens: 1.679
+Average loss over 1993293 tokens: 1.679
+Average loss over 1997467 tokens: 1.679
+Average loss over 1117887 tokens: 1.679
+Epoch: 10, train loss: 1.679, valid loss/error: 1.680 5.45
+New best model saved
+Average loss over 1992131 tokens: 1.678
+Average loss over 1996096 tokens: 1.678
+Average loss over 1995470 tokens: 1.678
+Average loss over 2008542 tokens: 1.678
+Average loss over 2000534 tokens: 1.679
+Average loss over 1999276 tokens: 1.679
+Average loss over 2016046 tokens: 1.678
+Average loss over 2000064 tokens: 1.678
+Average loss over 1996485 tokens: 1.677
+Average loss over 2006619 tokens: 1.678
+Average loss over 1994672 tokens: 1.679
+Average loss over 2009025 tokens: 1.679
+Average loss over 2005042 tokens: 1.678
+Average loss over 2000064 tokens: 1.677
+Average loss over 2007129 tokens: 1.678
+Average loss over 2004419 tokens: 1.677
+Average loss over 1987692 tokens: 1.679
+Average loss over 1994364 tokens: 1.677
+Average loss over 2012645 tokens: 1.676
+Average loss over 2000991 tokens: 1.678
+Average loss over 2007772 tokens: 1.678
+Average loss over 1994646 tokens: 1.677
+Average loss over 1993397 tokens: 1.678
+Average loss over 1989051 tokens: 1.678
+Average loss over 2008887 tokens: 1.678
+Average loss over 2003831 tokens: 1.678
+Average loss over 2003548 tokens: 1.677
+Average loss over 1992163 tokens: 1.679
+Average loss over 1994714 tokens: 1.679
+Average loss over 1997862 tokens: 1.678
+Average loss over 2012251 tokens: 1.678
+Average loss over 1999092 tokens: 1.677
+Average loss over 1995750 tokens: 1.677
+Average loss over 1113364 tokens: 1.676
+Epoch: 11, train loss: 1.678, valid loss/error: 1.679 5.42
+New best model saved
+Average loss over 1993161 tokens: 1.679
+Average loss over 2002521 tokens: 1.677
+Average loss over 2013262 tokens: 1.677
+Average loss over 2025340 tokens: 1.676
+Average loss over 2001843 tokens: 1.677
+Average loss over 2003770 tokens: 1.677
+Average loss over 2000369 tokens: 1.677
+Average loss over 2000040 tokens: 1.677
+Average loss over 1997077 tokens: 1.677
+Average loss over 1997279 tokens: 1.678
+Average loss over 2008435 tokens: 1.678
+Average loss over 2013494 tokens: 1.676
+Average loss over 1999017 tokens: 1.676
+Average loss over 1999837 tokens: 1.676
+Average loss over 1989498 tokens: 1.676
+Average loss over 2000644 tokens: 1.677
+Average loss over 1997977 tokens: 1.676
+Average loss over 1992727 tokens: 1.678
+Average loss over 2000677 tokens: 1.677
+Average loss over 2007402 tokens: 1.675
+Average loss over 1998133 tokens: 1.677
+Average loss over 1999032 tokens: 1.678
+Average loss over 1998259 tokens: 1.677
+Average loss over 1999954 tokens: 1.677
+Average loss over 1982815 tokens: 1.677
+Average loss over 1995506 tokens: 1.678
+Average loss over 1991330 tokens: 1.678
+Average loss over 1984623 tokens: 1.677
+Average loss over 2007341 tokens: 1.675
+Average loss over 2001728 tokens: 1.678
+Average loss over 2015617 tokens: 1.677
+Average loss over 2002642 tokens: 1.676
+Average loss over 1996987 tokens: 1.676
+Average loss over 1115297 tokens: 1.675
+Epoch: 12, train loss: 1.677, valid loss/error: 1.678 5.40
+New best model saved
+Average loss over 2020723 tokens: 1.675
+Average loss over 1999607 tokens: 1.676
+Average loss over 2007677 tokens: 1.676
+Average loss over 1999864 tokens: 1.676
+Average loss over 2011916 tokens: 1.676
+Average loss over 1992761 tokens: 1.677
+Average loss over 1996241 tokens: 1.676
+Average loss over 1990510 tokens: 1.676
+Average loss over 1992066 tokens: 1.674
+Average loss over 2006384 tokens: 1.677
+Average loss over 1998524 tokens: 1.676
+Average loss over 2008313 tokens: 1.676
+Average loss over 1999847 tokens: 1.676
+Average loss over 2000361 tokens: 1.676
+Average loss over 2008848 tokens: 1.675
+Average loss over 1987101 tokens: 1.676
+Average loss over 2000195 tokens: 1.674
+Average loss over 2003336 tokens: 1.676
+Average loss over 1988918 tokens: 1.676
+Average loss over 2008556 tokens: 1.677
+Average loss over 2001781 tokens: 1.677
+Average loss over 1996796 tokens: 1.676
+Average loss over 1997315 tokens: 1.676
+Average loss over 2011967 tokens: 1.675
+Average loss over 2015845 tokens: 1.673
+Average loss over 1996481 tokens: 1.676
+Average loss over 1996696 tokens: 1.676
+Average loss over 2005114 tokens: 1.676
+Average loss over 2001065 tokens: 1.676
+Average loss over 1990361 tokens: 1.676
+Average loss over 1978034 tokens: 1.676
+Average loss over 2006742 tokens: 1.678
+Average loss over 1988574 tokens: 1.675
+Average loss over 1125115 tokens: 1.675
+Epoch: 13, train loss: 1.676, valid loss/error: 1.677 5.38
+New best model saved
+Average loss over 2002867 tokens: 1.675
+Average loss over 1998515 tokens: 1.675
+Average loss over 1996687 tokens: 1.674
+Average loss over 2006441 tokens: 1.677
+Average loss over 2000677 tokens: 1.675
+Average loss over 2001439 tokens: 1.675
+Average loss over 2014945 tokens: 1.675
+Average loss over 2001784 tokens: 1.675
+Average loss over 1995268 tokens: 1.675
+Average loss over 1990155 tokens: 1.675
+Average loss over 2013550 tokens: 1.674
+Average loss over 2004974 tokens: 1.674
+Average loss over 1995768 tokens: 1.674
+Average loss over 2010527 tokens: 1.676
+Average loss over 2008479 tokens: 1.675
+Average loss over 1994604 tokens: 1.675
+Average loss over 2003604 tokens: 1.674
+Average loss over 1999425 tokens: 1.674
+Average loss over 1993904 tokens: 1.675
+Average loss over 2006237 tokens: 1.674
+Average loss over 2000244 tokens: 1.675
+Average loss over 2006280 tokens: 1.674
+Average loss over 2009069 tokens: 1.675
+Average loss over 2004292 tokens: 1.676
+Average loss over 1999146 tokens: 1.673
+Average loss over 1996672 tokens: 1.675
+Average loss over 1996598 tokens: 1.674
+Average loss over 1996296 tokens: 1.674
+Average loss over 1998456 tokens: 1.675
+Average loss over 2001812 tokens: 1.675
+Average loss over 1994417 tokens: 1.676
+Average loss over 1979612 tokens: 1.677
+Average loss over 1995717 tokens: 1.675
+Average loss over 1115173 tokens: 1.674
+Epoch: 14, train loss: 1.675, valid loss/error: 1.676 5.34
+New best model saved
+Average loss over 2006875 tokens: 1.674
+Average loss over 1999667 tokens: 1.675
+Average loss over 2010814 tokens: 1.676
+Average loss over 2003309 tokens: 1.673
+Average loss over 1996539 tokens: 1.673
+Average loss over 2010169 tokens: 1.674
+Average loss over 2004254 tokens: 1.674
+Average loss over 1995406 tokens: 1.674
+Average loss over 1995917 tokens: 1.673
+Average loss over 2005243 tokens: 1.674
+Average loss over 2004580 tokens: 1.674
+Average loss over 2000468 tokens: 1.674
+Average loss over 2010957 tokens: 1.673
+Average loss over 2012727 tokens: 1.674
+Average loss over 1999383 tokens: 1.675
+Average loss over 2014276 tokens: 1.673
+Average loss over 1998265 tokens: 1.675
+Average loss over 2005179 tokens: 1.674
+Average loss over 1986297 tokens: 1.674
+Average loss over 1992489 tokens: 1.675
+Average loss over 1997328 tokens: 1.674
+Average loss over 2009340 tokens: 1.673
+Average loss over 2007995 tokens: 1.675
+Average loss over 1993068 tokens: 1.674
+Average loss over 1996801 tokens: 1.674
+Average loss over 2000178 tokens: 1.674
+Average loss over 1983514 tokens: 1.673
+Average loss over 2003401 tokens: 1.674
+Average loss over 1981960 tokens: 1.673
+Average loss over 1988137 tokens: 1.673
+Average loss over 2002516 tokens: 1.674
+Average loss over 2004949 tokens: 1.674
+Average loss over 2000636 tokens: 1.675
+Average loss over 1110997 tokens: 1.674
+Epoch: 15, train loss: 1.674, valid loss/error: 1.676 5.34
+New best model saved
+Average loss over 2003792 tokens: 1.673
+Average loss over 2005560 tokens: 1.673
+Average loss over 1991936 tokens: 1.673
+Average loss over 1998892 tokens: 1.673
+Average loss over 2010593 tokens: 1.673
+Average loss over 2001431 tokens: 1.673
+Average loss over 1994596 tokens: 1.675
+Average loss over 1995373 tokens: 1.672
+Average loss over 2008076 tokens: 1.673
+Average loss over 2002434 tokens: 1.673
+Average loss over 1993835 tokens: 1.675
+Average loss over 1998704 tokens: 1.674
+Average loss over 2007837 tokens: 1.674
+Average loss over 2014341 tokens: 1.674
+Average loss over 1994846 tokens: 1.674
+Average loss over 1988016 tokens: 1.674
+Average loss over 2013415 tokens: 1.673
+Average loss over 1982214 tokens: 1.672
+Average loss over 1988439 tokens: 1.671
+Average loss over 2004408 tokens: 1.675
+Average loss over 2003452 tokens: 1.676
+Average loss over 2004548 tokens: 1.673
+Average loss over 2005626 tokens: 1.673
+Average loss over 2003616 tokens: 1.671
+Average loss over 2006486 tokens: 1.673
+Average loss over 2001925 tokens: 1.672
+Average loss over 1997516 tokens: 1.672
+Average loss over 1999289 tokens: 1.672
+Average loss over 1999515 tokens: 1.672
+Average loss over 1997823 tokens: 1.673
+Average loss over 2002612 tokens: 1.675
+Average loss over 1990916 tokens: 1.672
+Average loss over 2005399 tokens: 1.673
+Average loss over 1116173 tokens: 1.671
+Epoch: 16, train loss: 1.673, valid loss/error: 1.675 5.32
+New best model saved
+Average loss over 2003211 tokens: 1.673
+Average loss over 1995923 tokens: 1.674
+Average loss over 2000070 tokens: 1.673
+Average loss over 1997265 tokens: 1.671
+Average loss over 2016205 tokens: 1.673
+Average loss over 1996330 tokens: 1.673
+Average loss over 2015491 tokens: 1.672
+Average loss over 2000214 tokens: 1.674
+Average loss over 2013516 tokens: 1.670
+Average loss over 2004712 tokens: 1.671
+Average loss over 1994464 tokens: 1.673
+Average loss over 2000061 tokens: 1.672
+Average loss over 1991979 tokens: 1.674
+Average loss over 1991673 tokens: 1.672
+Average loss over 1984749 tokens: 1.673
+Average loss over 2004294 tokens: 1.671
+Average loss over 2000103 tokens: 1.673
+Average loss over 1999418 tokens: 1.674
+Average loss over 1996894 tokens: 1.673
+Average loss over 2007823 tokens: 1.672
+Average loss over 1999977 tokens: 1.670
+Average loss over 2005171 tokens: 1.673
+Average loss over 1992904 tokens: 1.673
+Average loss over 2000879 tokens: 1.673
+Average loss over 1995904 tokens: 1.672
+Average loss over 2009366 tokens: 1.672
+Average loss over 1983940 tokens: 1.674
+Average loss over 1998248 tokens: 1.672
+Average loss over 2006702 tokens: 1.672
+Average loss over 2012577 tokens: 1.671
+Average loss over 1997839 tokens: 1.672
+Average loss over 2000164 tokens: 1.672
+Average loss over 1997833 tokens: 1.673
+Average loss over 1117735 tokens: 1.672
+Epoch: 17, train loss: 1.672, valid loss/error: 1.674 5.31
+New best model saved
+Average loss over 2002750 tokens: 1.672
+Average loss over 1997140 tokens: 1.672
+Average loss over 2003496 tokens: 1.672
+Average loss over 2012403 tokens: 1.673
+Average loss over 2007698 tokens: 1.672
+Average loss over 2013570 tokens: 1.672
+Average loss over 1990827 tokens: 1.672
+Average loss over 1993309 tokens: 1.671
+Average loss over 1998730 tokens: 1.669
+Average loss over 2004291 tokens: 1.671
+Average loss over 1997195 tokens: 1.673
+Average loss over 1997326 tokens: 1.671
+Average loss over 1997145 tokens: 1.672
+Average loss over 1996936 tokens: 1.673
+Average loss over 2005440 tokens: 1.671
+Average loss over 2003965 tokens: 1.672
+Average loss over 1988804 tokens: 1.672
+Average loss over 2002699 tokens: 1.670
+Average loss over 1998447 tokens: 1.672
+Average loss over 1994422 tokens: 1.671
+Average loss over 1985280 tokens: 1.672
+Average loss over 2007233 tokens: 1.671
+Average loss over 1993198 tokens: 1.672
+Average loss over 1991055 tokens: 1.670
+Average loss over 2001886 tokens: 1.673
+Average loss over 2011607 tokens: 1.672
+Average loss over 2014244 tokens: 1.671
+Average loss over 2012896 tokens: 1.670
+Average loss over 2012233 tokens: 1.669
+Average loss over 1996907 tokens: 1.671
+Average loss over 1995497 tokens: 1.673
+Average loss over 2000441 tokens: 1.671
+Average loss over 1991773 tokens: 1.673
+Average loss over 1112791 tokens: 1.672
+Epoch: 18, train loss: 1.672, valid loss/error: 1.674 5.29
+New best model saved
+Average loss over 1992413 tokens: 1.671
+Average loss over 2000488 tokens: 1.670
+Average loss over 2002344 tokens: 1.670
+Average loss over 1994127 tokens: 1.670
+Average loss over 2005036 tokens: 1.671
+Average loss over 1973715 tokens: 1.670
+Average loss over 2014998 tokens: 1.671
+Average loss over 2014265 tokens: 1.671
+Average loss over 1998490 tokens: 1.670
+Average loss over 1998842 tokens: 1.670
+Average loss over 2010613 tokens: 1.671
+Average loss over 2016685 tokens: 1.671
+Average loss over 1992120 tokens: 1.671
+Average loss over 1992850 tokens: 1.671
+Average loss over 2004735 tokens: 1.672
+Average loss over 1996900 tokens: 1.671
+Average loss over 2004521 tokens: 1.671
+Average loss over 2007247 tokens: 1.671
+Average loss over 1993791 tokens: 1.671
+Average loss over 2000671 tokens: 1.672
+Average loss over 2008236 tokens: 1.670
+Average loss over 2002217 tokens: 1.672
+Average loss over 2002639 tokens: 1.670
+Average loss over 2002087 tokens: 1.671
+Average loss over 2010235 tokens: 1.671
+Average loss over 2007210 tokens: 1.671
+Average loss over 2005828 tokens: 1.672
+Average loss over 1985638 tokens: 1.672
+Average loss over 2000495 tokens: 1.671
+Average loss over 2006121 tokens: 1.670
+Average loss over 2003379 tokens: 1.673
+Average loss over 1995885 tokens: 1.671
+Average loss over 1981371 tokens: 1.672
+Average loss over 1107442 tokens: 1.670
+Epoch: 19, train loss: 1.671, valid loss/error: 1.673 5.27
+New best model saved
+Average loss over 2002128 tokens: 1.671
+Average loss over 2002401 tokens: 1.669
+Average loss over 2010731 tokens: 1.670
+Average loss over 2001526 tokens: 1.671
+Average loss over 2010586 tokens: 1.670
+Average loss over 1999011 tokens: 1.671
+Average loss over 1989583 tokens: 1.671
+Average loss over 2012485 tokens: 1.670
+Average loss over 1999596 tokens: 1.670
+Average loss over 2003124 tokens: 1.671
+Average loss over 1991467 tokens: 1.669
+Average loss over 2004200 tokens: 1.671
+Average loss over 2004682 tokens: 1.671
+Average loss over 2003444 tokens: 1.669
+Average loss over 1984291 tokens: 1.671
+Average loss over 2000880 tokens: 1.672
+Average loss over 1998168 tokens: 1.672
+Average loss over 1982977 tokens: 1.671
+Average loss over 2003045 tokens: 1.670
+Average loss over 2006380 tokens: 1.670
+Average loss over 2002675 tokens: 1.670
+Average loss over 2004307 tokens: 1.670
+Average loss over 2003180 tokens: 1.672
+Average loss over 2007493 tokens: 1.670
+Average loss over 1987880 tokens: 1.671
+Average loss over 1998233 tokens: 1.670
+Average loss over 1988935 tokens: 1.669
+Average loss over 2013435 tokens: 1.669
+Average loss over 2013040 tokens: 1.668
+Average loss over 2001717 tokens: 1.669
+Average loss over 1998717 tokens: 1.670
+Average loss over 1995467 tokens: 1.671
+Average loss over 1999378 tokens: 1.670
+Average loss over 1108472 tokens: 1.669
+Epoch: 20, train loss: 1.670, valid loss/error: 1.673 5.25
+New best model saved
+Average loss over 2009716 tokens: 1.669
+Average loss over 1998917 tokens: 1.669
+Average loss over 2007241 tokens: 1.670
+Average loss over 1986302 tokens: 1.669
+Average loss over 2017193 tokens: 1.670
+Average loss over 2004240 tokens: 1.670
+[WARN] line count mismatch: pred=10550 gold=10570; using first 10550 lines
+Average loss over 1994668 tokens: 1.670
+Average loss over 1990804 tokens: 1.671
+Average loss over 2013115 tokens: 1.669
+Average loss over 1989318 tokens: 1.668
+Average loss over 2006768 tokens: 1.668
+Average loss over 1997241 tokens: 1.670
+Average loss over 1991427 tokens: 1.670
+Average loss over 2004465 tokens: 1.670
+Average loss over 2010725 tokens: 1.669
+Average loss over 1997972 tokens: 1.670
+Average loss over 2008113 tokens: 1.669
+Average loss over 2000160 tokens: 1.670
+Average loss over 2005713 tokens: 1.670
+Average loss over 2003049 tokens: 1.669
+Average loss over 1991331 tokens: 1.670
+Average loss over 2015235 tokens: 1.669
+Average loss over 1976098 tokens: 1.670
+Average loss over 1993856 tokens: 1.670
+Average loss over 2001339 tokens: 1.670
+Average loss over 2005750 tokens: 1.670
+Average loss over 1996924 tokens: 1.669
+Average loss over 1991504 tokens: 1.669
+Average loss over 2014558 tokens: 1.669
+Average loss over 2002738 tokens: 1.669
+Average loss over 1995586 tokens: 1.670
+Average loss over 1998768 tokens: 1.670
+Average loss over 2000322 tokens: 1.670
+Average loss over 1112478 tokens: 1.671
+Epoch: 21, train loss: 1.670, valid loss/error: 1.672 5.25
+New best model saved
+Average loss over 1996350 tokens: 1.668
+Average loss over 1996200 tokens: 1.670
+Average loss over 2021045 tokens: 1.669
+Average loss over 2007698 tokens: 1.669
+Average loss over 1995896 tokens: 1.668
+Average loss over 2012831 tokens: 1.670
+Average loss over 2008814 tokens: 1.668
+Average loss over 1987713 tokens: 1.670
+Average loss over 2004478 tokens: 1.668
+Average loss over 2015202 tokens: 1.670
+Average loss over 1992140 tokens: 1.670
+Average loss over 2007750 tokens: 1.668
+Average loss over 2001118 tokens: 1.669
+Average loss over 2000175 tokens: 1.670
+Average loss over 1977226 tokens: 1.670
+Average loss over 2010197 tokens: 1.668
+Average loss over 2001313 tokens: 1.670
+Average loss over 2007013 tokens: 1.669
+Average loss over 1991615 tokens: 1.669
+Average loss over 1998474 tokens: 1.670
+Average loss over 2014754 tokens: 1.669
+Average loss over 2001065 tokens: 1.668
+Average loss over 1992426 tokens: 1.668
+Average loss over 1998589 tokens: 1.669
+Average loss over 2002818 tokens: 1.670
+Average loss over 1998324 tokens: 1.669
+Average loss over 1989390 tokens: 1.669
+Average loss over 2004130 tokens: 1.671
+Average loss over 2005265 tokens: 1.670
+Average loss over 1991740 tokens: 1.667
+Average loss over 1991936 tokens: 1.669
+Average loss over 1996555 tokens: 1.669
+Average loss over 2000813 tokens: 1.668
+Average loss over 1112581 tokens: 1.667
+Epoch: 22, train loss: 1.669, valid loss/error: 1.672 5.23
+New best model saved
+Average loss over 2006406 tokens: 1.668
+Average loss over 1998308 tokens: 1.669
+Average loss over 2004340 tokens: 1.668
+Average loss over 1994246 tokens: 1.670
+Average loss over 2007381 tokens: 1.668
+Average loss over 2006481 tokens: 1.667
+Average loss over 1998489 tokens: 1.669
+Average loss over 1987932 tokens: 1.670
+Average loss over 1999929 tokens: 1.668
+Average loss over 1995545 tokens: 1.667
+Average loss over 1999419 tokens: 1.669
+Average loss over 2016683 tokens: 1.668
+Average loss over 1999644 tokens: 1.667
+Average loss over 2005988 tokens: 1.668
+Average loss over 2005762 tokens: 1.668
+Average loss over 2004454 tokens: 1.669
+Average loss over 1991493 tokens: 1.670
+Average loss over 2003851 tokens: 1.667
+Average loss over 1998750 tokens: 1.667
+Average loss over 2000444 tokens: 1.668
+Average loss over 1996476 tokens: 1.668
+Average loss over 2011811 tokens: 1.669
+Average loss over 1987278 tokens: 1.668
+Average loss over 1997969 tokens: 1.668
+Average loss over 1988422 tokens: 1.668
+Average loss over 2011721 tokens: 1.667
+Average loss over 1994735 tokens: 1.669
+Average loss over 1985880 tokens: 1.668
+Average loss over 1988140 tokens: 1.668
+Average loss over 2001124 tokens: 1.671
+Average loss over 2012223 tokens: 1.669
+Average loss over 2007519 tokens: 1.670
+Average loss over 2002071 tokens: 1.668
+Average loss over 1122720 tokens: 1.668
+Epoch: 23, train loss: 1.668, valid loss/error: 1.671 5.23
+New best model saved
+Average loss over 1997505 tokens: 1.669
+Average loss over 1999068 tokens: 1.667
+Average loss over 1979529 tokens: 1.669
+Average loss over 1998487 tokens: 1.669
+Average loss over 1999240 tokens: 1.667
+Average loss over 2003029 tokens: 1.668
+Average loss over 2017010 tokens: 1.666
+Average loss over 2015094 tokens: 1.666
+Average loss over 2003468 tokens: 1.669
+Average loss over 1981343 tokens: 1.669
+Average loss over 2009080 tokens: 1.668
+Average loss over 1997819 tokens: 1.667
+Average loss over 1988584 tokens: 1.667
+Average loss over 1996527 tokens: 1.667
+Average loss over 1996660 tokens: 1.667
+Average loss over 2007514 tokens: 1.668
+Average loss over 2006546 tokens: 1.668
+Average loss over 1993993 tokens: 1.667
+Average loss over 1999891 tokens: 1.668
+Average loss over 1996033 tokens: 1.668
+Average loss over 1993605 tokens: 1.670
+Average loss over 1999037 tokens: 1.668
+Average loss over 2009126 tokens: 1.668
+Average loss over 1990978 tokens: 1.668
+Average loss over 2015483 tokens: 1.667
+Average loss over 2008107 tokens: 1.669
+Average loss over 2007189 tokens: 1.667
+Average loss over 1999255 tokens: 1.667
+Average loss over 2002734 tokens: 1.670
+Average loss over 2002882 tokens: 1.668
+Average loss over 2002271 tokens: 1.669
+Average loss over 2002116 tokens: 1.668
+Average loss over 1992137 tokens: 1.668
+Average loss over 1122294 tokens: 1.667
+Epoch: 24, train loss: 1.668, valid loss/error: 1.671 5.20
+New best model saved
+Average loss over 1997374 tokens: 1.668
+Average loss over 2000691 tokens: 1.668
+Average loss over 2002378 tokens: 1.667
+Average loss over 2004879 tokens: 1.668
+Average loss over 2005314 tokens: 1.669
+Average loss over 498870 tokens: 1.666
+Epoch: 25, train loss: 1.668, valid loss/error: 1.671 5.22
+Last training step reached
+model saved
+[WARN] line count mismatch: pred=10550 gold=10570; using first 10550 lines
+bash: task-eval2.sh: 没有那个文件或目录
