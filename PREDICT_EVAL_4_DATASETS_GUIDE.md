@@ -454,16 +454,74 @@ TASK=nq_std bash task-p3.sh
 
 ---
 
-## 9. ToolBench 与 MetaMathQA 的 gold 文本生成
+## 9. ToolBench 与 MetaMathQA：基于已生成文本构造评测 gold
 
-这一节给出你最关心的两类评测 gold 生成方式。核心原则只有一条：
+结合 `LORA_DATA_FORMAT_AND_STEPS.md` 的数据流，你现在已经有这些文本：
 
-- `run_eval.py` 是**按行对齐**评测，`pred` 第 `i` 行必须对应 `gold` 第 `i` 行的同一样本。
+- `cache/llm/pubdatasets_toolbench/tgt.dev.txt`
+- `cache/llm/pubdatasets_metamathqa/tgt.dev.txt`
 
-### 9.1 ToolBench（`TASK=tool`）gold 生成
+这两个 `tgt.dev.txt` 都是由 `pubdatasets_to_srctgt.py` 生成的“标签侧文本”，但它们**不能直接同方式评测**：
 
-`tool` 任务要求 `gold` 每行是一个 JSON 数组（元素为 API 描述字符串）。  
-结合 `pubdatasets/toolbench-v1` 结构，推荐优先从 `benchmark/*.parquet` 的 `relevant_apis` 生成。
+- `metamathqa`：可以从 `tgt.dev.txt` 提取数字答案后评测 `TASK=math`
+- `toolbench`：`TASK=tool` 要求每行是 API 列表（JSON 数组），通常需从原始结构化字段（如 `relevant_apis`）构造
+
+统一原则：
+
+- `run_eval.py` 按行对齐，`pred` 第 `i` 行必须对应 `gold` 第 `i` 行同一样本
+
+### 9.1 MetaMathQA（`TASK=math`）：由已生成 `tgt.dev.txt` 直接生成 gold
+
+`math/gsm8k` 的 gold 期望是“每行一个数字列表”，所以把你已有的 `tgt.dev.txt` 转成 `gold.math.txt`：
+
+```bash
+cd /home/gpchen/lora/transformer-edge
+python - <<'PY'
+import json, os, re
+
+inp = "cache/llm/pubdatasets_metamathqa/tgt.dev.txt"
+out = "cache/llm/pubdatasets_metamathqa/gold.math.txt"
+os.makedirs(os.path.dirname(out), exist_ok=True)
+
+pat_answer = re.compile(r"The answer is:\s*([0-9,.\- ]+)")
+pat_num = re.compile(r"-?\d+(?:\.\d+)?")
+
+def parse_line(s):
+    # 优先抽取 "The answer is: ..."
+    m = pat_answer.search(s)
+    if m:
+        nums = pat_num.findall(m.group(1))
+        if nums:
+            return [float(x) for x in nums]
+    # 回退：取整行最后一个数字
+    nums = pat_num.findall(s)
+    if nums:
+        return [float(nums[-1])]
+    return []
+
+with open(inp, "r", encoding="utf-8") as fi, open(out, "w", encoding="utf-8") as fo:
+    for line in fi:
+        fo.write(json.dumps(parse_line(line.strip()), ensure_ascii=False) + "\n")
+
+print("wrote:", out)
+PY
+```
+
+评测：
+
+```bash
+SKIP_EVAL=0 TASK=math GOLD_FILE=cache/llm/pubdatasets_metamathqa/gold.math.txt bash task-p4.sh
+```
+
+说明：
+
+- 这是“基于现有标签文本”的工程化评测方案，适合版本间对比
+- 若 `eval_detail.jsonl` 里 `error` 较多，需迭代提取规则
+
+### 9.2 ToolBench（`TASK=tool`）：优先由结构化字段生成 gold
+
+`tool` 任务在 `run_eval.py` 中要求 gold 每行是 JSON 数组（API 描述列表）。  
+仅用 `pubdatasets_toolbench/tgt.dev.txt`（assistant 长文本）通常不够稳定，推荐从 `benchmark/*.parquet` 的 `relevant_apis` 生成 gold。
 
 ```bash
 cd /home/gpchen/lora/transformer-edge
@@ -473,12 +531,10 @@ import pandas as pd
 
 src_root = "/home/gpchen/pubdatasets/toolbench-v1/benchmark"
 out_file = "cache/llm/pubdatasets_toolbench/gold.toolbench.benchmark.txt"
-
 files = sorted(glob.glob(os.path.join(src_root, "*.parquet")))
 os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
 def to_list(x):
-    # relevant_apis 可能是 list / dict / json 字符串
     if x is None:
         return []
     if isinstance(x, list):
@@ -512,65 +568,27 @@ print("wrote:", out_file)
 PY
 ```
 
-评测时：
+评测：
 
 ```bash
 TASK=tool GOLD_FILE=cache/llm/pubdatasets_toolbench/gold.toolbench.benchmark.txt bash task-p2.sh
 ```
 
-注意：
+说明：
 
-- 这份 gold 对齐的是 `benchmark` 数据行序；你的预测输入也必须来自同一批样本（同顺序），否则分数无意义。
-- 若你当前预测来自 `toolbench-v1/data/validation`，需要对该 split 生成同顺序 gold（不是直接混用 benchmark gold）。
+- 该 gold 对齐的是 `benchmark` 样本顺序
+- 如果你的预测输入不是同一批 benchmark 样本（例如来自 `data/validation`），不能直接混用
 
-### 9.2 MetaMathQA（`TASK=math`）gold 生成
+### 9.3 快速自检（两类都建议做）
 
-`math/gsm8k` 任务要求 gold 每行可解析为数字列表。  
-但 MetaMathQA 常见 `response` 是长 CoT 文本，所以需要先把 `tgt.dev.txt` 转成数字列表格式。
-
-下面给出一个可直接跑的“规则提取”脚本（优先提取 `The answer is:` 后的数字串；失败时回退为该行最后一个数字）：
+在跑评测前，先看行数是否一致：
 
 ```bash
-cd /home/gpchen/lora/transformer-edge
-python - <<'PY'
-import json, os, re
-
-inp = "cache/llm/pubdatasets_metamathqa/tgt.dev.txt"
-out = "cache/llm/pubdatasets_metamathqa/gold.math.txt"
-os.makedirs(os.path.dirname(out), exist_ok=True)
-
-pat_answer = re.compile(r"The answer is:\s*([0-9,.\- ]+)")
-pat_num = re.compile(r"-?\d+(?:\.\d+)?")
-
-def parse_line(s):
-    m = pat_answer.search(s)
-    if m:
-        nums = pat_num.findall(m.group(1))
-        if nums:
-            return [float(x) for x in nums]
-    nums = pat_num.findall(s)
-    if nums:
-        return [float(nums[-1])]
-    return []
-
-with open(inp, "r", encoding="utf-8") as fi, open(out, "w", encoding="utf-8") as fo:
-    for line in fi:
-        fo.write(json.dumps(parse_line(line.strip()), ensure_ascii=False) + "\n")
-
-print("wrote:", out)
-PY
+wc -l expm/llm/pubdatasets_metamathqa/std/base/pred_last.txt cache/llm/pubdatasets_metamathqa/gold.math.txt
+wc -l expm/llm/pubdatasets_toolbench/std/base/pred_last.txt cache/llm/pubdatasets_toolbench/gold.toolbench.benchmark.txt
 ```
 
-评测时：
-
-```bash
-SKIP_EVAL=0 TASK=math GOLD_FILE=cache/llm/pubdatasets_metamathqa/gold.math.txt bash task-p4.sh
-```
-
-注意：
-
-- 这是“工程化近似 gold”，适合快速比较模型版本，不等同于严格官方数学评测集。
-- 若要更稳定，建议抽样检查 `gold.math.txt` 与 `eval_detail.jsonl` 的 `error/model_ans` 字段，迭代你的提取规则。
+若行数不一致，`run_eval.py` 会截断到较短长度，分数可参考但不建议作为最终结果。
 
 ---
 
