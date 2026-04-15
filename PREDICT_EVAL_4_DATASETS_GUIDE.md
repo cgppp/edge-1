@@ -470,9 +470,20 @@ TASK=nq_std bash task-p3.sh
 
 - `run_eval.py` 按行对齐，`pred` 第 `i` 行必须对应 `gold` 第 `i` 行同一样本
 
-### 9.1 MetaMathQA（`TASK=math`）：由已生成 `tgt.dev.txt` 直接生成 gold
+### 9.1 MetaMathQA（`TASK=math`）：由已生成 `tgt.dev.txt` 生成 gold（建议先筛纯数值样本）
 
-`math/gsm8k` 的 gold 期望是“每行一个数字列表”，所以把你已有的 `tgt.dev.txt` 转成 `gold.math.txt`：
+`math/gsm8k` 评测侧 (`tools/eval/scorers.py` 的 `score_gsm8k`) 最稳妥的 gold 是“每行一个纯数字列表”。  
+而 `MetaMathQA` 的 `tgt.dev.txt` 中会混有分数、区间、表达式、有序对等格式（例如 `\frac{1}{64}`、`[-9,9]`、`x^3-...`）。
+
+因此建议：
+
+1. **优先抽取 `The answer is:` 后的内容**
+2. **仅保留可安全解析为纯数字列表的样本**
+3. 生成两份文件：
+   - `gold.math.strict.txt`：仅纯数字样本（推荐用于稳定对比）
+   - `gold.math.loose.txt`：宽松回退（工程排查用，噪声更大）
+
+示例脚本如下：
 
 ```bash
 cd /home/gpchen/lora/transformer-edge
@@ -480,43 +491,73 @@ python - <<'PY'
 import json, os, re
 
 inp = "cache/llm/pubdatasets_metamathqa/tgt.dev.txt"
-out = "cache/llm/pubdatasets_metamathqa/gold.math.txt"
-os.makedirs(os.path.dirname(out), exist_ok=True)
+out_strict = "cache/llm/pubdatasets_metamathqa/gold.math.strict.txt"
+out_loose = "cache/llm/pubdatasets_metamathqa/gold.math.loose.txt"
+os.makedirs(os.path.dirname(out_strict), exist_ok=True)
 
-pat_answer = re.compile(r"The answer is:\s*([0-9,.\- ]+)")
+pat_answer = re.compile(r"The answer is:\s*(.+)$")
 pat_num = re.compile(r"-?\d+(?:\.\d+)?")
+pat_pure_nums = re.compile(r"^\s*-?\d+(?:\.\d+)?(?:\s*,\s*-?\d+(?:\.\d+)?)*\s*$")
 
-def parse_line(s):
-    # 优先抽取 "The answer is: ..."
-    m = pat_answer.search(s)
-    if m:
-        nums = pat_num.findall(m.group(1))
-        if nums:
-            return [float(x) for x in nums]
-    # 回退：取整行最后一个数字
-    nums = pat_num.findall(s)
+def parse_strict(ans_text):
+    # 仅接受纯数字列表，如 "12" / "-3.5" / "1,2,3"
+    if pat_pure_nums.match(ans_text):
+        return [float(x) for x in pat_num.findall(ans_text)]
+    return None
+
+def parse_loose(full_line, ans_text):
+    # 宽松回退：先从 answer 子串抓数字；若没有再抓整行最后一个数字
+    nums = pat_num.findall(ans_text)
     if nums:
-        return [float(nums[-1])]
+        return [float(x) for x in nums]
+    nums_all = pat_num.findall(full_line)
+    if nums_all:
+        return [float(nums_all[-1])]
     return []
 
-with open(inp, "r", encoding="utf-8") as fi, open(out, "w", encoding="utf-8") as fo:
-    for line in fi:
-        fo.write(json.dumps(parse_line(line.strip()), ensure_ascii=False) + "\n")
+total = 0
+strict_kept = 0
+fallback_used = 0
 
-print("wrote:", out)
+with open(inp, "r", encoding="utf-8") as fi, \
+     open(out_strict, "w", encoding="utf-8") as fs, \
+     open(out_loose, "w", encoding="utf-8") as fl:
+    for line in fi:
+        s = line.strip()
+        total += 1
+        m = pat_answer.search(s)
+        ans = m.group(1).strip() if m else ""
+
+        strict_vals = parse_strict(ans)
+        if strict_vals is not None:
+            strict_kept += 1
+            fs.write(json.dumps(strict_vals, ensure_ascii=False) + "\n")
+        else:
+            fallback_used += 1
+
+        loose_vals = parse_loose(s, ans)
+        fl.write(json.dumps(loose_vals, ensure_ascii=False) + "\n")
+
+print("total:", total)
+print("strict_kept:", strict_kept)
+print("strict_drop:", total - strict_kept)
+print("loose_fallback_used:", fallback_used)
+print("wrote:", out_strict)
+print("wrote:", out_loose)
 PY
 ```
 
 评测：
 
 ```bash
-SKIP_EVAL=0 TASK=math GOLD_FILE=cache/llm/pubdatasets_metamathqa/gold.math.txt bash task-p4.sh
+SKIP_EVAL=0 TASK=math GOLD_FILE=cache/llm/pubdatasets_metamathqa/gold.math.strict.txt bash task-p4.sh
 ```
 
 说明：
 
-- 这是“基于现有标签文本”的工程化评测方案，适合版本间对比
-- 若 `eval_detail.jsonl` 里 `error` 较多，需迭代提取规则
+- `strict` 更适合模型版本间稳定对比（噪声更低）
+- `loose` 适合快速跑通或排查，但会把分数/区间等样本近似成数字，可能引入误差
+- 若你坚持“全量样本”评测，建议改造 `score_gsm8k` 的解析逻辑，使其支持分数和区间文本
 
 ### 9.2 ToolBench（`TASK=tool`）：优先由结构化字段生成 gold
 

@@ -104,12 +104,13 @@ cd /home/gpchen/lora/transformer-edge
 WKD="cache/llm/pubdatasets_squad_closed"
 
 # 单卡通常第三个参数写 1
-python tools/plm/llmdec/mktest.py "$WKD/src.dev.srt.ids" "$WKD/test.h5" 1
+# 评测对齐建议：使用未排序 src.dev.txt.ids 生成 test.h5，保证与 tgt.dev.txt 行顺序一致
+python tools/plm/llmdec/mktest.py "$WKD/src.dev.txt.ids" "$WKD/test.h5" 1
 ```
 
 说明：
 
-- 若没有 `.srt.ids`，可用 `src.dev.txt.ids`
+- 推荐直接用 `src.dev.txt.ids`（未排序），便于与 `tgt.dev.txt` 逐行对齐评测
 - 四个数据集的命令完全一致，只改 `WKD`
 
 ---
@@ -144,7 +145,7 @@ MERGE="$CKPT_DIR/merge_last.h5"
 OUT="$CKPT_DIR/pred_last.txt"
 
 python tools/h5/lora.py "$BASE" "$LORA" "$MERGE" && \
-python tools/plm/llmdec/mktest.py "$WKD/src.dev.srt.ids" "$WKD/test.h5" 1 && \
+python tools/plm/llmdec/mktest.py "$WKD/src.dev.txt.ids" "$WKD/test.h5" 1 && \
 python adv/predict/plm/qwen/predict.py "$OUT" "$TOKENIZER" "$MERGE"
 ```
 
