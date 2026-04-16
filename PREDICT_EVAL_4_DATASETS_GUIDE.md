@@ -470,20 +470,31 @@ TASK=nq_std bash task-p3.sh
 
 - `run_eval.py` 按行对齐，`pred` 第 `i` 行必须对应 `gold` 第 `i` 行同一样本
 
-### 9.1 MetaMathQA（`TASK=math`）：由已生成 `tgt.dev.txt` 生成 gold（建议先筛纯数值样本）
+### 9.1 MetaMathQA（`TASK=math`）：重新抽取 gold（原因 + 正确做法）
 
-`math/gsm8k` 评测侧 (`tools/eval/scorers.py` 的 `score_gsm8k`) 最稳妥的 gold 是“每行一个纯数字列表”。  
-而 `MetaMathQA` 的 `tgt.dev.txt` 中会混有分数、区间、表达式、有序对等格式（例如 `\frac{1}{64}`、`[-9,9]`、`x^3-...`）。
+#### 为什么要“重新抽取”
 
-因此建议：
+`run_eval.py` 对 `TASK=math` 会调用 `score_gsm8k`，其 gold 期望是“每行数字列表”。  
+但 `MetaMathQA` 的 `tgt.dev.txt` 是自然语言答案，常见格式包括：
 
-1. **优先抽取 `The answer is:` 后的内容**
-2. **仅保留可安全解析为纯数字列表的样本**
-3. 生成两份文件：
-   - `gold.math.strict.txt`：仅纯数字样本（推荐用于稳定对比）
-   - `gold.math.loose.txt`：宽松回退（工程排查用，噪声更大）
+- 纯数字：`The answer is: 12`
+- 分数：`The answer is: \frac{1}{64}`
+- 区间/有序对：`The answer is: [-9,9]`、`(-4,-1/2)`
+- 表达式：`The answer is: x^3-3x^2+...`
 
-示例脚本如下：
+如果不重抽取，直接用 `tgt.dev.txt` 评测会出现大量解析不一致，分数不可靠。  
+另外，`run_eval.py` 是**逐行对齐**，所以抽取时必须保证与预测文件行顺序一致。
+
+#### 应该怎么抽取（推荐双轨）
+
+- **全量对齐版（默认评测用）**：`gold.math.loose.txt`  
+  每个样本都输出一行（不丢行），保证和 `pred` 一一对应。
+- **严格子集版（分析用）**：`gold.math.strict.txt` + `keep_idx.txt`  
+  只保留“可稳定解析为纯数字列表”的样本，便于做高置信对比。
+
+> 注意：`strict` 不能直接拿去和原始 `pred_last.txt` 评测，必须按同一 `keep_idx` 过滤 `pred`。
+
+下面脚本一次性生成三份文件：`loose`、`strict`、`keep_idx`。
 
 ```bash
 cd /home/gpchen/lora/transformer-edge
@@ -493,6 +504,7 @@ import json, os, re
 inp = "cache/llm/pubdatasets_metamathqa/tgt.dev.txt"
 out_strict = "cache/llm/pubdatasets_metamathqa/gold.math.strict.txt"
 out_loose = "cache/llm/pubdatasets_metamathqa/gold.math.loose.txt"
+keep_idx = "cache/llm/pubdatasets_metamathqa/gold.math.strict.keep_idx.txt"
 os.makedirs(os.path.dirname(out_strict), exist_ok=True)
 
 pat_answer = re.compile(r"The answer is:\s*(.+)$")
@@ -521,8 +533,9 @@ fallback_used = 0
 
 with open(inp, "r", encoding="utf-8") as fi, \
      open(out_strict, "w", encoding="utf-8") as fs, \
-     open(out_loose, "w", encoding="utf-8") as fl:
-    for line in fi:
+     open(out_loose, "w", encoding="utf-8") as fl, \
+     open(keep_idx, "w", encoding="utf-8") as fk:
+    for idx, line in enumerate(fi):
         s = line.strip()
         total += 1
         m = pat_answer.search(s)
@@ -532,6 +545,7 @@ with open(inp, "r", encoding="utf-8") as fi, \
         if strict_vals is not None:
             strict_kept += 1
             fs.write(json.dumps(strict_vals, ensure_ascii=False) + "\n")
+            fk.write(str(idx) + "\n")
         else:
             fallback_used += 1
 
@@ -544,20 +558,51 @@ print("strict_drop:", total - strict_kept)
 print("loose_fallback_used:", fallback_used)
 print("wrote:", out_strict)
 print("wrote:", out_loose)
+print("wrote:", keep_idx)
 PY
 ```
 
-评测：
+#### 评测方式 A（推荐，直接全量对齐）
 
 ```bash
-SKIP_EVAL=0 TASK=math GOLD_FILE=cache/llm/pubdatasets_metamathqa/gold.math.strict.txt bash task-p4.sh
+SKIP_EVAL=0 TASK=math GOLD_FILE=cache/llm/pubdatasets_metamathqa/gold.math.loose.txt bash task-p4.sh
 ```
 
-说明：
+#### 评测方式 B（严格子集，对齐后评测）
 
-- `strict` 更适合模型版本间稳定对比（噪声更低）
-- `loose` 适合快速跑通或排查，但会把分数/区间等样本近似成数字，可能引入误差
-- 若你坚持“全量样本”评测，建议改造 `score_gsm8k` 的解析逻辑，使其支持分数和区间文本
+先按 `keep_idx` 过滤预测文件：
+
+```bash
+cd /home/gpchen/lora/transformer-edge
+python - <<'PY'
+from pathlib import Path
+
+pred_in = Path("expm/llm/pubdatasets_metamathqa/std/base/pred_last.txt")
+idx_in = Path("cache/llm/pubdatasets_metamathqa/gold.math.strict.keep_idx.txt")
+pred_out = Path("expm/llm/pubdatasets_metamathqa/std/base/pred_last.strict.txt")
+
+pred_lines = pred_in.read_text(encoding="utf-8").splitlines()
+idx = [int(x.strip()) for x in idx_in.read_text(encoding="utf-8").splitlines() if x.strip()]
+sel = [pred_lines[i] for i in idx if 0 <= i < len(pred_lines)]
+pred_out.write_text("\n".join(sel) + ("\n" if sel else ""), encoding="utf-8")
+print("wrote:", pred_out, "lines=", len(sel))
+PY
+```
+
+再评测：
+
+```bash
+SKIP_EVAL=0 TASK=math \
+PRED_FILE=expm/llm/pubdatasets_metamathqa/std/base/pred_last.strict.txt \
+GOLD_FILE=cache/llm/pubdatasets_metamathqa/gold.math.strict.txt \
+bash task-p4.sh
+```
+
+#### 小结
+
+- `loose`：默认可跑、全量对齐、适合日常对比
+- `strict`：更干净，但必须同步过滤 `pred` 后再评
+- 若你后续要评测分数/区间/表达式，建议扩展 `score_gsm8k` 解析规则，而不是继续“数字近似”
 
 ### 9.2 ToolBench（`TASK=tool`）：优先由结构化字段生成 gold
 
