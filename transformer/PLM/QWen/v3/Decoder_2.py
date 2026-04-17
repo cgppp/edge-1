@@ -69,27 +69,18 @@ class DecoderLayer(DecoderLayerBase):
 		"""
 		两种用法：
 		- query_unit is None（训练或整段前向）：inputo 为 (batch, seq, dim)，先 self_attn 再 ff，返回 (context,)。
-		- query_unit 非空（自回归一步）：inputo 为上一段的 KV states，query_unit 为本步 query hidden；返回 (context, states_return) 供下一步用。
+		- query_unit 非空（自回归一步）：inputo 为上一段的 (k, v, hp_state)，query_unit 为本步 query hidden；返回 (context, states_return) 供下一步用。
 		"""
 		if query_unit is None:
 			context = self.self_attn(inputo, mask=tgt_pad_mask, slen=slen, sliding_window_khead=sliding_window_khead)
 		else:
-			# 兼容两种输入状态：
-			# 1) 旧版: (k, v)
-			# 2) 新版: (k, v, hp_state)
-			if isinstance(inputo, (list, tuple)):
-				if len(inputo) >= 3:
-					attn_states, hp_state = (inputo[0], inputo[1],), inputo[2]
-				elif len(inputo) == 2:
-					attn_states, hp_state = (inputo[0], inputo[1],), "init"
-				else:
-					attn_states, hp_state = None, "init"
-			else:
-				attn_states, hp_state = None, "init"
+			k_state, v_state, hp_state = inputo
+			attn_states = (k_state, v_state)
 			context, attn_states_return = self.self_attn(query_unit, mask=tgt_pad_mask, states=attn_states, slen=slen, sliding_window_khead=sliding_window_khead)
-			h, hp_states_return = self.hplstm(context, states=hp_state)
-			states_return = (attn_states_return[0], attn_states_return[1], hp_states_return)
-		h = self.hplstm(context) if query_unit is None else h
+			h, hp_state_return = self.hplstm(context, states=("init" if hp_state is None else hp_state))
+			states_return = (attn_states_return[0], attn_states_return[1], hp_state_return)
+		if query_unit is None:
+			h = self.hplstm(context)
 		context = context + h
 		context = self.ff(context)
 		return context if query_unit is None else (context, states_return,)
@@ -170,7 +161,7 @@ class Decoder(DecoderBase):
 		nquery = inpute.size(-1)
 		_sliding_window_khead = None if sliding_window_khead is None else (sliding_window_khead if isinstance(sliding_window_khead, Integral) else nquery)
 		if slen is None:
-			_ = _states.get(0, (None, None, None,))[0]
+			_ = _states.get(0, (None, None, "init",))[0]
 			_slen = 0 if _ is None else _.size(-1)
 		else:
 			_slen = slen
@@ -188,18 +179,18 @@ class Decoder(DecoderBase):
 			_sid = _slen
 			while _sid < _rslen:
 				_eid = min(_sid + block_size, _rslen)
-				_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=(_sid - (0 if (_states.get(0, (None, None, None,))[0] is None) else (_states.get(0, (None, None, None,))[0].size(-1)))) if self.sliding_window > 0 else 0)
+				_mask = self._get_subsequent_mask(_eid, sid=_sid, lsid=(_sid - (0 if (_states.get(0, (None, None, "init",))[0] is None) else (_states.get(0, (None, None, "init",))[0].size(-1)))) if self.sliding_window > 0 else 0)
 				_out = out.narrow(1, _sid - _slen, _eid - _sid)
 				for _tmp, net in enumerate(self.nets):
-					_out, _state = net(_states.get(_tmp, (None, None, None,)), tgt_pad_mask=_mask, query_unit=_out, slen=_sid, sliding_window_khead=_sliding_window_khead)
+					_out, _state = net(_states.get(_tmp, (None, None, "init",)), tgt_pad_mask=_mask, query_unit=_out, slen=_sid, sliding_window_khead=_sliding_window_khead)
 					_states[_tmp] = _state
 				_sid = _eid
 			out = _out
 		else:
 			_mask = self._get_subsequent_mask(_rslen, sid=_slen)
 			for _tmp, net in enumerate(self.nets):
-				out, _state = net(_states.get(_tmp, (None, None, None,)), tgt_pad_mask=_mask, query_unit=out, slen=_slen, sliding_window_khead=_sliding_window_khead)
-				_states[_tmp] = _state   # 每层保存 (k, v) 等，供下一步自回归时 query_unit 用
+				out, _state = net(_states.get(_tmp, (None, None, "init",)), tgt_pad_mask=_mask, query_unit=out, slen=_slen, sliding_window_khead=_sliding_window_khead)
+				_states[_tmp] = _state   # 每层保存 (k, v, hp_state)，供下一步自回归时 query_unit 用
 
 		if return_last_hidden:
 			out = out.narrow(1, -1, 1)
@@ -219,7 +210,7 @@ class Decoder(DecoderBase):
 		_states = {} if states is None else states
 		_sliding_window_khead = None if sliding_window_khead is None else (sliding_window_khead if isinstance(sliding_window_khead, Integral) else nquery)
 		if slen is None:
-			_ = _states.get(0, (None, None, None,))[0]
+			_ = _states.get(0, (None, None, "init",))[0]
 			_slen = 0 if _ is None else _.size(-1)
 		else:
 			_slen = slen
@@ -310,7 +301,7 @@ class Decoder(DecoderBase):
 		bsizeb2 = bsize * beam_size2
 		real_bsize = bsize * beam_size
 		if slen is None:
-			_ = _states.get(0, (None, None, None,))[0]
+			_ = _states.get(0, (None, None, "init",))[0]
 			_slen = 0 if _ is None else _.size(-1)
 		else:
 			_slen = slen

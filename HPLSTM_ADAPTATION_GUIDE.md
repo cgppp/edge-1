@@ -71,7 +71,7 @@ fine_tune_reslstm = False
 
 状态管理：
 
-- 当前 `Decoder_1.py` 与 `Decoder_2/3` 一样，主状态仍是 tuple 形态 `(K, V)`。
+- 当前 `Decoder_1.py` 与 `Decoder_3.py` 主状态仍是 tuple 形态 `(K, V)`；`Decoder_2.py` 已升级为 tuple 形态 `(K, V, hp_state)`（见第 11 节）。
 - 若要让方案 A 在增量解码中缓存 HPLSTM recurrent state，需要后续改造为 dict 形态（见第 6 节）。
 
 ### 3.2 方案 B（`Decoder_2.py`）：串联融合（推荐首个 baseline）
@@ -90,7 +90,7 @@ fine_tune_reslstm = False
 
 状态管理现状：
 
-- 当前 `Decoder_2.py` 仍主要使用 tuple 状态 `(K, V)`，未把 HPLSTM recurrent state 纳入解码缓存。
+- `Decoder_2.py` 已使用 tuple 状态 `(K, V, hp_state)`，把 HPLSTM recurrent state 纳入增量解码缓存，且保持 tuple 协议（不走 dict）。
 
 ### 3.3 方案 C（`Decoder_3.py`）：追加 ResHPLSTM 子层
 
@@ -185,7 +185,7 @@ layer_state = {
 
 ## 9. 一句话结论
 
-在本仓库里，HPLSTM 微调的稳定路径是：`train_hplstm_qwen.py` 走冻结/解冻小模块流程，先用方案 B 跑通，再按实验目标切换到 C 或 A；若要让增量解码发挥 HPLSTM 记忆能力，需要把状态管理统一升级到 dict 形态并在所有 `Decoder_*` 路线保持一致。
+在本仓库里，HPLSTM 微调的稳定路径是：`train_hplstm_qwen.py` 走冻结/解冻小模块流程，先用方案 B 跑通，再按实验目标切换到 C 或 A；其中 `Decoder_2.py` 现已通过 tuple `(K, V, hp_state)` 支持增量解码记忆（见第 11 节）。
 
 ---
 
@@ -237,80 +237,33 @@ layer_state = {
 
 你目前目标是“重新修改代码且尽量少改”，优先建议：
 
-- **先不加 dict 形态状态**，优先走 tuple 路线把训练/验证跑稳；
+- `Decoder_2.py` 可走 tuple 三元状态 `(K, V, hp_state)`，在不改基类协议（仍是 tuple）的前提下开启 HPLSTM 解码记忆；
 - 后续若确认要做“增量解码记忆能力”实验，再切到第 2 档（仅 `Decoder_1` 内自洽升级）；
 - 避免半改状态结构（只改 `state_return` 不改上层读取），否则很容易再次触发 `KeyError: 0` 这类问题。
 
----
+## 11. 2026-04-16 最小改动记录：`Decoder_2.py` 改为 `(K, V, hp_state)`
 
-## 11. 本次已落地改动（`Decoder_2.py`，tuple `(k, v, hp_state)` 协议）
+目标：在**最小改动**下让方案 B (`Decoder_2.py`) 的增量解码缓存 HPLSTM state，且不引入 dict 状态协议。
 
-本节记录本次实际代码修改，目标是在**不改基类 `LLMDecoder.py`** 的前提下，让方案 B (`Decoder_2.py`) 的增量解码可携带 HPLSTM recurrent state，并兼容旧状态 `(k, v)`。
+改动文件：`transformer/PLM/QWen/v3/Decoder_2.py`
 
-### 11.1 改动文件
+1. `DecoderLayer.forward(...)`（`query_unit != None` 分支）
+   - 输入状态从 `(K, V)` 改为 `(K, V, hp_state)`；
+   - attention 仍只吃 `(K, V)`；
+   - HPLSTM 改为 `self.hplstm(context, states=...)`，当 `hp_state is None` 时使用 `"init"` 启动；
+   - 返回状态统一为 `(K_new, V_new, hp_state_new)`。
 
-- `transformer/PLM/QWen/v3/Decoder_2.py`
+2. `build_states(...)`
+   - 各层缺省 state 从 `(None, None)` 改为 `(None, None, "init")`；
+   - 增量路径逐层写回三元状态，供后续 query 步复用。
 
-### 11.2 改动点与作用
+3. `greedy_decode(...)` / `beam_decode(...)`
+   - 读取首层缓存长度的缺省 state 同步改为 `(None, None, "init")`；
+   - 解码过程继续沿用每层 `_states[layer_id]`，但内容已变为三元组。
 
-1. `DecoderLayer.forward(query_unit != None)` 状态解析升级
+作用与收益：
 
-- 新增兼容逻辑，支持两种入参：
-  - 旧：`(k, v)`
-  - 新：`(k, v, hp_state)`
-- 从输入状态中拆出：
-  - `attn_states = (k, v)`
-  - `hp_state`（缺失时用 `"init"`）
-- 作用：保证历史 KV 与 HPLSTM recurrent state 能分别进入对应子模块，并且旧 checkpoint / 旧调用路径不崩。
-
-2. `DecoderLayer.forward(query_unit != None)` 返回状态升级
-
-- `self.self_attn(...)` 返回 `attn_states_return`
-- `self.hplstm(..., states=hp_state)` 返回 `hp_states_return`
-- 组合为三元组返回：`(k_new, v_new, hp_state_new)`
-- 作用：上层 `build_states/greedy_decode/beam_decode` 可持续传递完整增量状态。
-
-3. `Decoder.build_states(...)` 默认层状态改为三元组占位
-
-- 由 `states.get(i, (None, None,))` 改为 `states.get(i, (None, None, None,))`
-- KV 长度读取仍走 `[0]`（即 `k`），与基类读取习惯一致。
-- 作用：无状态冷启动时可直接进入 tuple3 链路，同时不破坏已有 KV 长度逻辑。
-
-4. `Decoder.greedy_decode(...)` / `Decoder.beam_decode(...)` 同步改为 tuple3 默认
-
-- `states.get(i, ...)` 的默认值统一到三元组占位。
-- `slen` 推断读取 `state[0]`（`k`）不变。
-- 作用：解码阶段与 `build_states` 状态协议一致，避免“构建是 tuple3、解码按 tuple2 读”的不一致。
-
-### 11.3 兼容性说明
-
-- 对外状态主协议现在是 `(k, v, hp_state)`。
-- 仍兼容旧输入 `(k, v)`：会自动把 `hp_state` 设为 `"init"` 并继续执行。
-- 未引入 dict 状态，避免触发 `LLMDecoder.forward` 的 tuple-only 读取链路兼容问题。
-
-### 11.4 本次自检结果
-
-1. 语法检查
-
-- 命令：`python -m py_compile transformer/PLM/QWen/v3/Decoder_2.py`
-- 结果：通过。
-
-2. 静态诊断
-
-- 已对 `Decoder_2.py` 与本指南执行 IDE 诊断检查；
-- 结果：无新增 lints。
-
-3. 运行时 smoke test 说明
-
-- 尝试执行最小导入/前向 smoke test 时，环境缺少 `ninja`，导致 HPLSTM 的 C++ 扩展 `lgatev_cpp` 无法即时编译加载。
-- 报错核心：`RuntimeError: Ninja is required to load C++ extensions`.
-- 结论：当前无法在该环境完成 HPLSTM runtime 级 smoke test，但**代码层面的状态链路、语法与静态检查已完成**。
-
-建议先安装：
-
-```bash
-pip install ninja
-```
-
-安装后可复跑最小验证（导入 + `build_states` + `greedy_decode`）。
+- 让方案 B 在解码时具备真实 HPLSTM recurrent cache（不是每步近似重置）。
+- 维持 tuple 协议，减少对现有上层链路的冲击。
+- 改动面集中在 `Decoder_2.py`，便于回归和定位问题。
 
