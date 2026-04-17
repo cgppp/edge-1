@@ -25,16 +25,13 @@ LoRA 预测的标准链路：
 ## 2. 关键脚本说明
 
 - `tools/h5/lora.py`  
-  将 LoRA 参数并入基座权重，输出可直接推理的完整模型。
-
+将 LoRA 参数并入基座权重，输出可直接推理的完整模型。
 - `tools/plm/llmdec/mktest.py`  
-  从 `src.*.ids` 生成推理用 `test.h5`。
-
+从 `src.*.ids` 生成推理用 `test.h5`。
 - `adv/predict/plm/qwen/predict.py`  
-  执行解码预测，输出文本结果。
-
+执行解码预测，输出文本结果。
 - `tools/h5/convert/st.py`（可选）  
-  `safetensors` 与 `h5` 互转。
+`safetensors` 与 `h5` 互转。
 
 ---
 
@@ -42,22 +39,24 @@ LoRA 预测的标准链路：
 
 ### 3.1 必备输入
 
-1. **基座权重**（示例）  
-   `/home/common/plm/Qwen/Qwen3-8B/model.h5`
-2. **LoRA checkpoint**（训练产物）  
-   如：`expm/llm/<DATASET>/std/base/last.h5` 或 `eva_*.h5`
-3. **tokenizer 目录**  
-   如：`/home/common/plm/Qwen/Qwen3-8B`
+1. **基座权重**（示例）
+  `/home/common/plm/Qwen/Qwen3-8B/model.h5`
+2. **LoRA checkpoint**（训练产物）
+  如：`expm/llm/<DATASET>/std/base/last.h5` 或 `eva_*.h5`
+3. **tokenizer 目录**
+  如：`/home/common/plm/Qwen/Qwen3-8B`
 4. **预测用 test.h5**（由 `mktest.py` 生成）
 
 ### 3.2 四数据集目录映射
 
-| 数据集 | DATA_ID | 工作目录 WKD | checkpoint 目录 |
-|---|---|---|---|
-| MetaMathQA | `llm/pubdatasets_metamathqa` | `cache/llm/pubdatasets_metamathqa` | `expm/llm/pubdatasets_metamathqa/std/base` |
+
+| 数据集          | DATA_ID                        | 工作目录 WKD                             | checkpoint 目录                                |
+| ------------ | ------------------------------ | ------------------------------------ | -------------------------------------------- |
+| MetaMathQA   | `llm/pubdatasets_metamathqa`   | `cache/llm/pubdatasets_metamathqa`   | `expm/llm/pubdatasets_metamathqa/std/base`   |
 | SQuAD closed | `llm/pubdatasets_squad_closed` | `cache/llm/pubdatasets_squad_closed` | `expm/llm/pubdatasets_squad_closed/std/base` |
-| NQ closed | `llm/pubdatasets_nq_closed` | `cache/llm/pubdatasets_nq_closed` | `expm/llm/pubdatasets_nq_closed/std/base` |
-| ToolBench | `llm/pubdatasets_toolbench` | `cache/llm/pubdatasets_toolbench` | `expm/llm/pubdatasets_toolbench/std/base` |
+| NQ closed    | `llm/pubdatasets_nq_closed`    | `cache/llm/pubdatasets_nq_closed`    | `expm/llm/pubdatasets_nq_closed/std/base`    |
+| ToolBench    | `llm/pubdatasets_toolbench`    | `cache/llm/pubdatasets_toolbench`    | `expm/llm/pubdatasets_toolbench/std/base`    |
+
 
 ---
 
@@ -81,8 +80,8 @@ ls -lh expm/llm/pubdatasets_*/std/base/*.h5
 cd /home/gpchen/lora/transformer-edge
 
 BASE="/home/common/plm/Qwen/Qwen3-8B/model.h5"
-LORA="expm/llm/pubdatasets_squad_closed/std/base/last.h5"
-MERGE="expm/llm/pubdatasets_squad_closed/std/base/merge_last.h5"
+LORA="expm/llm/pubdatasets_toolbench/std/base/eva_55_2.266_2.304_21.63.h5"
+MERGE="expm/llm/pubdatasets_toolbench/std/base/merge_last.h5"
 
 python tools/h5/lora.py "$BASE" "$LORA" "$MERGE"
 ls -lh "$MERGE"
@@ -172,4 +171,3 @@ python adv/predict/plm/qwen/predict.py "$OUT" "$TOKENIZER" "$MERGE"
 - LoRA 合并后：`merge_*.h5`
 
 即可做 A/B 对比。
-

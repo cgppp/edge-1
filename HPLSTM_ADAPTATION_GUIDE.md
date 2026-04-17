@@ -237,7 +237,80 @@ layer_state = {
 
 你目前目标是“重新修改代码且尽量少改”，优先建议：
 
-- **先不加 HPLSTM 解码状态**，保持 tuple 路线把训练/验证跑稳；
+- **先不加 dict 形态状态**，优先走 tuple 路线把训练/验证跑稳；
 - 后续若确认要做“增量解码记忆能力”实验，再切到第 2 档（仅 `Decoder_1` 内自洽升级）；
 - 避免半改状态结构（只改 `state_return` 不改上层读取），否则很容易再次触发 `KeyError: 0` 这类问题。
+
+---
+
+## 11. 本次已落地改动（`Decoder_2.py`，tuple `(k, v, hp_state)` 协议）
+
+本节记录本次实际代码修改，目标是在**不改基类 `LLMDecoder.py`** 的前提下，让方案 B (`Decoder_2.py`) 的增量解码可携带 HPLSTM recurrent state，并兼容旧状态 `(k, v)`。
+
+### 11.1 改动文件
+
+- `transformer/PLM/QWen/v3/Decoder_2.py`
+
+### 11.2 改动点与作用
+
+1. `DecoderLayer.forward(query_unit != None)` 状态解析升级
+
+- 新增兼容逻辑，支持两种入参：
+  - 旧：`(k, v)`
+  - 新：`(k, v, hp_state)`
+- 从输入状态中拆出：
+  - `attn_states = (k, v)`
+  - `hp_state`（缺失时用 `"init"`）
+- 作用：保证历史 KV 与 HPLSTM recurrent state 能分别进入对应子模块，并且旧 checkpoint / 旧调用路径不崩。
+
+2. `DecoderLayer.forward(query_unit != None)` 返回状态升级
+
+- `self.self_attn(...)` 返回 `attn_states_return`
+- `self.hplstm(..., states=hp_state)` 返回 `hp_states_return`
+- 组合为三元组返回：`(k_new, v_new, hp_state_new)`
+- 作用：上层 `build_states/greedy_decode/beam_decode` 可持续传递完整增量状态。
+
+3. `Decoder.build_states(...)` 默认层状态改为三元组占位
+
+- 由 `states.get(i, (None, None,))` 改为 `states.get(i, (None, None, None,))`
+- KV 长度读取仍走 `[0]`（即 `k`），与基类读取习惯一致。
+- 作用：无状态冷启动时可直接进入 tuple3 链路，同时不破坏已有 KV 长度逻辑。
+
+4. `Decoder.greedy_decode(...)` / `Decoder.beam_decode(...)` 同步改为 tuple3 默认
+
+- `states.get(i, ...)` 的默认值统一到三元组占位。
+- `slen` 推断读取 `state[0]`（`k`）不变。
+- 作用：解码阶段与 `build_states` 状态协议一致，避免“构建是 tuple3、解码按 tuple2 读”的不一致。
+
+### 11.3 兼容性说明
+
+- 对外状态主协议现在是 `(k, v, hp_state)`。
+- 仍兼容旧输入 `(k, v)`：会自动把 `hp_state` 设为 `"init"` 并继续执行。
+- 未引入 dict 状态，避免触发 `LLMDecoder.forward` 的 tuple-only 读取链路兼容问题。
+
+### 11.4 本次自检结果
+
+1. 语法检查
+
+- 命令：`python -m py_compile transformer/PLM/QWen/v3/Decoder_2.py`
+- 结果：通过。
+
+2. 静态诊断
+
+- 已对 `Decoder_2.py` 与本指南执行 IDE 诊断检查；
+- 结果：无新增 lints。
+
+3. 运行时 smoke test 说明
+
+- 尝试执行最小导入/前向 smoke test 时，环境缺少 `ninja`，导致 HPLSTM 的 C++ 扩展 `lgatev_cpp` 无法即时编译加载。
+- 报错核心：`RuntimeError: Ninja is required to load C++ extensions`.
+- 结论：当前无法在该环境完成 HPLSTM runtime 级 smoke test，但**代码层面的状态链路、语法与静态检查已完成**。
+
+建议先安装：
+
+```bash
+pip install ninja
+```
+
+安装后可复跑最小验证（导入 + `build_states` + `greedy_decode`）。
 
