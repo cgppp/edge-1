@@ -89,3 +89,4 @@ Traceback (most recent call last):
     return os.stat(self, follow_symlinks=follow_symlinks)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 OSError: [Errno 512] Unknown error 512: '/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/pandas/tests/indexes/datetimes/methods/__pycache__/test_normalize.cpython-312.pyc'
+[WARN] line count mismatch: pred=4445 gold=4462; using first 4445 lines

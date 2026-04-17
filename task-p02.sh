@@ -1,13 +1,8 @@
 #!/bin/bash
-# Qwen3 预测 + 可选离线评测（与 task-2.sh 同一数据集：pubdatasets_toolbench）
+# Qwen3 基座模型预测 + 可选离线评测（默认 ToolBench）
 # 用法：
-#   bash task-p2.sh
-#   SKIP_EVAL=1 bash task-p2.sh
-#
-# 说明：
-# - predict.py 读 cache/<DATA_ID>/test.h5（须 mktest 流程生成）
-# - 评测使用 run_eval task=tool（gold 为每行 JSON 数组）
-# - 若 DATA_ID=llm/pubdatasets_toolbench_benchmark，默认 gold 用 gold.toolbench.benchmark.txt
+#   bash task-p02.sh
+#   SKIP_EVAL=1 bash task-p02.sh
 
 set -e -o pipefail
 
@@ -21,18 +16,9 @@ export PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 export DATA_ID="${DATA_ID:-llm/pubdatasets_toolbench_benchmark}"
 _DATA_TAG="${DATA_ID##*/}"
 
-export OUT="${OUT:-expm/llm/${_DATA_TAG}/std/base/pred_last.txt}"
+export OUT="${OUT:-expm/llm/${_DATA_TAG}/std/base/pred_base.txt}"
 export TOKENIZER="${TOKENIZER:-/home/common/plm/Qwen/Qwen3-8B}"
-# 评测 benchmark 时通常仍使用 pubdatasets_toolbench 训练出的模型
-if [[ "${MODEL:-}" == "" ]]; then
-	if [[ "$_DATA_TAG" == "pubdatasets_toolbench_benchmark" ]]; then
-		export MODEL="expm/llm/pubdatasets_toolbench/std/base/merge_last.h5"
-	else
-		export MODEL="expm/llm/${_DATA_TAG}/std/base/merge_last.h5"
-	fi
-else
-	export MODEL
-fi
+export MODEL="${MODEL:-/home/common/plm/Qwen/Qwen3-8B/model.h5}"
 
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 
@@ -55,7 +41,7 @@ if [[ "$SKIP_EVAL" == "0" ]]; then
 			GOLD_FILE="cache/llm/${_DATA_TAG}/tgt.dev.txt"
 		fi
 	fi
-	DETAIL_FILE="${DETAIL_FILE:-expm/llm/${_DATA_TAG}/std/base/eval_detail.jsonl}"
+	DETAIL_FILE="${DETAIL_FILE:-expm/llm/${_DATA_TAG}/std/base/eval_detail_base.jsonl}"
 	echo "TASK=$TASK PRED_FILE=$PRED_FILE GOLD_FILE=$GOLD_FILE DETAIL_FILE=$DETAIL_FILE"
 	python tools/eval/run_eval.py --task "$TASK" --pred "$PRED_FILE" --gold "$GOLD_FILE" --detail "$DETAIL_FILE"
 else

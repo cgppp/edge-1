@@ -248,6 +248,47 @@ python tools/eval/run_eval.py --task "$TASK" --pred "$PRED_FILE" --gold "$GOLD_F
 - 聚合输出 `sum_score` / `mean_score` / `accuracy`
 - 可写 `--detail` 为 JSONL
 
+命令参数（建议理解清楚再改）：
+
+- `--task`
+  - 选择评测逻辑（`TASK_REGISTRY`）。
+  - 例如：`squad`、`nq_v1`、`tool`、`math`。
+  - 选错会导致“能跑但分数无意义”（例如用 `task=tool` 去评普通文本）。
+
+- `--pred`
+  - 预测文本文件路径（通常是 `predict.py` 输出的 `pred_last.txt`）。
+  - 要求：每行一个样本，顺序必须与 gold 对齐。
+
+- `--gold`
+  - 标准答案文件路径。
+  - 不同 `task` 对 gold 行格式要求不同（见 5.6 与第 9 节）：
+    - `squad/nq_*`：字符串或字符串列表
+    - `tool`：每行 JSON 数组
+    - `math/gsm8k`：每行数字列表
+
+- `--detail`（可选）
+  - 逐样本明细 JSONL 输出路径。
+  - 每行包含 `idx/task/pred/gold_line/score` 及任务附加字段。
+  - 用于排查“为什么某条是 0 分”。
+
+与 `task-p*.sh` 的环境变量对应关系：
+
+- `TASK` -> `--task`
+- `PRED_FILE` -> `--pred`
+- `GOLD_FILE` -> `--gold`
+- `DETAIL_FILE` -> `--detail`
+- `SKIP_EVAL=1` 时不会调用 `run_eval.py`
+
+最小示例：
+
+```bash
+python tools/eval/run_eval.py \
+  --task squad \
+  --pred expm/llm/pubdatasets_squad_closed/std/base/pred_last.txt \
+  --gold cache/llm/pubdatasets_squad_closed/tgt.dev.txt \
+  --detail expm/llm/pubdatasets_squad_closed/std/base/eval_detail.jsonl
+```
+
 支持任务名包括：
 
 - `squad` / `trivia`
@@ -664,6 +705,141 @@ TASK=tool GOLD_FILE=cache/llm/pubdatasets_toolbench/gold.toolbench.benchmark.txt
 
 - 该 gold 对齐的是 `benchmark` 样本顺序
 - 如果你的预测输入不是同一批 benchmark 样本（例如来自 `data/validation`），不能直接混用
+
+### 9.2.1 ToolBench 正确评测路线（去重版）
+
+你说得对，之前这节里 C/D 有重复。这里整理成一个最小闭环：
+
+1. 从 `benchmark/*.parquet` 生成 `src.dev.txt` + `gold.toolbench.benchmark.txt`
+2. `src.dev.txt -> src.dev.txt.ids -> test.h5`
+3. 用 `task-p2.sh` 跑预测+评测
+
+#### A. 一次性生成 benchmark 输入与 gold（并构造 test.h5）
+
+```bash
+cd /home/gpchen/lora/transformer-edge
+python - <<'PY'
+import glob, json, os
+import pandas as pd
+
+bench_root = "/home/gpchen/pubdatasets/toolbench-v1/benchmark"
+wkd = "cache/llm/pubdatasets_toolbench_benchmark"
+os.makedirs(wkd, exist_ok=True)
+
+files = sorted(glob.glob(os.path.join(bench_root, "*.parquet")))
+if not files:
+    raise FileNotFoundError(f"No parquet found under: {bench_root}")
+
+def to_list(x):
+    if x is None:
+        return []
+    if isinstance(x, list):
+        return [str(v) for v in x]
+    if isinstance(x, dict):
+        return [str(v) for v in x.values()]
+    if isinstance(x, str):
+        s = x.strip()
+        if not s:
+            return []
+        try:
+            obj = json.loads(s)
+            if isinstance(obj, list):
+                return [str(v) for v in obj]
+            if isinstance(obj, dict):
+                return [str(v) for v in obj.values()]
+        except Exception:
+            pass
+        return [s]
+    return [str(x)]
+
+queries, gold = [], []
+for fp in files:
+    df = pd.read_parquet(fp)
+    if not {"query", "relevant_apis"}.issubset(df.columns):
+        continue
+    for _, row in df.iterrows():
+        q = str(row["query"]).replace("\n", " ").strip()
+        g = to_list(row["relevant_apis"])
+        queries.append(q if q else " ")
+        gold.append(g)
+
+src_txt = f"{wkd}/src.dev.txt"
+gold_txt = f"{wkd}/gold.toolbench.benchmark.txt"
+
+with open(src_txt, "w", encoding="utf-8") as fs, open(gold_txt, "w", encoding="utf-8") as fg:
+    for q, g in zip(queries, gold):
+        fs.write(q + "\n")
+        fg.write(json.dumps(g, ensure_ascii=False) + "\n")
+
+print("wrote:", src_txt)
+print("wrote:", gold_txt)
+print("samples:", len(queries))
+PY
+
+export WKD=cache/llm/pubdatasets_toolbench_benchmark
+export TOKENIZER=/home/common/plm/Qwen/Qwen3-8B
+
+# map（仅 src） -> mktest（未排序，保留行顺序）
+python tools/plm/map/qwen/v3.py "$WKD/src.dev.txt" "$TOKENIZER" "$WKD/src.dev.txt.ids" instruct_auto
+python tools/plm/llmdec/mktest.py "$WKD/src.dev.txt.ids" "$WKD/test.h5" 1
+
+wc -l "$WKD/src.dev.txt" "$WKD/gold.toolbench.benchmark.txt"
+```
+
+#### B. 预测 + 评测（直接用 `task-p2.sh`）
+
+```bash
+cd /home/gpchen/lora/transformer-edge
+DATA_ID=llm/pubdatasets_toolbench_benchmark \
+OUT=expm/llm/pubdatasets_toolbench_benchmark/std/base/pred_last.txt \
+MODEL=expm/llm/pubdatasets_toolbench/std/base/merge_last.h5 \
+TOKENIZER=/home/common/plm/Qwen/Qwen3-8B \
+SKIP_EVAL=0 TASK=tool \
+GOLD_FILE=cache/llm/pubdatasets_toolbench_benchmark/gold.toolbench.benchmark.txt \
+bash task-p2.sh
+```
+
+#### C. E 部分改为展示 `task-p2.sh` / `task-p4.sh` 代码改法
+
+如果你希望“脚本本身”支持基准评测/自定义 gold，而不是每次靠命令行覆盖，建议改成以下形式。
+
+`task-p2.sh`（ToolBench）建议改动：
+
+```bash
+# 默认仍走训练集链路；需要 benchmark 评测时用 DATA_ID=llm/pubdatasets_toolbench_benchmark 覆盖
+export DATA_ID="${DATA_ID:-llm/pubdatasets_toolbench}"
+_DATA_TAG="${DATA_ID##*/}"
+
+PRED_FILE="${PRED_FILE:-$OUT}"
+# 允许外部传 GOLD_FILE；否则按 DATA_ID 自动推导
+GOLD_FILE="${GOLD_FILE:-cache/llm/${_DATA_TAG}/tgt.dev.txt}"
+DETAIL_FILE="${DETAIL_FILE:-expm/llm/${_DATA_TAG}/std/base/eval_detail.jsonl}"
+python tools/eval/run_eval.py --task "$TASK" --pred "$PRED_FILE" --gold "$GOLD_FILE" --detail "$DETAIL_FILE"
+```
+
+`task-p4.sh`（MetaMathQA）建议改动：
+
+```bash
+# 默认仍 SKIP_EVAL=1；开启评测时优先使用你转换好的 gold.math.txt
+SKIP_EVAL="${SKIP_EVAL:-1}"
+if [[ "$SKIP_EVAL" == "0" ]]; then
+    TASK="${TASK:-math}"
+    PRED_FILE="${PRED_FILE:-$OUT}"
+    GOLD_FILE="${GOLD_FILE:-cache/llm/${_DATA_TAG}/gold.math.txt}"
+    DETAIL_FILE="${DETAIL_FILE:-expm/llm/${_DATA_TAG}/std/base/eval_detail.jsonl}"
+    python tools/eval/run_eval.py --task "$TASK" --pred "$PRED_FILE" --gold "$GOLD_FILE" --detail "$DETAIL_FILE"
+fi
+```
+
+#### D. 一致性自检（必做）
+
+```bash
+wc -l \
+  expm/llm/pubdatasets_toolbench_benchmark/std/base/pred_last.txt \
+  cache/llm/pubdatasets_toolbench_benchmark/gold.toolbench.benchmark.txt
+```
+
+行数应一致；若不一致，先修复输入链路再看分数。
 
 ### 9.3 快速自检（两类都建议做）
 

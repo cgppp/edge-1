@@ -1,13 +1,8 @@
 #!/bin/bash
-# Qwen3 预测 + 可选离线评测（与 task-4.sh 同一数据集：pubdatasets_metamathqa）
+# Qwen3 基座模型预测 + 可选离线评测（默认 MetaMathQA）
 # 用法：
-#   bash task-p4.sh
-#
-# 说明：
-# - predict.py 读 cache/<DATA_ID>/test.h5（须 mktest.py 生成）
-# - MetaMathQA 评测建议使用预先抽取的数字列表 gold（如 gold.math.loose.txt）
-# - 默认开启离线评测；若只做预测可设 SKIP_EVAL=1
-# - 与 task-4.sh 一致可设：USE_AMP=1（本脚本仅打印提示，训练用；预测由 cnfg 控制）
+#   bash task-p04.sh
+#   SKIP_EVAL=1 bash task-p04.sh
 
 set -e -o pipefail
 
@@ -18,13 +13,12 @@ PROJECT_ROOT=/home/gpchen/lora/transformer-edge
 cd "$PROJECT_ROOT"
 export PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
-# 与 task-4.sh 默认 DATA_ID 一致
 export DATA_ID="${DATA_ID:-llm/pubdatasets_metamathqa}"
 _DATA_TAG="${DATA_ID##*/}"
 
-export OUT="${OUT:-expm/llm/${_DATA_TAG}/std/base/pred_last.txt}"
+export OUT="${OUT:-expm/llm/${_DATA_TAG}/std/base/pred_base.txt}"
 export TOKENIZER="${TOKENIZER:-/home/common/plm/Qwen/Qwen3-8B}"
-export MODEL="${MODEL:-expm/llm/${_DATA_TAG}/std/base/merge_last.h5}"
+export MODEL="${MODEL:-/home/common/plm/Qwen/Qwen3-8B/model.h5}"
 
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 
@@ -36,15 +30,14 @@ echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 
 python adv/predict/plm/qwen/predict.py "$OUT" "$TOKENIZER" "$MODEL"
 
-# ---- 离线评测（math/gsm8k 需可解析的数字列表 gold；默认开启）----
 SKIP_EVAL="${SKIP_EVAL:-0}"
 if [[ "$SKIP_EVAL" == "0" ]]; then
 	TASK="${TASK:-math}"
 	PRED_FILE="${PRED_FILE:-$OUT}"
 	GOLD_FILE="${GOLD_FILE:-cache/llm/${_DATA_TAG}/gold.math.loose.txt}"
-	DETAIL_FILE="${DETAIL_FILE:-expm/llm/${_DATA_TAG}/std/base/eval_detail.jsonl}"
+	DETAIL_FILE="${DETAIL_FILE:-expm/llm/${_DATA_TAG}/std/base/eval_detail_base.jsonl}"
 	echo "TASK=$TASK PRED_FILE=$PRED_FILE GOLD_FILE=$GOLD_FILE DETAIL_FILE=$DETAIL_FILE"
 	python tools/eval/run_eval.py --task "$TASK" --pred "$PRED_FILE" --gold "$GOLD_FILE" --detail "$DETAIL_FILE"
 else
-	echo "SKIP_EVAL=1: 跳过离线评测。默认可用 GOLD_FILE=cache/llm/${_DATA_TAG}/gold.math.loose.txt"
+	echo "SKIP_EVAL=1: 跳过离线评测。"
 fi
