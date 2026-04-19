@@ -1,0 +1,84 @@
+bash: task-t1.sh: 没有那个文件或目录
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/tools/check/debug/plm/qwen/v3_8b_align.py", line 176, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/gpchen/lora/transformer-edge/tools/check/debug/plm/qwen/v3_8b_align.py", line 127, in main
+    make_mp_model(nm)
+  File "/home/gpchen/lora/transformer-edge/utils/norm/mp/f.py", line 110, in convert
+    modin.to(device=device, dtype=dtype, non_blocking=True)
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1381, in to
+    return self._apply(convert)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 933, in _apply
+    module._apply(fn)
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 964, in _apply
+    param_applied = fn(param)
+                    ^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1367, in convert
+    return t.to(
+           ^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.55 GiB
+Requested               : 1.16 GiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 15.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/tools/check/debug/plm/qwen/v3_8b_align.py", line 176, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/gpchen/lora/transformer-edge/tools/check/debug/plm/qwen/v3_8b_align.py", line 127, in main
+    make_mp_model(nm)
+  File "/home/gpchen/lora/transformer-edge/utils/norm/mp/f.py", line 110, in convert
+    modin.to(device=device, dtype=dtype, non_blocking=True)
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1381, in to
+    return self._apply(convert)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 933, in _apply
+    module._apply(fn)
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 964, in _apply
+    param_applied = fn(param)
+                    ^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1367, in convert
+    return t.to(
+           ^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.55 GiB
+Requested               : 1.16 GiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 15.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+错误: 找不到 model.h5: /path/to/Qwen3-8B/model.h5
+错误: 找不到 model.h5: /path/to/model.h5
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/tools/check/debug/plm/qwen/v3_8b_align.py", line 176, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/gpchen/lora/transformer-edge/tools/check/debug/plm/qwen/v3_8b_align.py", line 127, in main
+    make_mp_model(nm)
+  File "/home/gpchen/lora/transformer-edge/utils/norm/mp/f.py", line 110, in convert
+    modin.to(device=device, dtype=dtype, non_blocking=True)
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1381, in to
+    return self._apply(convert)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 933, in _apply
+    module._apply(fn)
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 964, in _apply
+    param_applied = fn(param)
+                    ^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1367, in convert
+    return t.to(
+           ^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.55 GiB
+Requested               : 1.16 GiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 15.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+Loading weights:   0%|          | 0/399 [00:00<?, ?it/s]Loading weights: 100%|██████████| 399/399 [00:00<00:00, 46644.94it/s]
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.

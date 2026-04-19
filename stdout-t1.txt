@@ -1,0 +1,53 @@
+llm_path: /home/common/plm/Qwen/Qwen3-8B
+model_h5: /home/common/plm/Qwen/Qwen3-8B/model.h5
+device: cuda:0
+prompt token len: 23
+load_plm (本地)...
+llm_path: /home/common/plm/Qwen/Qwen3-8B
+model_h5: /home/common/plm/Qwen/Qwen3-8B/model.h5
+device: cuda:0
+prompt token len: 23
+load_plm (本地)...
+llm_path: /path/to/Qwen3-8B
+model_h5: /path/to/Qwen3-8B/model.h5
+device: cuda:0
+llm_path: /path/to/Qwen3-8B
+model_h5: /path/to/model.h5
+device: cuda:0
+llm_path: /home/common/plm/Qwen/Qwen3-8B
+model_h5: /home/common/plm/Qwen/Qwen3-8B/model.h5
+device: cuda:0
+prompt token len: 23
+load_plm (本地)...
+llm_path: /home/common/plm/Qwen/Qwen3-8B
+model_h5: /home/common/plm/Qwen/Qwen3-8B/model.h5
+device: cuda:0
+prompt token len: 23
+load Qwen3ForCausalLM (HF), dtype= torch.bfloat16
+load_plm (本地)...
+---- log_softmax logits ----
+shape HF: (1, 23, 151936) shape NM: (1, 23, 151936)
+max abs diff: 1.125
+mean abs diff: 0.13884027302265167
+---- short generate (HF greedy vs NM greedy_decode) ----
+HF: <|im_start|>system
+You are a helpful assistant.<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+<think>
+Okay, the user asked "How are you?" I need to respond in a friendly and helpful way. Let me start by acknowledging their question. I
+NM: <think>
+Okay, the user asked "How are you?" I need to respond in a friendly and helpful way. Let me start by acknowledging their question. I should
+llm_path: /home/common/plm/Qwen/Qwen3-8B
+model_h5: /home/common/plm/Qwen/Qwen3-8B/model.h5
+
+======== 统计 ========
+h5 参数项数: 399
+HF 参数项数: 399
+交集: 399
+仅在 h5 中: 0
+仅在 HF 中: 0
+同名但 shape 不一致: 0
+
+结论: 键名与 shape 在交集上完全一致（空模型 HF 命名与 h5 一致）。

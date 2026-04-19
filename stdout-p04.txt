@@ -1,0 +1,5 @@
+OUT=expm/llm/pubdatasets_metamathqa/std/base/pred_base.txt
+TOKENIZER=/home/common/plm/Qwen/Qwen3-8B
+MODEL=/home/common/plm/Qwen/Qwen3-8B/model.h5
+DATA_ID=llm/pubdatasets_metamathqa
+CUDA_VISIBLE_DEVICES=1

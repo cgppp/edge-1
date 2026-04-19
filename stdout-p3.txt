@@ -50,3 +50,15 @@ sum_score=23.000000
 mean_score=0.005174
 accuracy=0.005174
 detail_saved=expm/llm/pubdatasets_nq_closed/std/base/eval_detail.jsonl
+OUT=expm/llm/pubdatasets_nq_closed/std/base/pred_last.txt
+TOKENIZER=/home/common/plm/Qwen/Qwen3-8B
+MODEL=expm/llm/pubdatasets_nq_closed/std/base/merge_last.h5
+DATA_ID=llm/pubdatasets_nq_closed
+CUDA_VISIBLE_DEVICES=0
+TASK=nq_v1 PRED_FILE=expm/llm/pubdatasets_nq_closed/std/base/pred_last.txt GOLD_FILE=cache/llm/pubdatasets_nq_closed/tgt.dev.txt DETAIL_FILE=expm/llm/pubdatasets_nq_closed/std/base/eval_detail.jsonl
+task=nq_v1
+total=4462
+sum_score=884.000000
+mean_score=0.198117
+accuracy=0.198117
+detail_saved=expm/llm/pubdatasets_nq_closed/std/base/eval_detail.jsonl

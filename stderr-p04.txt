@@ -1,0 +1,40 @@
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/predict/plm/qwen/predict.py", line 8, in <module>
+    from transformers import AutoTokenizer
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/transformers/__init__.py", line 30, in <module>
+    from . import dependency_versions_check
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/transformers/dependency_versions_check.py", line 16, in <module>
+    from .utils.versions import require_version, require_version_core
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/transformers/utils/__init__.py", line 22, in <module>
+    from .auto_docstring import (
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/transformers/utils/auto_docstring.py", line 32, in <module>
+    from .generic import ModelOutput
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/transformers/utils/generic.py", line 36, in <module>
+    from .import_utils import is_mlx_available, is_torch_available, is_torch_fx_proxy
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/transformers/utils/import_utils.py", line 47, in <module>
+    PACKAGE_DISTRIBUTION_MAPPING = importlib.metadata.packages_distributions()
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/importlib/metadata/__init__.py", line 947, in packages_distributions
+    for pkg in _top_level_declared(dist) or _top_level_inferred(dist):
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/importlib/metadata/__init__.py", line 959, in _top_level_inferred
+    for f in always_iterable(dist.files)
+                             ^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/importlib/metadata/__init__.py", line 500, in files
+    return skip_missing_files(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/importlib/metadata/_functools.py", line 102, in wrapper
+    return func(param, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/importlib/metadata/__init__.py", line 498, in skip_missing_files
+    return list(filter(lambda path: path.locate().exists(), package_paths))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/importlib/metadata/__init__.py", line 498, in <lambda>
+    return list(filter(lambda path: path.locate().exists(), package_paths))
+                                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/pathlib.py", line 860, in exists
+    self.stat(follow_symlinks=follow_symlinks)
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/pathlib.py", line 840, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 512] Unknown error 512: '/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/wheel/_metadata.py'

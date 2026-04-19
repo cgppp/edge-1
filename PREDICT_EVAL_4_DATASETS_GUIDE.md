@@ -40,7 +40,8 @@
 
 ### `task-p2.sh`（ToolBench）
 
-- 默认 `DATA_ID=llm/pubdatasets_toolbench`
+- 默认 `DATA_ID=llm/pubdatasets_toolbench_benchmark`（读 `cache/.../test.h5` 做 benchmark 预测）
+- 默认 `OUT` / `DETAIL_FILE` / `MODEL` 落在已有目录 `expm/llm/pubdatasets_toolbench/std/base`（与 `task-2.sh` 训练产物一致）
 - 默认 `TASK=tool`
 - 默认评测开启（`SKIP_EVAL=0`）
 
@@ -790,34 +791,18 @@ wc -l "$WKD/src.dev.txt" "$WKD/gold.toolbench.benchmark.txt"
 
 ```bash
 cd /home/gpchen/lora/transformer-edge
-DATA_ID=llm/pubdatasets_toolbench_benchmark \
-OUT=expm/llm/pubdatasets_toolbench_benchmark/std/base/pred_last.txt \
-MODEL=expm/llm/pubdatasets_toolbench/std/base/merge_last.h5 \
-TOKENIZER=/home/common/plm/Qwen/Qwen3-8B \
-SKIP_EVAL=0 TASK=tool \
-GOLD_FILE=cache/llm/pubdatasets_toolbench_benchmark/gold.toolbench.benchmark.txt \
+# 默认已：DATA_ID=benchmark、OUT/MODEL=expm/llm/pubdatasets_toolbench/std/base、GOLD=cache/.../benchmark
 bash task-p2.sh
+# 如需显式写出（与默认等价）：
+# DATA_ID=llm/pubdatasets_toolbench_benchmark \
+# TOKENIZER=/home/common/plm/Qwen/Qwen3-8B SKIP_EVAL=0 TASK=tool bash task-p2.sh
 ```
 
 #### C. E 部分改为展示 `task-p2.sh` / `task-p4.sh` 代码改法
 
-如果你希望“脚本本身”支持基准评测/自定义 gold，而不是每次靠命令行覆盖，建议改成以下形式。
+`task-p2.sh` 已在仓库内实现：`DATA_ID` 默认为 `llm/pubdatasets_toolbench_benchmark`（benchmark 的 `test.h5` / gold），`OUT`/`DETAIL_FILE`/`MODEL` 默认写到 `expm/llm/pubdatasets_toolbench/std/base`。需要训练集 dev 评测时可将 `DATA_ID` 改为 `llm/pubdatasets_toolbench` 并自行设置 `OUT` 等。
 
-`task-p2.sh`（ToolBench）建议改动：
-
-```bash
-# 默认仍走训练集链路；需要 benchmark 评测时用 DATA_ID=llm/pubdatasets_toolbench_benchmark 覆盖
-export DATA_ID="${DATA_ID:-llm/pubdatasets_toolbench}"
-_DATA_TAG="${DATA_ID##*/}"
-
-PRED_FILE="${PRED_FILE:-$OUT}"
-# 允许外部传 GOLD_FILE；否则按 DATA_ID 自动推导
-GOLD_FILE="${GOLD_FILE:-cache/llm/${_DATA_TAG}/tgt.dev.txt}"
-DETAIL_FILE="${DETAIL_FILE:-expm/llm/${_DATA_TAG}/std/base/eval_detail.jsonl}"
-python tools/eval/run_eval.py --task "$TASK" --pred "$PRED_FILE" --gold "$GOLD_FILE" --detail "$DETAIL_FILE"
-```
-
-`task-p4.sh`（MetaMathQA）建议改动：
+`task-p4.sh`（MetaMathQA）建议改动示例：
 
 ```bash
 # 默认仍 SKIP_EVAL=1；开启评测时优先使用你转换好的 gold.math.txt
@@ -835,7 +820,7 @@ fi
 
 ```bash
 wc -l \
-  expm/llm/pubdatasets_toolbench_benchmark/std/base/pred_last.txt \
+  expm/llm/pubdatasets_toolbench/std/base/pred_last.txt \
   cache/llm/pubdatasets_toolbench_benchmark/gold.toolbench.benchmark.txt
 ```
 

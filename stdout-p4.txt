@@ -9,3 +9,20 @@ MODEL=expm/llm/pubdatasets_metamathqa/std/base/merge_last.h5
 DATA_ID=llm/pubdatasets_metamathqa
 CUDA_VISIBLE_DEVICES=0
 SKIP_EVAL=1: 跳过离线评测（MetaMath tgt.dev 与 run_eval task=math/gsm8k 的 gold 格式通常不对齐）。设 SKIP_EVAL=0 并指定 TASK/GOLD_FILE 可启用。
+OUT=expm/llm/pubdatasets_metamathqa/std/base/pred_last.txt
+TOKENIZER=/home/common/plm/Qwen/Qwen3-8B
+MODEL=expm/llm/pubdatasets_metamathqa/std/base/merge_last.h5
+DATA_ID=llm/pubdatasets_metamathqa
+CUDA_VISIBLE_DEVICES=0
+TASK=math PRED_FILE=expm/llm/pubdatasets_metamathqa/std/base/pred_last.txt GOLD_FILE=cache/llm/pubdatasets_metamathqa/gold.math.loose.txt DETAIL_FILE=expm/llm/pubdatasets_metamathqa/std/base/eval_detail.jsonl
+task=math
+total=3923
+sum_score=0.000000
+mean_score=0.000000
+accuracy=0.000000
+detail_saved=expm/llm/pubdatasets_metamathqa/std/base/eval_detail.jsonl
+OUT=expm/llm/pubdatasets_metamathqa/std/base/pred_last.txt
+TOKENIZER=/home/common/plm/Qwen/Qwen3-8B
+MODEL=expm/llm/pubdatasets_metamathqa/std/base/merge_last.h5
+DATA_ID=llm/pubdatasets_metamathqa
+CUDA_VISIBLE_DEVICES=1

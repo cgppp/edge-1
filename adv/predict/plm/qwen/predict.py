@@ -46,6 +46,19 @@ def load_fixing(module):
 	if hasattr(module, "fix_load"):
 		module.fix_load()
 
+def load_predict_weights(path, model):
+	"""
+	训练 checkpoint（save_model）一般为模块 state_dict 名（wemb.weight、nets.*）→ load_model_cpu。
+	merge / 基座导出的 .h5 常为 HuggingFace 命名（model.*、lm_head.*）→ 必须 load_plm，否则名称对不上、权重全未加载，推理即乱码。
+	"""
+	with h5File(path, "r", **h5_fileargs) as h5f:
+		sample = next(iter(h5f.keys()), "")
+	if sample.startswith("model.") or sample.startswith("lm_head"):
+		model.load_plm(path)
+	else:
+		load_model_cpu(path, model)
+	return model
+
 use_cuda, cuda_device, cuda_devices, multi_gpu, use_amp, use_cuda_bfmp, use_cuda_fp16 = parse_cuda_decode(cnfg.use_cuda, gpuid=cnfg.gpuid, use_amp=cnfg.use_amp, multi_gpu_decoding=cnfg.multi_gpu_decoding, use_cuda_bfmp=cnfg.use_cuda_bfmp)
 set_random_seed(cnfg.seed, use_cuda)
 
@@ -68,7 +81,7 @@ if len(sys.argv) < 4:
 	if cnfg.pre_trained_m is not None:
 		mymodel.load_plm(cnfg.pre_trained_m)
 else:
-	mymodel = load_model_cpu(sys.argv[3], mymodel)
+	mymodel = load_predict_weights(sys.argv[3], mymodel)
 	mymodel.apply(load_fixing)
 mymodel.eval()
 
@@ -87,7 +100,9 @@ beam_size = cnfg.beam_size
 length_penalty = cnfg.length_penalty
 
 ens = "\n".encode("utf-8")
-src_grp, tgt_grp = td["src"], td["tgt"]
+# test.h5 的 tgt 组存的是 batch_padder 的每行「源序列真实长度」ll，不是 decode 所需的 prompt+金标 边界；
+# 对仅 src 的开放式生成传入 ilen 会触发 teacher forcing / min(ilen) 截断，输出乱码。推理一律 ilen=None。
+src_grp = td["src"]
 with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 	prefix_ids = lcnfg.prefix_ids
 	if prefix_ids:
@@ -106,15 +121,13 @@ with sys_open(sys.argv[1], "wb") as f, torch_inference_mode():
 	for i in tqdm(range(ntest), mininterval=tqdm_mininterval):
 		bid = str(i)
 		seq_batch = torch.from_numpy(src_grp[bid][()])
-		seq_o = torch.from_numpy(tgt_grp[bid][()])
 		if prefix_len is not None:
 			seq_batch = seq_batch.narrow(-1, prefix_len, seq_batch.size(-1) - prefix_len)
 		if cuda_device:
 			seq_batch = seq_batch.to(cuda_device, non_blocking=True)
-			seq_o = seq_o.to(cuda_device, non_blocking=True)
 		seq_batch = seq_batch.to(torch.int64, non_blocking=True)
 		with torch_autocast(enabled=use_amp):
-			output = mymodel.decode(seq_batch, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, ilen=seq_o, post_ilen_rs=True, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
+			output = mymodel.decode(seq_batch, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, ilen=None, post_ilen_rs=True, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
 		for tran in output:
 			f.write(ext_txt(tokenizer.decode(ext_ids(tran), skip_special_tokens=False, clean_up_tokenization_spaces=False).strip()).strip().encode("utf-8"))
 			f.write(ens)

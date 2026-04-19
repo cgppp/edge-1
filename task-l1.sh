@@ -24,7 +24,7 @@ export DATA_ID="${DATA_ID:-llm/pubdatasets_metamathqa}"
 # 其他可选: llm/pubdatasets_squad_closed, llm/pubdatasets_nq_closed, llm/pubdatasets_toolbench
 
 # HPLSTM 与 Attention 融合拓扑：A=并行(Decoder_1)，B=串联(Decoder_2，默认)，C=ResHPLSTM 子层(Decoder_3)
-export HPLSTM_FUSION="${HPLSTM_FUSION:-A}"
+export HPLSTM_FUSION="${HPLSTM_FUSION:-B}"
 
 # LoRA 超参（可选；与 cnfg/lora.py 一致，train_hplstm_qwen 会读环境变量覆盖）
 # 默认保持空：避免意外启用 LoRA（实现 HPLSTM-only）。

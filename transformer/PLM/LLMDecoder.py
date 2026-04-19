@@ -103,8 +103,10 @@ class Decoder(DecoderBase):
 		return _states
 
 	def decode(self, inpute, beam_size=1, max_len=512, length_penalty=0.0, fill_pad=False, ilen=None, post_ilen_rs=True, states=None, **kwargs):
-
-		return self.beam_decode(inpute, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, fill_pad=fill_pad, ilen=None if (ilen is None) or all_is_same(ilen) else ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, max_len=max_len, fill_pad=fill_pad, ilen=ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs)
+		# mktest 在同 batch 等长时 tgt 常为 shape (1,) 的标量；all_is_same(ilen) 为 True。
+		# beam 路径已置 ilen=None，greedy 若仍传该张量会与 bsize 维 teacher-forcing 掩码不一致，导致乱码。
+		_ilen = None if (ilen is None) or all_is_same(ilen) else ilen
+		return self.beam_decode(inpute, beam_size=beam_size, max_len=max_len, length_penalty=length_penalty, fill_pad=fill_pad, ilen=_ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs) if beam_size > 1 else self.greedy_decode(inpute, max_len=max_len, fill_pad=fill_pad, ilen=_ilen, post_ilen_rs=post_ilen_rs, states=states, **kwargs)
 
 	def get_sos_emb(self, inpute, bsize=None):
 

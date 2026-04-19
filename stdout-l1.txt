@@ -1,0 +1,2 @@
+DATA_ID=llm/pubdatasets_metamathqa PRE_TRAINED_M=/home/common/plm/Qwen/Qwen3-8B/model.h5 HPLSTM_FUSION=B LORA_RANK=<unset> LORA_ALPHA=<unset> USE_AMP=0
+DATA_ID=llm/pubdatasets_metamathqa PRE_TRAINED_M=/home/common/plm/Qwen/Qwen3-8B/model.h5 HPLSTM_FUSION=B LORA_RANK=<unset> LORA_ALPHA=<unset> USE_AMP=0

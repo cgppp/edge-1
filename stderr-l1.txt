@@ -18,3 +18,79 @@ Traceback (most recent call last):
     _ = states.get(0, (None, None,))[0]
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
 KeyError: 0
+HPLSTM fusion scheme: B (Decoder_2.py)
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_hplstm_qwen.py", line 411, in <module>
+    minloss, minerr = eva(vd, nvalid, mymodel, lossf, cuda_device, multi_gpu, use_amp)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_hplstm_qwen.py", line 235, in eva
+    output = model(oi, word_prediction=True, pred_mask=pred_mask, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 61, in forward
+    out = self.lsm(self.classifier(out))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/activation.py", line 1899, in forward
+    return F.log_softmax(input, self.dim, _stacklevel=5)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/functional.py", line 2265, in log_softmax
+    ret = input.log_softmax(dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.59 GiB
+Requested               : 99.11 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB
+HPLSTM fusion scheme: B (Decoder_2.py)
+Design models with seed: 666666
+Load pre-trained model from: /home/common/plm/Qwen/Qwen3-8B/model.h5
+Traceback (most recent call last):
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_hplstm_qwen.py", line 411, in <module>
+    minloss, minerr = eva(vd, nvalid, mymodel, lossf, cuda_device, multi_gpu, use_amp)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/adv/train/plm/train_hplstm_qwen.py", line 235, in eva
+    output = model(oi, word_prediction=True, pred_mask=pred_mask, states=prepare_states_bsize(prefix_states, bsize=seq_batch.size(0)))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/lora/transformer-edge/transformer/PLM/LLMDecoder.py", line 61, in forward
+    out = self.lsm(self.classifier(out))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/modules/activation.py", line 1899, in forward
+    return F.log_softmax(input, self.dim, _stacklevel=5)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gpchen/conda/envs/lora-edge/lib/python3.12/site-packages/torch/nn/functional.py", line 2265, in log_softmax
+    ret = input.log_softmax(dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Currently allocated     : 30.59 GiB
+Requested               : 99.11 MiB
+Device limit            : 31.36 GiB
+Free (according to CUDA): 19.69 MiB
+PyTorch limit (set by user-supplied memory fraction)
+                        : 17179869184.00 GiB

@@ -1,0 +1,2 @@
+source init_conda.sh && conda activate lora-edge
+cd /home/gpchen/lora/transformer-edge

@@ -28,3 +28,22 @@ TOKENIZER=/home/common/plm/Qwen/Qwen3-8B
 MODEL=expm/llm/pubdatasets_squad_closed/std/base/merge_last.h5
 DATA_ID=llm/pubdatasets_squad_closed
 CUDA_VISIBLE_DEVICES=0
+TASK=squad PRED_FILE=expm/llm/pubdatasets_squad_closed/std/base/pred_last.txt GOLD_FILE=cache/llm/pubdatasets_squad_closed/tgt.dev.txt DETAIL_FILE=expm/llm/pubdatasets_squad_closed/std/base/eval_detail.jsonl
+task=squad
+total=10452
+sum_score=140.000000
+mean_score=0.013395
+accuracy=0.013395
+detail_saved=expm/llm/pubdatasets_squad_closed/std/base/eval_detail.jsonl
+OUT=expm/llm/pubdatasets_squad_closed/std/base/pred_last.txt
+TOKENIZER=/home/common/plm/Qwen/Qwen3-8B
+MODEL=expm/llm/pubdatasets_squad_closed/std/base/merge_last.h5
+DATA_ID=llm/pubdatasets_squad_closed
+CUDA_VISIBLE_DEVICES=0
+TASK=squad PRED_FILE=expm/llm/pubdatasets_squad_closed/std/base/pred_last.txt GOLD_FILE=cache/llm/pubdatasets_squad_closed/tgt.dev.txt DETAIL_FILE=expm/llm/pubdatasets_squad_closed/std/base/eval_detail.jsonl
+task=squad
+total=10570
+sum_score=2516.000000
+mean_score=0.238032
+accuracy=0.238032
+detail_saved=expm/llm/pubdatasets_squad_closed/std/base/eval_detail.jsonl
